@@ -111,26 +111,20 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
     def get_instance(self, nr_cpus, mem, disk_space, **kwargs):
         """Initialize new instance and register with platform"""
 
-        # Standardize instance type
-        nr_cpus, mem, disk_space = self.standardize_instance_type(nr_cpus, mem, disk_space)
-
         # Obtain task_id that will be used
         task_id = kwargs.pop("task_id", None)
 
-        # Generate unique instance name
+        # Generate a unique instance name and associate it to the current request
         while True:
 
+            # Generate a (new) unique instance name
             if kwargs.pop("is_helper", False):
-                # Generate the helper instance name
-                inst_name = self.standardize_instance_name(f'helper'
-                                                           f'-{self.name[:20]}'
-                                                           f'-{self.generate_unique_id()}')
+                inst_name = f'helper-{self.name[:20]}-{self.generate_unique_id()}'
             else:
-                # Generate a new instance name from platform name, task ID, and an unique randomer
-                inst_name = self.standardize_instance_name(f'inst'
-                                                           f'-{self.name[:20]}'
-                                                           f'-{task_id[:25]}'
-                                                           f'-{self.generate_unique_id()}')
+                inst_name = f'inst-{self.name[:20]}-{task_id[:25]}-{self.generate_unique_id()}'
+
+            # Standardize instance type
+            inst_name, nr_cpus, mem, disk_space = self.standardize_instance(inst_name, nr_cpus, mem, disk_space)
 
             # Check if instance name already exists (because of randomer collission), otherwise reserve it
             with self.platform_lock:
@@ -261,13 +255,8 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     @staticmethod
-    def standardize_instance_name(inst_name):
-        return inst_name
-
-    @abc.abstractmethod
-    @staticmethod
-    def standardize_instance_type(nr_cpus, mem, disk_space):
-        return nr_cpus, mem, disk_space
+    def standardize_instance(inst_name, nr_cpus, meme, disk_space):
+        pass
 
     @abc.abstractmethod
     def publish_report(self, report):

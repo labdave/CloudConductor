@@ -1,5 +1,4 @@
 import json
-import math
 
 from System.Platform import CloudInstance
 
@@ -31,9 +30,6 @@ class GoogleInstance(CloudInstance):
         self.node = None
 
         #super(GoogleInstance, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
-
-        self.validate()
-
         self.create_instance()
 
     def __parse_service_account_json(self):
@@ -45,18 +41,6 @@ class GoogleInstance(CloudInstance):
         # Save data locally
         self.service_account = service_account_data["client_email"]
         self.project_id = service_account_data["project_id"]
-
-    def validate(self):
-
-        # Ensure the memory is withing GCP range:
-        if self.mem/self.nr_cpus < 0.9:
-            self.mem = self.nr_cpus * 0.9
-        elif self.mem/self.nr_cpus > 6.5:
-            self.nr_cpus = math.ceil(self.mem / 6.5)
-
-        # Ensure number of CPUs is an even number or 1
-        if self.nr_cpus != 1 and self.nr_cpus % 2 == 1:
-            self.nr_cpus += 1
 
     def create(self):
 
