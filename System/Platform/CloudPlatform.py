@@ -67,6 +67,9 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
         self.wrk_dir = "/data"
         self.final_output_dir = self.standardize_dir(final_output_dir)
 
+        # Save extra variables
+        self.extra = self.config.get("extra", {})
+
         # Dictionary to hold instances currently managed by the platform
         self.instances = {}
 
@@ -183,7 +186,7 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
         })
 
         # Also add the extra information
-        kwargs.update(self.config["extra"])
+        kwargs.update(self.extra)
 
         # Initialize new instance
         try:
