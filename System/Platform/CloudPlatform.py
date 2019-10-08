@@ -262,7 +262,7 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def publish_report(self, report):
+    def publish_report(self, report_path):
         pass
 
     @abc.abstractmethod

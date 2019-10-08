@@ -1,12 +1,14 @@
 import logging
 import importlib
 import json
+import os
 from collections import OrderedDict
 
 from System.Graph import Graph, Scheduler
 from System.Datastore import ResourceKit, SampleSet, Datastore
 from System.Validators import GraphValidator, InputValidator, SampleValidator
 from System.Platform import StorageHelper, DockerHelper
+from System import CC_MAIN_DIR
 
 class GAPipeline(object):
 
@@ -139,8 +141,18 @@ class GAPipeline(object):
         # Create and publish GAP pipeline report
         try:
             report = self.__make_pipeline_report(err, err_msg, git_version)
+
+            # Generate report name and path
+            report_path = f"{CC_MAIN_DIR}/{self.pipeline_id}_final_report.json"
+
+            # Publish report locally
+            with open(report_path, "w") as out:
+                out.write(str(report))
+
+            # Publish report on the platform
             if self.platform is not None:
-                self.platform.publish_report(report)
+                self.platform.publish_report(report_path)
+
         except BaseException as e:
             logging.error("Unable to publish report!")
             if str(e) != "":
