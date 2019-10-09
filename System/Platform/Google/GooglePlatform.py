@@ -3,20 +3,39 @@ import os
 import subprocess as sp
 import logging
 import base64
+import random
 
-from google.cloud import pubsub_v1
-
+from System import CC_MAIN_DIR
 from System.Platform import CloudPlatform
 from System.Platform.Google import GoogleInstance
-from System import CC_MAIN_DIR
 
+from google.cloud import pubsub_v1
+from libcloud.compute.types import Provider
+from libcloud.compute.providers import get_driver
 
 class GooglePlatform(CloudPlatform):
+
+    def __init__(self, name, platform_config_file, final_output_dir):
+
+        # Initialize the base class
+        super(GooglePlatform, self).__init__(name, platform_config_file, final_output_dir)
+
+        # Initialize additional necessary variables
+        self.driver = None
+
+        # Obtain the service account and the project ID
+        self.service_account, self.project_id = GoogleInstance.parse_service_account_json(self.identity)
 
     def authenticate_platform(self):
 
         # Export google cloud credential file
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(CC_MAIN_DIR, self.identity)
+
+        # Initialize libcloud driver
+        driver_class = get_driver(Provider.GCE)
+        self.driver = driver_class(self.service_account, self.identity,
+                                   datacenter=self.zone,
+                                   project=self.project_id)
 
     @staticmethod
     def standardize_instance(inst_name, nr_cpus, mem, disk_space):
@@ -61,7 +80,13 @@ class GooglePlatform(CloudPlatform):
         pass
 
     def get_random_zone(self):
-        return "us-east1-c"
+
+        # Get list of zones and filter them to start with the current region
+        zones_in_region = [
+            zone_obj.name for zone_obj in self.driver.ex_list_zones() if zone_obj.name.startswith(self.region)
+        ]
+
+        return random.choice(zones_in_region)
 
     def get_cloud_instance_class(self):
         return GoogleInstance
