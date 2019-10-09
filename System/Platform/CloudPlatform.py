@@ -6,11 +6,11 @@ import os
 import time
 from pathlib import Path
 
-from Config import ConfigParser
-
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
+
+from Config import ConfigParser
 
 
 class CloudPlatform(object, metaclass=abc.ABCMeta):
@@ -88,10 +88,17 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
 
         # Initialize the location of the CloudConductor ssh_key
         self.ssh_private_key = None
+
+    def init_platform(self):
+
+        # Authenticate CloudConductor locally
         self.authenticate_cc()
 
-        # Authenticate the platform when done
+        # Authenticate the current platform
         self.authenticate_platform()
+
+        # Validate the current platform
+        self.validate()
 
     def authenticate_cc(self):
 
