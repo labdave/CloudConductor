@@ -13,9 +13,7 @@ class GoogleInstance(CloudInstance):
         super(GoogleInstance, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
 
         # Initialize the instance credentials
-        self.service_account = None
-        self.project_id = None
-        self.__parse_service_account_json()
+        self.service_account, self.project_id = self.parse_service_account_json(self.identity)
 
         # Create libcloud driver
         driver_class = get_driver(Provider.GCE)
@@ -32,15 +30,18 @@ class GoogleInstance(CloudInstance):
         #super(GoogleInstance, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
         self.create_instance()
 
-    def __parse_service_account_json(self):
+    @staticmethod
+    def parse_service_account_json(identity_json_file):
 
         # Parse service account file
-        with open(self.identity) as json_inp:
+        with open(identity_json_file) as json_inp:
             service_account_data = json.load(json_inp)
 
         # Save data locally
-        self.service_account = service_account_data["client_email"]
-        self.project_id = service_account_data["project_id"]
+        service_account = service_account_data["client_email"]
+        project_id = service_account_data["project_id"]
+
+        return service_account, project_id
 
     def create(self):
 
