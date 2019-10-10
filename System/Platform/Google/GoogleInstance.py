@@ -27,9 +27,6 @@ class GoogleInstance(CloudInstance):
         # Initialize the node variable
         self.node = None
 
-        #super(GoogleInstance, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
-        self.create_instance()
-
     @staticmethod
     def parse_service_account_json(identity_json_file):
 
@@ -43,7 +40,7 @@ class GoogleInstance(CloudInstance):
 
         return service_account, project_id
 
-    def create(self):
+    def create_instance(self):
 
         # Generate NodeSize for instance
         size_name = f"custom-{self.nr_cpus}-{self.mem*1024}"
@@ -65,13 +62,13 @@ class GoogleInstance(CloudInstance):
         # Return the external IP from node
         return self.node.public_ips[0]
 
-    def destroy(self):
+    def destroy_instance(self):
         self.driver.destroy_node(self.node)
 
-    def start(self):
+    def start_instance(self):
         self.driver.ex_start_node(self.node)
 
-    def stop(self):
+    def stop_instance(self):
         self.driver.ex_stop_node(self.node)
 
     def get_status(self):

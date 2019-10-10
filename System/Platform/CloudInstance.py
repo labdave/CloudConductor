@@ -59,13 +59,13 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Create the instance
         self.create_instance()
 
-    def create_instance(self):
+    def create(self):
 
         # Add creation event to instance history
         self.__add_history_event("CREATE")
 
         # Create the actual instance
-        self.external_IP = self.create()
+        self.external_IP = self.create_instance()
 
         # Check if external IP was set
         if self.external_IP is None:
@@ -76,7 +76,10 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Wait until instance is ready (aka the SSH server is responsive)
         self.__wait_until_ready()
 
-    def destroy_instance(self):
+        # Return an instance of self
+        return self
+
+    def destroy(self):
 
         while True:
 
@@ -90,7 +93,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
             # If status is not DESTROYING then we destroy the instance
             elif status != CloudInstance.DESTROYING:
-                self.destroy()
+                self.destroy_instance()
 
             # Wait for 10 seconds before checking again for status
             time.sleep(10)
@@ -108,19 +111,19 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                                self.name)
 
         # Recreate instance
-        self.destroy_instance()
-        self.create_instance()
+        self.destroy()
+        self.create()
 
         # Increment the recreation count
         self.recreation_count += 1
 
-    def start_instance(self):
+    def start(self):
 
         # Add history event
         self.__add_history_event("START")
 
         # Start instance
-        self.external_IP = self.start()
+        self.external_IP = self.start_instance()
 
         # Check if external IP was set
         if self.external_IP is None:
@@ -131,10 +134,10 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Wait until instance is ready (aka the SSH server is responsive)
         self.__wait_until_ready()
 
-    def stop_instance(self):
+    def stop(self):
 
         # Stop instance
-        self.stop()
+        self.stop_instance()
 
         # Add history event
         self.__add_history_event("STOP")
@@ -150,8 +153,8 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                                self.name)
 
         # Recreate instance
-        self.stop_instance()
-        self.start_instance()
+        self.stop()
+        self.start()
 
         # Increment the recreation count
         self.reset_count += 1
@@ -385,19 +388,19 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
     # ABSTRACT METHODS TO BE IMPLEMENTED BY INHERITING CLASSES
 
     @abc.abstractmethod
-    def create(self):
+    def create_instance(self):
         pass
 
     @abc.abstractmethod
-    def destroy(self):
+    def destroy_instance(self):
         pass
 
     @abc.abstractmethod
-    def start(self):
+    def start_instance(self):
         pass
 
     @abc.abstractmethod
-    def stop(self):
+    def stop_instance(self):
         pass
 
     @abc.abstractmethod
