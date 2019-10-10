@@ -4,6 +4,7 @@ import subprocess as sp
 import logging
 import base64
 import random
+from threading import Thread
 
 from System import CC_MAIN_DIR
 from System.Platform import CloudPlatform
@@ -12,6 +13,7 @@ from System.Platform.Google import GoogleInstance
 from google.cloud import pubsub_v1
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
+
 
 class GooglePlatform(CloudPlatform):
 
@@ -77,7 +79,19 @@ class GooglePlatform(CloudPlatform):
         pass
 
     def clean_up(self):
-        pass
+
+        # Initialize the list of threads
+        destroy_threads = []
+
+        # Launch the destroy process for each instance
+        for name, instance_obj in self.instances.items():
+            thr = Thread(target=instance_obj.destroy, daemon=True)
+            thr.start()
+            destroy_threads.append(thr)
+
+        # Wait for all threads to finish
+        for _thread in destroy_threads:
+            _thread.join()
 
     def get_random_zone(self):
 
