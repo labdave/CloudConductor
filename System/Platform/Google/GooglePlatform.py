@@ -28,6 +28,18 @@ class GooglePlatform(CloudPlatform):
         # Obtain the service account and the project ID
         self.service_account, self.project_id = GoogleInstance.parse_service_account_json(self.identity)
 
+    def get_random_zone(self):
+
+        # Get list of zones and filter them to start with the current region
+        zones_in_region = [
+            zone_obj.name for zone_obj in self.driver.ex_list_zones() if zone_obj.name.startswith(self.region)
+        ]
+
+        return random.choice(zones_in_region)
+
+    def get_cloud_instance_class(self):
+        return GoogleInstance
+
     def authenticate_platform(self):
 
         # Export google cloud credential file
@@ -38,6 +50,10 @@ class GooglePlatform(CloudPlatform):
         self.driver = driver_class(self.service_account, self.identity,
                                    datacenter=self.zone,
                                    project=self.project_id)
+
+    def validate(self):
+        # Nothing to validate for Google Cloud
+        pass
 
     @staticmethod
     def standardize_instance(inst_name, nr_cpus, mem, disk_space):
@@ -75,9 +91,6 @@ class GooglePlatform(CloudPlatform):
         if pubsub_topic and pubsub_project:
             GooglePlatform.__send_pubsub_message(pubsub_topic, pubsub_project, dest_path)
 
-    def validate(self):
-        pass
-
     def clean_up(self):
 
         # Initialize the list of threads
@@ -92,18 +105,6 @@ class GooglePlatform(CloudPlatform):
         # Wait for all threads to finish
         for _thread in destroy_threads:
             _thread.join()
-
-    def get_random_zone(self):
-
-        # Get list of zones and filter them to start with the current region
-        zones_in_region = [
-            zone_obj.name for zone_obj in self.driver.ex_list_zones() if zone_obj.name.startswith(self.region)
-        ]
-
-        return random.choice(zones_in_region)
-
-    def get_cloud_instance_class(self):
-        return GoogleInstance
 
     @staticmethod
     def __run_cmd(cmd, err_msg=None, num_retries=5):

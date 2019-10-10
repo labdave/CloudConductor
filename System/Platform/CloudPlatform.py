@@ -260,7 +260,19 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
     # ABSTRACT METHODS TO BE IMPLEMENTED BY INHERITING CLASSES
 
     @abc.abstractmethod
+    def get_random_zone(self):
+        pass
+
+    @abc.abstractmethod
+    def get_cloud_instance_class(self):
+        pass
+
+    @abc.abstractmethod
     def authenticate_platform(self):
+        pass
+
+    @abc.abstractmethod
+    def validate(self):
         pass
 
     @abc.abstractmethod
@@ -273,19 +285,7 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def validate(self):
-        pass
-
-    @abc.abstractmethod
     def clean_up(self):
-        pass
-
-    @abc.abstractmethod
-    def get_random_zone(self):
-        pass
-
-    @abc.abstractmethod
-    def get_cloud_instance_class(self):
         pass
 
     # PRIVATE UTILITY METHODS
