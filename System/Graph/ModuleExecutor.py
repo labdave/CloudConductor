@@ -56,26 +56,20 @@ class ModuleExecutor(object):
                 job_name = "load_input_%s_%s_%s" % (self.task_id, task_input.get_type(), count)
                 logging.debug("Input path: %s, transfer path: %s" % (task_input.get_path(), src_path))
 
-                # Check if file is prefix of multiple files
-                if task_input.is_prefix():
-                    dest_filename = None
-                    dest_path = dest_dir
+                # Generate complete transfer path
+                dest_path = os.path.join(dest_dir, task_input.filename)
 
-                else:
-                    # Check to see if sample name is provided for the current file and add it if there is
+                # Check to see if transferring file would overwrite existing file
+                if dest_path in dest_seen:
+                    # Add unique tag to destination filename to prevent overwrite
                     if task_input.sample_name is not None:
                         dest_filename = "{0}_{1}".format(task_input.sample_name, task_input.filename)
                     else:
-                        dest_filename = task_input.filename
-
-                    # Generate complete transfer path
-                    dest_path = os.path.join(dest_dir, dest_filename)
-
-                    # Check to see if transferring file would overwrite existing file
-                    if dest_path in dest_seen:
-                        # Add unique tag to destination filename to prevent overwrite
                         dest_filename = "{0}_{1}".format(Platform.generate_unique_id(), dest_filename)
-                        dest_path = os.path.join(dest_dir, dest_filename)
+                    dest_path = os.path.join(dest_dir, task_input.filename)
+                else:
+                    dest_filename = None
+                    dest_path = dest_dir
 
                 # Show the final log file
                 logging.debug("Destination: {0}".format(dest_path))
