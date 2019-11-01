@@ -118,13 +118,20 @@ class ConsolidateSampleName(Module):
                 is_tumor = []
 
             # Simplify the sample names and make them unique
-            samples = set([ (self.simplify_sample_ID(_s), _t) for _s, _t in zip_longest(sample_name, is_tumor)])
+            samples = set()
+            for _s, _t in zip_longest(sample_name, is_tumor):
+
+                # Check if sample name is a list
+                if isinstance(_s, list):
+                    samples.update([(self.simplify_sample_ID(_ss), _t) for _ss in _s])
+                else:
+                    samples.add((self.simplify_sample_ID(_s), _t))
 
             # If more than one unique sample is found, throw a warning as this should NOT happen
             if len(samples) > 1:
-                logging.warning("The input for readgroup creation contains more than one unique sample! "
-                                "The analysis might not be biologically correct as one readgroup should be "
-                                "associated with maximum one sample!")
+                logging.warning("The output for sample name consolidation is more than one unique sample! "
+                                "The analysis might not be biologically correct if alignment is performed "
+                                "as one readgroup should be associated with maximum one sample!")
 
             # Obtain the first unique sample name
             sample_name, is_tumor = next(iter(samples))

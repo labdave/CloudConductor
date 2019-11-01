@@ -66,7 +66,8 @@ class ModuleExecutor(object):
                         dest_filename = "{0}_{1}".format(task_input.sample_name, task_input.filename)
                     else:
                         dest_filename = "{0}_{1}".format(Platform.generate_unique_id(), dest_filename)
-                    dest_path = os.path.join(dest_dir, task_input.filename)
+                    logging.debug("Changing filename from '{0}' to '{1}'.".format(task_input.filename, dest_filename))
+                    dest_path = os.path.join(dest_dir, dest_filename)
                 else:
                     dest_filename = None
                     dest_path = dest_dir

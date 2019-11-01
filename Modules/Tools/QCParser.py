@@ -518,9 +518,10 @@ class DOCSampleIntervalSummary(_QCParser):
         self.add_argument("intervals", default_value=["ERCC-00004","ERCC-00046","ERCC-00085","ERCC-00095",
                                                        "ERCC-00108","ERCC-00142","ERCC-00148","ERCC-00156",
                                                        "ERCC-00171"])
-        # overwrite the default values for nr_cpus and mem
-        self.set_argument('nr_cpus', 4)
-        self.set_argument('mem', 8)
+
+        # Overwrite the default values for nr_cpus and mem
+        self.add_argument("nr_cpus", is_required=True, default_value=4)
+        self.add_argument("mem", is_required=True, default_value=10)
 
     def define_command(self):
         # Get options from kwargs
