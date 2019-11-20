@@ -454,7 +454,7 @@ class CollectReadCounts(_GATKBase):
 
         output_file_flag = self.get_output_file_flag()
 
-        cmd = "{0} CollectReadCounts -I {1} {3} {2} --format TSV ".format(gatk_cmd, bam, read_count_out, output_file_flag)
+        cmd = "{0} CollectReadCounts -I {1} {3} {2} --format TSV -DF MappingQualityReadFilter ".format(gatk_cmd, bam, read_count_out, output_file_flag)
 
         if interval_list is not None:
             cmd = "{0} -L {1} --interval-merging-rule OVERLAPPING_ONLY".format(cmd, interval_list)
