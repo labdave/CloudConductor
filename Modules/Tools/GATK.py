@@ -785,7 +785,8 @@ class DepthOfCoverage(_GATKBase):
 
         # Generate the command line for DepthOfCoverage
         cmd = "{0} DepthOfCoverage -I {1} -R {2} --countType {5} -ct 1 -ct 10 -ct 25 -ct 50 -ct 75 -ct 100 -ct 150 " \
-              "-ct 200 -ct 250 -ct 500 {3} {4}".format(gatk_cmd, bam, ref, output_file_flag, self.prefix, count_type)
+              "-ct 200 -ct 250 -ct 500 {3} {4} --omitDepthOutputAtEachBase".format(gatk_cmd, bam, ref,
+                                                                                   output_file_flag, self.prefix, count_type)
 
         if interval_list is not None:
             cmd = "{0} -L {1}".format(cmd, interval_list)
