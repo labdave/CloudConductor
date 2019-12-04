@@ -733,16 +733,17 @@ class DepthOfCoverage(_GATKBase):
 
     def define_input(self):
         self.define_base_args()
-        self.add_argument("bam",            is_required=True)
-        self.add_argument("bam_idx",        is_required=True)
-        self.add_argument("ref",            is_required=True, is_resource=True)
-        self.add_argument("interval_list",  is_required=False)
-        self.add_argument("gene_list",      is_required=False, default_value=None)
-        self.add_argument("read_group",     is_required=False, default_value=None)
-        self.add_argument("unsafe",         is_required=False, default_value='ALLOW_N_CIGAR_READS')
-        self.add_argument("count_type",     is_required=False, default_value='COUNT_FRAGMENTS')
-        self.add_argument("nr_cpus",        is_required=True, default_value=8)
-        self.add_argument("mem",            is_required=True, default_value="nr_cpus * 2")
+        self.add_argument("bam",                is_required=True)
+        self.add_argument("bam_idx",            is_required=True)
+        self.add_argument("ref",                is_required=True, is_resource=True)
+        self.add_argument("interval_list",      is_required=False)
+        self.add_argument("gene_list",          is_required=False, default_value=None)
+        self.add_argument("read_group",         is_required=False, default_value=None)
+        self.add_argument("unsafe",             is_required=False, default_value='ALLOW_N_CIGAR_READS')
+        self.add_argument("count_type",         is_required=False, default_value='COUNT_FRAGMENTS')
+        self.add_argument("per_base_summary",   is_required=False, default_value=None)
+        self.add_argument("nr_cpus",            is_required=True, default_value=8)
+        self.add_argument("mem",                is_required=True, default_value="nr_cpus * 2")
 
     def define_output(self):
         # Declare unique file name for a single output file
@@ -759,7 +760,9 @@ class DepthOfCoverage(_GATKBase):
         cumulative_coverage_counts      = "{0}.sample_cumulative_coverage_counts".format(self.prefix)
         cumulative_coverage_proportions = "{0}.sample_cumulative_coverage_proportions".format(self.prefix)
 
-        self.add_output("per_base_summary", self.prefix)
+        if self.get_argument("per_base_summary"):
+            self.add_output("per_base_summary", self.prefix)
+
         self.add_output("interval_summary", interval_summary)
         self.add_output("interval_statistics", interval_statistics)
         self.add_output("sample_summary", sample_summary)
@@ -769,13 +772,14 @@ class DepthOfCoverage(_GATKBase):
 
     def define_command(self):
         # Get input arguments
-        bam             = self.get_argument("bam")
-        ref             = self.get_argument("ref")
-        interval_list   = self.get_argument("interval_list")
-        gene_list       = self.get_argument("gene_list")
-        read_group      = self.get_argument("read_group")
-        unsafe          = self.get_argument("unsafe")
-        count_type      = self.get_argument("count_type")
+        bam                 = self.get_argument("bam")
+        ref                 = self.get_argument("ref")
+        interval_list       = self.get_argument("interval_list")
+        gene_list           = self.get_argument("gene_list")
+        read_group          = self.get_argument("read_group")
+        unsafe              = self.get_argument("unsafe")
+        count_type          = self.get_argument("count_type")
+        per_base_summary    = self.get_argument("per_base_summary")
 
         # Get base GATK command line
         gatk_cmd = self.get_gatk_command()
@@ -786,6 +790,9 @@ class DepthOfCoverage(_GATKBase):
         # Generate the command line for DepthOfCoverage
         cmd = "{0} DepthOfCoverage -I {1} -R {2} --countType {5} -ct 1 -ct 10 -ct 25 -ct 50 -ct 75 -ct 100 -ct 150 " \
               "-ct 200 -ct 250 -ct 500 {3} {4}".format(gatk_cmd, bam, ref, output_file_flag, self.prefix, count_type)
+
+        if not per_base_summary:
+            cmd = "{0} --omitDepthOutputAtEachBase".format(cmd)
 
         if interval_list is not None:
             cmd = "{0} -L {1}".format(cmd, interval_list)
