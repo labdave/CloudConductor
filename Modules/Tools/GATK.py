@@ -596,7 +596,7 @@ class Mutect2(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
         super(Mutect2, self).__init__(module_id, is_docker)
-        self.output_keys = ["vcf", "vcf_idx"]
+        self.output_keys = ["vcf_gz", "vcf_tbi"]
 
     def define_input(self):
         self.define_base_args()
@@ -610,11 +610,11 @@ class Mutect2(_GATKBase):
 
     def define_output(self):
         # Declare VCF output filename
-        vcf = self.generate_unique_file_name(extension=".vcf")
-        self.add_output("vcf", vcf)
+        vcf = self.generate_unique_file_name(extension=".vcf.gz")
+        self.add_output("vcf_gz", vcf)
         # Declare VCF index output filename
-        vcf_idx = self.generate_unique_file_name(extension=".vcf.idx")
-        self.add_output("vcf_idx", vcf_idx)
+        vcf_idx = self.generate_unique_file_name(extension=".vcf.gz.tbi")
+        self.add_output("vcf_tbi", vcf_idx)
 
     def define_command(self):
         # Get input arguments
@@ -627,7 +627,7 @@ class Mutect2(_GATKBase):
         interval        = self.get_argument("interval_list")
         bed             = self.get_argument("bed")
 
-        vcf = self.get_output("vcf")
+        vcf = self.get_output("vcf_gz")
 
         gatk_cmd        = self.get_gatk_command()
 
