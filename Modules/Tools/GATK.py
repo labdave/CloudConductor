@@ -691,6 +691,9 @@ class Mutect2(_GATKBase):
         if bed is not None:
             opts.append("-L {0}".format(bed))
 
+        # "Note that as of May, 2019 -max-mnp-distance must be set to zero to avoid a bug in GenomicsDBImport."
+        opts.append("-max-mnp-distance 0")
+
         # Generating command for Mutect2
         return "{0} Mutect2 {1} !LOG3!".format(gatk_cmd, " ".join(opts))
 
