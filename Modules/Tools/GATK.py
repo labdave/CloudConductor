@@ -640,12 +640,9 @@ class Mutect2(_GATKBase):
         opts = list()
 
         # Add Tumor/Normal sample names
-        if is_tumor[0]:
-            opts.append("-tumor %s" % sample_names[0])
-            opts.append("-normal %s" % sample_names[1])
-        else:
-            opts.append("-tumor %s" % sample_names[1])
-            opts.append("-normal %s" % sample_names[0])
+        for _sample_name, _is_tumor in zip(sample_names, is_tumor):
+            if not _is_tumor:
+                opts.append("-normal {0}".format(_sample_name))
 
         def flatten(lis):
             """Given a list, possibly nested to any level, return it flattened."""
