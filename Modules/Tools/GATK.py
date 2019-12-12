@@ -655,8 +655,11 @@ class Mutect2(_GATKBase):
             return new_lis
 
         # Add arguments for bams
-        bams = flatten(bams)
-        opts.extend(["-I %s" % bam for bam in bams])
+        if isinstance(bams, list):
+            bams = flatten(bams)
+            opts.extend(["-I %s" % bam for bam in bams])
+        else:
+            opts.append("-I {0}".format(bams))
 
         opts.append("{0} {1}".format(output_file_flag, vcf))
         opts.append("-R %s" % ref)
