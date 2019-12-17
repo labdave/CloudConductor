@@ -168,45 +168,74 @@ class CatVariants(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
         super(CatVariants, self).__init__(module_id, is_docker)
-        self.output_keys  = ["gvcf", "gvcf_idx"]
+        self.output_keys  = ["gvcf", "gvcf_idx", "vcf", "vcf_idx"]
 
     def define_input(self):
         self.define_base_args()
-        self.add_argument("gvcf",       is_required=True)
-        self.add_argument("gvcf_idx",   is_required=True)
+        self.add_argument("gvcf",       is_required=False)
+        self.add_argument("gvcf_idx",   is_required=False)
+        self.add_argument("vcf",        is_required=False)
+        self.add_argument("vcf_idx",    is_required=False)
         self.add_argument("nr_cpus",    is_required=True, default_value=2)
         self.add_argument("mem",        is_required=True, default_value=13)
 
     def define_output(self):
         # Declare GVCF output filename
         randomer = Platform.generate_unique_id()
-        gvcf = self.generate_unique_file_name(extension="{0}.g.vcf".format(randomer))
-        self.add_output("gvcf", gvcf)
-        # Declare GVCF index output filename
-        gvcf_idx = self.generate_unique_file_name(extension="{0}.g.vcf.idx".format(randomer))
-        self.add_output("gvcf_idx", gvcf_idx)
+
+        if self.get_argument("gvcf"):
+            gvcf = self.generate_unique_file_name(extension="{0}.g.vcf".format(randomer))
+            self.add_output("gvcf", gvcf)
+            # Declare GVCF index output filename
+            gvcf_idx = self.generate_unique_file_name(extension="{0}.g.vcf.idx".format(randomer))
+            self.add_output("gvcf_idx", gvcf_idx)
+
+        if self.get_argument("vcf"):
+            vcf = self.generate_unique_file_name(extension="{0}.vcf".format(randomer))
+            self.add_output("vcf", vcf)
+            # Declare GVCF index output filename
+            vcf_idx = self.generate_unique_file_name(extension="{0}.vcf.idx".format(randomer))
+            self.add_output("vcf_idx", vcf_idx)
 
     def define_command(self):
         # Obtaining the arguments
         gvcf_in     = self.get_argument("gvcf")
+        vcf_in      = self.get_argument("vcf")
         gatk        = self.get_argument("gatk")
         java        = self.get_argument("java")
         ref         = self.get_argument("ref")
         mem         = self.get_argument("mem")
         gvcf_out    = self.get_output("gvcf")
+        vcf_out     = self.get_output("vcf")
+
+        if not gvcf_in and not vcf_in:
+            raise Exception("Please provide either GVCF or VCF.")
+
+        if gvcf_in and vcf_in:
+            raise Exception("GVCF and VCF both are provided. Please provide either of them.")
 
         # Generating JVM options
         jvm_options = "-Xmx%dG -Djava.io.tmpdir=/tmp/" % (mem * 9 // 10)
 
         # Generating the CatVariants options
         opts = list()
-        opts.append("-out {0}".format(gvcf_out))
         opts.append("-R %s" % ref)
-        if isinstance(gvcf_in, list):
-            for gvcf_input in gvcf_in:
-                opts.append("-V %s" % gvcf_input)
-        else:
-            opts.append("-V %s" % gvcf_in)
+
+        if gvcf_in:
+            opts.append("-out {0}".format(gvcf_out))
+            if isinstance(gvcf_in, list):
+                for gvcf_input in gvcf_in:
+                    opts.append("-V %s" % gvcf_input)
+            else:
+                opts.append("-V %s" % gvcf_in)
+
+        if vcf_in:
+            opts.append("-out {0}".format(vcf_out))
+            if isinstance(vcf_in, list):
+                for vcf_input in vcf_in:
+                    opts.append("-V %s" % vcf_input)
+            else:
+                opts.append("-V %s" % vcf_in)
 
         # Generating the combine command
         cmd = "%s %s -cp %s org.broadinstitute.gatk.tools.CatVariants %s !LOG3!" % (java,
