@@ -5,7 +5,10 @@
         "samples": {
             "items": {
                 "properties": {
-                    "name": {
+                    "sample_id": {
+                        "type": ["string", "array"]
+                    },
+                    "sample_name": {
                         "type": ["string", "array"]
                     },
                     "paths": {
@@ -15,7 +18,8 @@
                 },
                 "required": [
                     "paths",
-                    "name"
+                    "sample_name",
+                    "sample_id"
                 ],
                 "type": "object"
             },
