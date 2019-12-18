@@ -1208,3 +1208,43 @@ class PlotModeledSegments(_GATKBase):
               "".format(cmd, denoise_copy_ratio, model_final_seg, ref_dict, prefix, output_file_flag, out_dir)
 
         return "{0} !LOG3!".format(cmd)
+
+
+class CreateSomaticPanelOfNormals(_GATKBase):
+
+    def __init__(self, module_id, is_docker=False):
+        super(CreateSomaticPanelOfNormals, self).__init__(module_id, is_docker)
+        self.output_keys = ["pon_vcf_gz", "pon_vcf_tbi"]
+
+    def define_input(self):
+        self.define_base_args()
+        self.add_argument("sample_name",    is_required=True)
+        self.add_argument("genomicsDB",     is_required=True)
+        self.add_argument("nr_cpus",        is_required=True, default_value=4)
+        self.add_argument("mem",            is_required=True, default_value=8)
+
+    def define_output(self):
+
+        # Declare VCF output filename
+        pon_vcf = self.generate_unique_file_name(extension=".vcf.gz")
+        self.add_output("pon_vcf_gz", pon_vcf)
+
+        # Declare VCF index output filename
+        pon_vcf_tbi = self.generate_unique_file_name(extension=".vcf.gz.tbi")
+        self.add_output("pon_vcf_tbi", pon_vcf_tbi)
+
+    def define_command(self):
+        # Get input arguments
+        genomicsDB  = self.get_argument("genomicsDB")
+        ref         = self.get_argument("ref")
+
+        # get the output file name
+        pon = self.get_output("pon_vcf_gz")
+
+        # Get GATK base command
+        gatk_cmd = self.get_gatk_command()
+
+        # Generate the command line for CreateSomaticPanelOfNormals
+        cmd = "{0} CreateSomaticPanelOfNormals -R {1} -V gendb://{2} -O {3}".format(gatk_cmd, ref, genomicsDB, pon)
+
+        return "{0} !LOG3!".format(cmd)
