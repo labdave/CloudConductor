@@ -324,8 +324,11 @@ class GenomicsDBImport(PseudoMerger):
     def define_input(self):
         self.add_argument("java",           is_required=True, is_resource=True)
         self.add_argument("gatk",           is_required=True, is_resource=True)
-        self.add_argument("gvcf",           is_required=True)
-        self.add_argument("gvcf_idx",       is_required=True)
+        self.add_argument("gvcf",           is_required=False)
+        self.add_argument("gvcf_idx",       is_required=False)
+        self.add_argument("vcf_gz",         is_required=False)
+        self.add_argument("vcf_tbi",        is_required=False)
+        self.add_argument("interval_list",  is_required=True)
         self.add_argument("batch_size",     is_required=True,   default_value=50)
         self.add_argument("interval_pad",   is_required=False,  default_value=None)
         self.add_argument("nr_cpus",        is_required=True,   default_value=5)
@@ -345,11 +348,26 @@ class GenomicsDBImport(PseudoMerger):
         mem             = self.get_argument("mem")
         java            = self.get_argument("java")
         gvcf_list       = self.get_argument("gvcf")
+        gvcf_idx        = self.get_argument("gvcf_idx")
+        vcf_list        = self.get_argument("vcf_gz")
+        vcf_tbi         = self.get_argument("vcf_tbi")
         nr_cpus         = self.get_argument("nr_cpus")
         batch_size      = self.get_argument("batch_size")
         interval_pad    = self.get_argument("interval_pad")
         L               = self.get_argument("location")
+        interval_list   = self.get_argument("interval_list")
         genomicsDB      = self.get_output("genomicsDB")
+
+
+        if not vcf_list and not gvcf_list:
+            raise Exception("Neither of gVCF or VCF files are provided. Please provide only one of them.")
+
+        if vcf_list and gvcf_list:
+            raise Exception("A list of both gVCF and VCF are provided. You can only provide either of them based on "
+                            "your need.")
+
+        if (gvcf_list and not gvcf_idx) or (vcf_list and not vcf_tbi):
+            raise Exception("VCF files require index files.")
 
         # Make JVM options and GATK command
         jvm_options = "-Xmx{0}G -Xms{0}G -Djava.io.tmpdir={1}".format(mem * 3 // 5, "/tmp/")
@@ -359,8 +377,20 @@ class GenomicsDBImport(PseudoMerger):
         opts = list()
 
         # Add input gvcfs
-        for gvcf_input in gvcf_list:
-            opts.append("-V {0}".format(gvcf_input))
+        if gvcf_list:
+            if isinstance(gvcf_list, list):
+                for gvcf_input in gvcf_list:
+                    opts.append("-V {0}".format(gvcf_input))
+            else:
+                opts.append("-V {0}".format(gvcf_list))
+
+        # Add input vcfs
+        if vcf_list:
+            if isinstance(vcf_list, list):
+                for vcf_input in vcf_list:
+                    opts.append("-V {0}".format(vcf_input))
+            else:
+                opts.append("-V {0}".format(vcf_list))
 
         # Add threads option
         opts.append("--reader-threads {0}".format(nr_cpus))
@@ -378,6 +408,8 @@ class GenomicsDBImport(PseudoMerger):
                         opts.append("-L \"%s\"" % included)
             else:
                 opts.append("-L \"%s\"" % L)
+
+        opts.append("-L {0}".format(interval_list))
 
         # Generate command to make genomicsDB directory and run job
         return "rm -rf {0} ; {1} GenomicsDBImport {2} !LOG3!".format(genomicsDB, gatk_cmd, " ".join(opts))
