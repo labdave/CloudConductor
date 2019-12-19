@@ -61,3 +61,26 @@ class Bammatcher(PseudoMerger):
         return cmd
 
 
+class BammatcherReporter(Merger):
+    def __init__(self, module_id, is_docker=False):
+        super(BammatcherReporter, self).__init__(module_id, is_docker)
+        self.output_keys = ["relatedness_report"]
+
+    def define_input(self):
+        self.add_argument("bammatcher_report",      is_required=True)
+        self.add_argument("bammatcher_reporter",    is_resource=True, is_required=True)
+        self.add_argument("nr_cpus",                default_value=0)
+        self.add_argument("mem",                    default_value=0)
+
+    def define_output(self):
+        # Generate output filename
+        output_filepath = self.generate_unique_file_name(extension=".csv")
+
+        self.add_output("relatedness_report", output_filepath)
+
+    def define_command(self):
+        bammatcher_reporter     = self.get_argument("bammatcher_reporter")
+        reports                 = self.get_argument("bammatcher_report")
+        output_report           = self.get_output("relatedness_report")
+
+        return "{-1} {1} > {2} !LOG2!".format(bammatcher_reporter, " ".join(reports), output_report)
