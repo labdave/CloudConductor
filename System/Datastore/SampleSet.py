@@ -6,7 +6,8 @@ from System.Datastore import GAPFile
 class Sample(object):
 
     def __init__(self, sample_data):
-        self.name  = sample_data.pop("name")
+        self.id    = sample_data.pop("sample_id")
+        self.name  = sample_data.pop("sample_name")
         self.paths = sample_data.pop("paths")
         self.data  = sample_data
         self.__make_gap_files()
@@ -17,12 +18,15 @@ class Sample(object):
             # More than one path of same type
             if isinstance(paths, list):
                 for i in range(len(paths)):
-                    file_id = "%s_%s_%s" % (self.name, path_type, i)
-                    self.paths[path_type][i] = GAPFile(file_id, path_type, paths[i], sample_name=self.name)
+                    file_id = "%s_%s_%s" % (self.get_id(), path_type, i)
+                    self.paths[path_type][i] = GAPFile(file_id, path_type, paths[i], sample_name=self.get_id())
             # One path of a given type
             else:
-                file_id = "%s_%s_1" % (self.name, path_type)
-                self.paths[path_type] = GAPFile(file_id, path_type, paths, sample_name=self.name)
+                file_id = "%s_%s_1" % (self.get_id(), path_type)
+                self.paths[path_type] = GAPFile(file_id, path_type, paths, sample_name=self.get_id())
+
+    def get_id(self):
+        return self.id
 
     def get_name(self):
         return self.name
@@ -152,9 +156,9 @@ class SampleSet(object):
 
         # Add sample-level data
         for sample in self.samples:
-            # Add sample name to data
-            sample_name = sample.get_name()
-            self.__add_data(data, "sample_name", sample_name)
+            # Add sample name and ID to data
+            self.__add_data(data, "sample_name", sample.get_name())
+            self.__add_data(data, "sample_id", sample.get_id())
 
             # Add sample-level metadata
             for sample_data_type, sample_data_val in sample.get_data().items():

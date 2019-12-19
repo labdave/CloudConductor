@@ -769,3 +769,35 @@ class GetDemuxFASTQ(Module):
 
     def define_command(self):
         return None
+
+
+class GetSampleFromBAMHeader(Module):
+    def __init__(self, module_id, is_docker = False):
+        super(GetSampleFromBAMHeader, self).__init__(module_id, is_docker)
+        self.output_keys = ["sample_name"]
+
+    def define_input(self):
+        self.add_argument("bam",            is_required=True)
+        self.add_argument("samtools",       is_required=True, is_resource=True)
+        self.add_argument("nr_cpus",        is_required=True, default_value=2)
+        self.add_argument("mem",            is_required=True, default_value=4)
+
+    def define_output(self):
+        self.add_output("sample_name", None, is_path=False)
+
+    def define_command(self):
+        # Get arguments to run SAMTOOLS
+        bam = self.get_argument("bam")
+        # extract read group line from the header
+        cmd = 'samtools view -H {0} | grep "^@RG"'.format(bam)
+
+        return cmd
+
+    def process_cmd_output(self, out, err):
+
+        # example of read group line
+        # @RG	ID:HISEQ-WALDORF:249:C92LDANXX:2	PU:TATGATGG	SM:4339_B_S21599	LB:S21599	PL:Illumina
+        sample_name = out.split('\t')[3].split(':')[-1]
+
+        # Obtain necessary data
+        self.set_output("sample_name", sample_name)
