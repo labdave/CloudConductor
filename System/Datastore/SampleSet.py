@@ -58,7 +58,7 @@ class SampleSet(object):
         self.__global_data_types    = [x for x in list(self.config.keys()) if x != "sample"]
 
         # Sample order
-        self.sample_names = [sample.name for sample in self.samples]
+        self.sample_names = [sample.id for sample in self.samples]
 
         # Organize global and sample-level metadata by data type
         self.data   = self.__organize_data_by_type()
