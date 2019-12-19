@@ -334,12 +334,12 @@ class IndexVCF(Module):
 
     def __init__(self, module_id, is_docker=False):
         super(IndexVCF, self).__init__(module_id, is_docker)
-        self.output_keys    = ["vcf_gz", "vcf_csi"]
+        self.output_keys    = ["vcf_gz", "vcf_tbi"]
 
     def define_input(self):
         self.add_argument("vcf",        is_required=True)
         self.add_argument("bgzip",      is_required=True,   is_resource=True)
-        self.add_argument("bcftools",   is_required=True,   is_resource=True)
+        self.add_argument("tabix",      is_required=True,   is_resource=True)
         self.add_argument("nr_cpus",    is_required=True,   default_value=8)
         self.add_argument("mem",        is_required=True,   default_value=16)
 
@@ -347,16 +347,16 @@ class IndexVCF(Module):
         # Declare recoded VCF output filename
         vcf_in = self.get_argument("vcf")
         self.add_output("vcf_gz", "%s.gz" % vcf_in)
-        self.add_output("vcf_csi", "%s.gz.csi" % vcf_in)
+        self.add_output("vcf_tbi", "%s.gz.tbi" % vcf_in)
 
     def define_command(self):
         # Get input arguments
         vcf_in      = self.get_argument("vcf")
         bgzip       = self.get_argument("bgzip")
-        bcftools    = self.get_argument("bcftools")
+        tabix       = self.get_argument("tabix")
         vcf_out     = self.get_output("vcf_gz")
         # Get final normalized VCF output file path
-        return "{0} {1} !LOG2!; {2} index -f {3} !LOG2!".format(bgzip, vcf_in, bcftools, vcf_out)
+        return "{0} {1} !LOG2!; {2} -p vcf {3} !LOG2!".format(bgzip, vcf_in, tabix, vcf_out)
 
 
 class IndexBED(Module):
