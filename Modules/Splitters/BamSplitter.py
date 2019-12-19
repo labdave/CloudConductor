@@ -92,3 +92,39 @@ class BamSplitter(Splitter):
             remains.remove(chrom_list[i])
             i += 1
         return chroms, remains
+
+
+class BamCombinator(Splitter):
+
+    def __init__(self, module_id, is_docker=False):
+        super(BamCombinator, self).__init__(module_id, is_docker)
+        self.output_keys = ["bam", "bam_idx", "sample_id"]
+
+    def define_input(self):
+        self.add_argument("bam",                is_required=True)
+        self.add_argument("bam_idx",            is_required=True)
+        self.add_argument("sample_id",          is_required=True)
+        self.add_argument("nr_cpus",            is_required=True, default_value=1)
+        self.add_argument("mem",                is_required=True, default_value=1)
+
+    def define_output(self):
+        bam         = self.get_argument("bam")
+        bam_idx     = self.get_argument("bam_idx")
+        sample_id   = self.get_argument("sample_id")
+
+        for id1, (bam1, bam_idx1, sample_id1) in enumerate(zip(bam, bam_idx, sample_id)):
+            for id2, (bam2, bam_idx2, sample_id2) in enumerate(zip(bam[id1:], bam_idx[id1:], sample_id[id1:])):
+                split_name = "{0}_{1}".format(sample_id1, sample_id2)
+                self.make_split(split_id=split_name)
+                self.add_output(split_id=split_name, key="bam", value=[
+                                    self.generate_gapfile(split_name, "bam", bam1, sample_name=sample_id1),
+                                    self.generate_gapfile(split_name, "bam", bam2, sample_name=sample_id2)
+                                ], is_path=False)
+                self.add_output(split_id=split_name, key="bam_idx", value=[
+                                    self.generate_gapfile(split_name, "bam_idx", bam_idx1, sample_name=sample_id1),
+                                    self.generate_gapfile(split_name, "bam_idx", bam_idx2, sample_name=sample_id2)
+                                ], is_path=False)
+                self.add_output(split_id=split_name, key="sample_id", value=[sample_id1, sample_id2], is_path=False)
+
+    def define_command(self):
+        return None
