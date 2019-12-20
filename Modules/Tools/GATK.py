@@ -725,6 +725,24 @@ class Mutect2(_GATKBase):
         # Add each sample to the tumor status dictionary
         for _name, _tumor in zip(sample_names, is_tumor):
 
+            # Ensure tumor status is not a list but one single unique value
+            if isinstance(_tumor, list):
+                _tumor = set(_tumor)
+
+                if len(_tumor) != 1:
+                    raise Exception("More one tumor status {0} for a sample".format(_tumor))
+                else:
+                    _tumor = _tumor.pop()
+
+            # Ensure sample name is not a list but one single unique value
+            if isinstance(_name, list):
+                _name = set(_name)
+
+                if len(_name) != 1:
+                    raise Exception("More one tumor status {0} for a sample".format(_name))
+                else:
+                    _name = _name.pop()
+
             # Check if the current sample name has already been introduced but with a different tumor status
             if _name in tumor_status and tumor_status[_name] != _tumor:
                 logging.error("Same sample ID '%s' was provided as different tumor status!" % _id)
