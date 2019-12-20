@@ -370,7 +370,7 @@ class GenomicsDBImport(PseudoMerger):
             raise Exception("VCF files require index files.")
 
         # Make JVM options and GATK command
-        jvm_options = "-Xmx{0}G -Xms{0}G -Djava.io.tmpdir={1}".format(mem * 3 // 5, "/tmp/")
+        jvm_options = "-Xmx{0}G -Xms{0}G -Djava.io.tmpdir={1}".format(mem * 4 // 5, "/tmp/")
         gatk_cmd    = "{0} {1} -jar {2}".format(java, jvm_options, gatk)
 
         # Generating the combine options

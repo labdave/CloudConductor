@@ -604,6 +604,8 @@ class Mutect2(_GATKBase):
         self.add_argument("bam_idx",            is_required=True)
         self.add_argument("sample_name",        is_required=True)
         self.add_argument("is_tumor",           is_required=True)
+        self.add_argument("pon_vcf_gz",         is_required=False)
+        self.add_argument("pon_vcf_tbi",        is_required=False)
         self.add_argument("germline_vcf",       is_required=False,  is_resource=True)
         self.add_argument("nr_cpus",            is_required=True,   default_value=8)
         self.add_argument("mem",                is_required=True,   default_value=30)
@@ -626,6 +628,7 @@ class Mutect2(_GATKBase):
         nr_cpus         = self.get_argument("nr_cpus")
         interval        = self.get_argument("interval_list")
         bed             = self.get_argument("bed")
+        pon_vcf_gz      = self.get_argument("pon_vcf_gz")
 
         vcf = self.get_output("vcf_gz")
 
@@ -683,16 +686,25 @@ class Mutect2(_GATKBase):
             else:
                 opts.append("-XL \"%s\"" % XL)
 
+        # Check if an interval list and bed was provided and if yes, use interval list
+        if interval is not None and bed is not None:
+            logging.warning("Interval list gets the higher precedence over BED file.")
+            opts.append("-L {0}".format(interval))
+
         # Check if an interval list was provided and if yes, place it
-        if interval is not None:
+        elif interval is not None:
             opts.append("-L {0}".format(interval))
 
         # Check if a BED file was provided and if yes, place it
-        if bed is not None:
+        elif bed is not None:
             opts.append("-L {0}".format(bed))
 
         # "Note that as of May, 2019 -max-mnp-distance must be set to zero to avoid a bug in GenomicsDBImport."
-        opts.append("-max-mnp-distance 0")
+        if not pon_vcf_gz:
+            opts.append("-max-mnp-distance 0")
+
+        if pon_vcf_gz:
+            opts.append("-pon {0}".format(pon_vcf_gz))
 
         # Generating command for Mutect2
         return "{0} Mutect2 {1} !LOG3!".format(gatk_cmd, " ".join(opts))
@@ -713,16 +725,13 @@ class Mutect2(_GATKBase):
         # Add each sample to the tumor status dictionary
         for _name, _tumor in zip(sample_names, is_tumor):
 
-            # Extract the sample ID
-            _id = _name.rsplit("_", 1)[0]
-
-            # Check if the current sample id has already been introduced but with a different tumor status
-            if _id in tumor_status and tumor_status[_id] != _tumor:
+            # Check if the current sample name has already been introduced but with a different tumor status
+            if _name in tumor_status and tumor_status[_name] != _tumor:
                 logging.error("Same sample ID '%s' was provided as different tumor status!" % _id)
                 raise RuntimeError("Same sample ID '%s' was provided as different tumor status!" % _id)
 
             # If we have not stopped, just added it (possibly again) in the dictionary
-            tumor_status[_id] = _tumor
+            tumor_status[_name] = _tumor
 
         return list(tumor_status.keys()), list(tumor_status.values())
 
