@@ -745,8 +745,8 @@ class Mutect2(_GATKBase):
 
             # Check if the current sample name has already been introduced but with a different tumor status
             if _name in tumor_status and tumor_status[_name] != _tumor:
-                logging.error("Same sample ID '%s' was provided as different tumor status!" % _id)
-                raise RuntimeError("Same sample ID '%s' was provided as different tumor status!" % _id)
+                logging.error("Same sample ID '%s' was provided as different tumor status!" % _name)
+                raise RuntimeError("Same sample ID '%s' was provided as different tumor status!" % _name)
 
             # If we have not stopped, just added it (possibly again) in the dictionary
             tumor_status[_name] = _tumor
