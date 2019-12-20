@@ -644,7 +644,7 @@ class Mutect2(_GATKBase):
 
         # Add Tumor/Normal sample names
         for _sample_name, _is_tumor in zip(sample_names, is_tumor):
-            if not _is_tumor:
+            if not _is_tumor and pon_vcf_gz:
                 opts.append("-normal {0}".format(_sample_name))
 
         def flatten(lis):
