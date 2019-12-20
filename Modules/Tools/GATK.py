@@ -686,12 +686,17 @@ class Mutect2(_GATKBase):
             else:
                 opts.append("-XL \"%s\"" % XL)
 
+        # Check if an interval list and bed was provided and if yes, use interval list
+        if interval is not None and bed is not None:
+            logging.warning("Interval list gets the higher precedence over BED file.")
+            opts.append("-L {0}".format(interval))
+
         # Check if an interval list was provided and if yes, place it
-        if interval is not None:
+        elif interval is not None:
             opts.append("-L {0}".format(interval))
 
         # Check if a BED file was provided and if yes, place it
-        if bed is not None:
+        elif bed is not None:
             opts.append("-L {0}".format(bed))
 
         # "Note that as of May, 2019 -max-mnp-distance must be set to zero to avoid a bug in GenomicsDBImport."
