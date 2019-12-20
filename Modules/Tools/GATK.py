@@ -604,6 +604,8 @@ class Mutect2(_GATKBase):
         self.add_argument("bam_idx",            is_required=True)
         self.add_argument("sample_name",        is_required=True)
         self.add_argument("is_tumor",           is_required=True)
+        self.add_argument("pon_vcf_gz",         is_required=False)
+        self.add_argument("pon_vcf_tbi",        is_required=False)
         self.add_argument("germline_vcf",       is_required=False,  is_resource=True)
         self.add_argument("nr_cpus",            is_required=True,   default_value=8)
         self.add_argument("mem",                is_required=True,   default_value=30)
@@ -626,6 +628,7 @@ class Mutect2(_GATKBase):
         nr_cpus         = self.get_argument("nr_cpus")
         interval        = self.get_argument("interval_list")
         bed             = self.get_argument("bed")
+        pon_vcf_gz      = self.get_argument("pon_vcf_gz")
 
         vcf = self.get_output("vcf_gz")
 
@@ -692,7 +695,11 @@ class Mutect2(_GATKBase):
             opts.append("-L {0}".format(bed))
 
         # "Note that as of May, 2019 -max-mnp-distance must be set to zero to avoid a bug in GenomicsDBImport."
-        opts.append("-max-mnp-distance 0")
+        if not pon_vcf_gz:
+            opts.append("-max-mnp-distance 0")
+
+        if pon_vcf_gz:
+            opts.append("-pon {0}".format(pon_vcf_gz))
 
         # Generating command for Mutect2
         return "{0} Mutect2 {1} !LOG3!".format(gatk_cmd, " ".join(opts))
