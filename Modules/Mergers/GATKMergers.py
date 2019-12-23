@@ -378,6 +378,10 @@ class GenomicsDBImport(PseudoMerger):
         # Generating the combine options
         opts = list()
 
+        # merge all the input intervals to avoid storage drive crash
+        if merge_input_intervals:
+            opts.append("--merge-input-intervals True")
+
         # Add input gvcfs
         if gvcf_list:
             if isinstance(gvcf_list, list):
