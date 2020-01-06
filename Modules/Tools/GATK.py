@@ -404,28 +404,37 @@ class FilterMutectCalls(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
         super(FilterMutectCalls, self).__init__(module_id, is_docker)
-        self.output_keys    = ["vcf"]
+        self.output_keys    = ["vcf_gz", "vcf_tbi"]
 
     def define_input(self):
         self.define_base_args()
-        self.add_argument("vcf",        is_required=True)
-        self.add_argument("nr_cpus",    is_required=True,   default_value=1)
-        self.add_argument("mem",        is_required=True,   default_value=2)
+        self.add_argument("vcf_gz",         is_required=True)
+        self.add_argument("vcf_tbi",        is_required=True)
+        self.add_argument("stats_table",    is_required=True)
+        self.add_argument("nr_cpus",        is_required=True,   default_value=1)
+        self.add_argument("mem",            is_required=True,   default_value=2)
 
     def define_output(self):
-        # Declare recoded VCF output filename
-        vcf_out = self.generate_unique_file_name(extension=".vcf")
-        self.add_output("vcf", vcf_out)
+        # Declare VCF output filename
+        vcf = self.generate_unique_file_name(extension=".vcf.gz")
+        self.add_output("vcf_gz", vcf)
+        # Declare VCF index output filename
+        vcf_idx = self.generate_unique_file_name(extension=".vcf.gz.tbi")
+        self.add_output("vcf_tbi", vcf_idx)
 
     def define_command(self):
         # Get input arguments
-        vcf_in      = self.get_argument("vcf")
+        vcf_in      = self.get_argument("vcf_gz")
         gatk_cmd    = self.get_gatk_command()
-        vcf_out     = self.get_output("vcf")
+        vcf_out     = self.get_output("vcf_gz")
+        ref         = self.get_argument("ref")
+        stats_table = self.get_argument("stats_table")
 
         output_file_flag = self.get_output_file_flag()
 
-        return "{0} FilterMutectCalls -V {1} {3} {2} !LOG3!".format(gatk_cmd, vcf_in, vcf_out, output_file_flag)
+        return "{0} FilterMutectCalls -V {1} -R {4} --stats {5} {3} {2} !LOG3!".format(gatk_cmd, vcf_in, vcf_out,
+                                                                                       output_file_flag, ref,
+                                                                                       stats_table)
 
 class CollectReadCounts(_GATKBase):
 
