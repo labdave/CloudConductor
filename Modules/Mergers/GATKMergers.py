@@ -322,17 +322,18 @@ class GenomicsDBImport(PseudoMerger):
         self.output_keys  = ["genomicsDB"]
 
     def define_input(self):
-        self.add_argument("java",           is_required=True, is_resource=True)
-        self.add_argument("gatk",           is_required=True, is_resource=True)
-        self.add_argument("gvcf",           is_required=False)
-        self.add_argument("gvcf_idx",       is_required=False)
-        self.add_argument("vcf_gz",         is_required=False)
-        self.add_argument("vcf_tbi",        is_required=False)
-        self.add_argument("interval_list",  is_required=True)
-        self.add_argument("batch_size",     is_required=True,   default_value=50)
-        self.add_argument("interval_pad",   is_required=False,  default_value=None)
-        self.add_argument("nr_cpus",        is_required=True,   default_value=5)
-        self.add_argument("mem",            is_required=True,   default_value=15)
+        self.add_argument("java",                   is_required=True, is_resource=True)
+        self.add_argument("gatk",                   is_required=True, is_resource=True)
+        self.add_argument("gvcf",                   is_required=False)
+        self.add_argument("gvcf_idx",               is_required=False)
+        self.add_argument("vcf_gz",                 is_required=False)
+        self.add_argument("vcf_tbi",                is_required=False)
+        self.add_argument("interval_list",          is_required=True)
+        self.add_argument("batch_size",             is_required=True,   default_value=50)
+        self.add_argument("interval_pad",           is_required=False,  default_value=None)
+        self.add_argument("merge_input_intervals",  is_required=False,  default_value=False)
+        self.add_argument("nr_cpus",                is_required=True,   default_value=5)
+        self.add_argument("mem",                    is_required=True,   default_value=15)
         self.add_argument("location")
         self.add_argument("excluded_location")
 
@@ -344,19 +345,20 @@ class GenomicsDBImport(PseudoMerger):
     def define_command(self):
 
         # Obtaining the arguments
-        gatk            = self.get_argument("gatk")
-        mem             = self.get_argument("mem")
-        java            = self.get_argument("java")
-        gvcf_list       = self.get_argument("gvcf")
-        gvcf_idx        = self.get_argument("gvcf_idx")
-        vcf_list        = self.get_argument("vcf_gz")
-        vcf_tbi         = self.get_argument("vcf_tbi")
-        nr_cpus         = self.get_argument("nr_cpus")
-        batch_size      = self.get_argument("batch_size")
-        interval_pad    = self.get_argument("interval_pad")
-        L               = self.get_argument("location")
-        interval_list   = self.get_argument("interval_list")
-        genomicsDB      = self.get_output("genomicsDB")
+        gatk                    = self.get_argument("gatk")
+        mem                     = self.get_argument("mem")
+        java                    = self.get_argument("java")
+        gvcf_list               = self.get_argument("gvcf")
+        gvcf_idx                = self.get_argument("gvcf_idx")
+        vcf_list                = self.get_argument("vcf_gz")
+        vcf_tbi                 = self.get_argument("vcf_tbi")
+        nr_cpus                 = self.get_argument("nr_cpus")
+        batch_size              = self.get_argument("batch_size")
+        interval_pad            = self.get_argument("interval_pad")
+        L                       = self.get_argument("location")
+        interval_list           = self.get_argument("interval_list")
+        merge_input_intervals   = self.get_argument("merge_input_intervals")
+        genomicsDB              = self.get_output("genomicsDB")
 
 
         if not vcf_list and not gvcf_list:
@@ -375,6 +377,10 @@ class GenomicsDBImport(PseudoMerger):
 
         # Generating the combine options
         opts = list()
+
+        # merge all the input intervals to avoid storage drive crash
+        if merge_input_intervals:
+            opts.append("--merge-input-intervals True")
 
         # Add input gvcfs
         if gvcf_list:

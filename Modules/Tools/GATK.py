@@ -404,28 +404,37 @@ class FilterMutectCalls(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
         super(FilterMutectCalls, self).__init__(module_id, is_docker)
-        self.output_keys    = ["vcf"]
+        self.output_keys    = ["vcf_gz", "vcf_tbi"]
 
     def define_input(self):
         self.define_base_args()
-        self.add_argument("vcf",        is_required=True)
-        self.add_argument("nr_cpus",    is_required=True,   default_value=1)
-        self.add_argument("mem",        is_required=True,   default_value=2)
+        self.add_argument("vcf_gz",         is_required=True)
+        self.add_argument("vcf_tbi",        is_required=True)
+        self.add_argument("stats_table",    is_required=True)
+        self.add_argument("nr_cpus",        is_required=True,   default_value=1)
+        self.add_argument("mem",            is_required=True,   default_value=2)
 
     def define_output(self):
-        # Declare recoded VCF output filename
-        vcf_out = self.generate_unique_file_name(extension=".vcf")
-        self.add_output("vcf", vcf_out)
+        # Declare VCF output filename
+        vcf = self.generate_unique_file_name(extension=".vcf.gz")
+        self.add_output("vcf_gz", vcf)
+        # Declare VCF index output filename
+        vcf_idx = self.generate_unique_file_name(extension=".vcf.gz.tbi")
+        self.add_output("vcf_tbi", vcf_idx)
 
     def define_command(self):
         # Get input arguments
-        vcf_in      = self.get_argument("vcf")
+        vcf_in      = self.get_argument("vcf_gz")
         gatk_cmd    = self.get_gatk_command()
-        vcf_out     = self.get_output("vcf")
+        vcf_out     = self.get_output("vcf_gz")
+        ref         = self.get_argument("ref")
+        stats_table = self.get_argument("stats_table")
 
         output_file_flag = self.get_output_file_flag()
 
-        return "{0} FilterMutectCalls -V {1} {3} {2} !LOG3!".format(gatk_cmd, vcf_in, vcf_out, output_file_flag)
+        return "{0} FilterMutectCalls -V {1} -R {4} --stats {5} {3} {2} !LOG3!".format(gatk_cmd, vcf_in, vcf_out,
+                                                                                       output_file_flag, ref,
+                                                                                       stats_table)
 
 class CollectReadCounts(_GATKBase):
 
@@ -596,7 +605,7 @@ class Mutect2(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
         super(Mutect2, self).__init__(module_id, is_docker)
-        self.output_keys = ["vcf_gz", "vcf_tbi"]
+        self.output_keys = ["vcf_gz", "vcf_tbi", "stats_table"]
 
     def define_input(self):
         self.define_base_args()
@@ -617,6 +626,9 @@ class Mutect2(_GATKBase):
         # Declare VCF index output filename
         vcf_idx = self.generate_unique_file_name(extension=".vcf.gz.tbi")
         self.add_output("vcf_tbi", vcf_idx)
+        # Declare stats table output filename
+        stats_table = self.generate_unique_file_name(extension=".vcf.gz.stats")
+        self.add_output("stats_table", stats_table)
 
     def define_command(self):
         # Get input arguments
@@ -644,7 +656,7 @@ class Mutect2(_GATKBase):
 
         # Add Tumor/Normal sample names
         for _sample_name, _is_tumor in zip(sample_names, is_tumor):
-            if not _is_tumor:
+            if not _is_tumor and pon_vcf_gz:
                 opts.append("-normal {0}".format(_sample_name))
 
         def flatten(lis):
@@ -725,10 +737,28 @@ class Mutect2(_GATKBase):
         # Add each sample to the tumor status dictionary
         for _name, _tumor in zip(sample_names, is_tumor):
 
+            # Ensure tumor status is not a list but one single unique value
+            if isinstance(_tumor, list):
+                _tumor = set(_tumor)
+
+                if len(_tumor) != 1:
+                    raise Exception("More one tumor status {0} for a sample".format(_tumor))
+                else:
+                    _tumor = _tumor.pop()
+
+            # Ensure sample name is not a list but one single unique value
+            if isinstance(_name, list):
+                _name = set(_name)
+
+                if len(_name) != 1:
+                    raise Exception("More one tumor status {0} for a sample".format(_name))
+                else:
+                    _name = _name.pop()
+
             # Check if the current sample name has already been introduced but with a different tumor status
             if _name in tumor_status and tumor_status[_name] != _tumor:
-                logging.error("Same sample ID '%s' was provided as different tumor status!" % _id)
-                raise RuntimeError("Same sample ID '%s' was provided as different tumor status!" % _id)
+                logging.error("Same sample ID '%s' was provided as different tumor status!" % _name)
+                raise RuntimeError("Same sample ID '%s' was provided as different tumor status!" % _name)
 
             # If we have not stopped, just added it (possibly again) in the dictionary
             tumor_status[_name] = _tumor
