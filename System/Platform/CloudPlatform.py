@@ -310,6 +310,9 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
                 )
             )
 
+        # Change permission of private key to 400
+        os.chmod(key_prefix, 0o400)
+
         # Write the public key to file
         with open(f"{key_prefix}.pub", "wb") as out:
             out.write(
