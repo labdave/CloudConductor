@@ -205,7 +205,10 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
 
         # Initialize new instance
         try:
-            self.instances[inst_name] = self.CloudInstanceClass(inst_name, nr_cpus, mem, disk_space, **kwargs).create()
+            self.instances[inst_name] = self.CloudInstanceClass(inst_name, nr_cpus, mem, disk_space, **kwargs)
+
+            # Create instance
+            self.instances[inst_name].create()
 
             logging.info(f'({inst_name}) Instance was successfully created!')
 
