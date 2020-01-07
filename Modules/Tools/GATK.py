@@ -615,6 +615,7 @@ class Mutect2(_GATKBase):
         self.add_argument("is_tumor",           is_required=True)
         self.add_argument("pon_vcf_gz",         is_required=False)
         self.add_argument("pon_vcf_tbi",        is_required=False)
+        self.add_argument("max_mnp_distance",   is_required=False)
         self.add_argument("germline_vcf",       is_required=False,  is_resource=True)
         self.add_argument("nr_cpus",            is_required=True,   default_value=8)
         self.add_argument("mem",                is_required=True,   default_value=30)
