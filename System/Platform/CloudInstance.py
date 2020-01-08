@@ -324,13 +324,13 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         cycle_count = 0
 
         # Waiting for 10 minutes for instance to be SSH-able
-        while cycle_count < 40:
+        while cycle_count < 20:
 
             # Increment the cycle count
             cycle_count += 1
 
             # Wait for 15 seconds before checking the SSH server and status again
-            time.sleep(15)
+            time.sleep(30)
 
             # Check if ssh server is accessible
             if self.__check_ssh():
