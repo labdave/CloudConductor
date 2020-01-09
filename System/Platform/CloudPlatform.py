@@ -286,8 +286,8 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
     def validate(self):
         pass
 
-    @abc.abstractmethod
     @staticmethod
+    @abc.abstractmethod
     def standardize_instance(inst_name, nr_cpus, meme, disk_space):
         pass
 
