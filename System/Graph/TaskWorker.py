@@ -286,8 +286,7 @@ class TaskWorker(Thread):
         try:
 
             # Destroy processor
-            self.proc.destroy(wait=False)
-            self.proc.wait_process("destroy")
+            self.proc.destroy()
 
         except BaseException as e:
             logging.error("Unable to destroy processor '%s' for task '%s'" % (self.proc.get_name(), self.task.get_ID()))
@@ -344,5 +343,5 @@ class GarbageCollector(threading.Thread):
 
     def run(self):
         logging.debug("GarbageCollector destroying processor: {0}".format(self.proc.get_name()))
-        self.proc.destroy(wait=True)
+        self.proc.destroy()
 

@@ -166,7 +166,7 @@ class GAPipeline(object):
         if self.helper_processor is not None:
             try:
                 logging.debug("Destroying helper processor...")
-                self.helper_processor.destroy(wait=False)
+                self.helper_processor.destroy()
             except BaseException as e:
                 logging.error("Unable to destroy helper processor '%s'!" % self.helper_processor.get_name())
                 if str(e) != "":
