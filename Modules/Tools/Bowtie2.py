@@ -37,7 +37,7 @@ class Bowtie2(Module):
         nr_cpus             = self.get_argument("nr_cpus")
         bam_out             = self.get_output("bam")
         r1_unmapped_fastq   = self.get_output("R1")
-        unmapped_fastq_base = r1_unmapped_fastq.replace(".1.", ".%.")
+        unmapped_fastq_base = r1_unmapped_fastq.get_path().replace(".1.", ".%.")
 
         # get workspace dir
         workspace_dir = self.get_output_dir()

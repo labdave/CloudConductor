@@ -150,7 +150,7 @@ def configure_logging(verbosity):
 def configure_import_paths():
 
     # Get the directory of the executable
-    exec_dir = sys.path[0]
+    exec_dir = os.path.dirname(__file__)
 
     # Add the modules paths to the python path
     sys.path.insert(1, os.path.join(exec_dir, "Modules/Tools/"))
@@ -173,7 +173,7 @@ def get_git_version():
     # Return the git commit at runtime
 
     # Get the directory of the executable
-    exec_dir = sys.path[0]
+    exec_dir = os.path.dirname(__file__)
 
     # Run command to determine id of current commit
     cmd = "cd '{0}' ; git log -1 --pretty=%H".format(exec_dir)

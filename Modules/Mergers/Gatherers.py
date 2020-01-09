@@ -13,7 +13,7 @@ class _BaseGatherer(Merger):
         self.add_argument("mem",        is_required=True, default_value=1)
         # Add required arguments
         for input_type in self.TYPES_TO_GATHER:
-            self.add_argument(input_type, is_required=True)
+            self.add_argument(input_type)
 
     def define_output(self):
         # Output is literally just the same exact inputs
@@ -33,8 +33,8 @@ class GatherBams(_BaseGatherer):
 
 
 class GatherVCFs(_BaseGatherer):
-    # Null module meant to re-collect a group of gVCFs after splitting
-    TYPES_TO_GATHER = ["vcf", "vcf_idx"]
+    # Null module meant to re-collect a group of VCFs after splitting
+    TYPES_TO_GATHER = ["vcf", "vcf_idx", "vcf_gz", "vcf_tbi"]
     def __init__(self, module_id, is_docker=False):
         super(GatherVCFs, self).__init__(module_id, is_docker)
 

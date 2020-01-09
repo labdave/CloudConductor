@@ -8,6 +8,9 @@ class _GATKBase(Module):
     def __init__(self, module_id, is_docker=False):
         super(_GATKBase, self).__init__(module_id, is_docker)
 
+        # Initialize the gatk version
+        self.gatk_version = None
+
     def define_base_args(self):
 
         # Set GATK executable arguments
@@ -26,6 +29,18 @@ class _GATKBase(Module):
         self.add_argument("interval_list")
         self.add_argument("bed", is_resource=True)
 
+    def get_gatk_version(self):
+
+        # Generate the gatk version if it was not generated yet
+        if self.gatk_version is None:
+
+            gatk_version = self.get_argument("gatk_version")
+            gatk_version = str(gatk_version).lower().replace("gatk", "")
+            gatk_version = gatk_version.strip()
+            self.gatk_version = int(gatk_version.split(".")[0])
+
+        return self.gatk_version
+
     def get_gatk_command(self):
         # Get input arguments
         gatk    = self.get_argument("gatk")
@@ -33,13 +48,7 @@ class _GATKBase(Module):
         java = self.get_argument("java")
         jvm_options = "-Xmx{0}G -Djava.io.tmpdir={1}".format(mem * 4 // 5, "/tmp/")
 
-        # Determine numeric version of GATK
-        gatk_version = self.get_argument("gatk_version")
-        gatk_version = str(gatk_version).lower().replace("gatk","")
-        gatk_version = gatk_version.strip()
-        gatk_version = int(gatk_version.split(".")[0])
-
-        if gatk_version < 4:
+        if self.get_gatk_version() < 4:
             return "{0} {1} -jar {2} -T".format(java, jvm_options, gatk)
 
         # Generate base command with endpoint provided by docker
@@ -53,13 +62,7 @@ class _GATKBase(Module):
 
         """
 
-        # Determine numeric version of GATK
-        gatk_version = self.get_argument("gatk_version")
-        gatk_version = str(gatk_version).lower().replace("gatk", "")
-        gatk_version = gatk_version.strip()
-        gatk_version = int(gatk_version.split(".")[0])
-
-        if gatk_version < 4:
+        if self.get_gatk_version() < 4:
             return "-o"
 
         return "-O"
@@ -110,7 +113,6 @@ class HaplotypeCaller(_GATKBase):
         bed                    = self.get_argument("bed")
 
         gatk_cmd               = self.get_gatk_command()
-        gatk_version           = int(self.get_argument("gatk_version"))
         use_bqsr               = self.get_argument("use_bqsr")
         use_soft_clipped_bases = self.get_argument("use_soft_clipped_bases")
         nr_cpus                = self.get_argument("nr_cpus")
@@ -133,11 +135,11 @@ class HaplotypeCaller(_GATKBase):
             opts.append("-ERC GVCF")
 
         # Adding the BQSR for lower version of the GATK
-        if BQSR is not None and gatk_version < 4 and use_bqsr:
+        if BQSR is not None and self.get_gatk_version() < 4 and use_bqsr:
             opts.append("-BQSR {0}".format(BQSR))
 
         # Set the parallelism method
-        if gatk_version < 4:
+        if self.get_gatk_version() < 4:
             opts.append("-nct {0}".format(nr_cpus))
         else:
             opts.append("--native-pair-hmm-threads {0}".format(nr_cpus))
@@ -317,7 +319,6 @@ class BaseRecalibrator(_GATKBase):
         L               = self.get_argument("location")
         XL              = self.get_argument("excluded_location")
         nr_cpus         = self.get_argument("nr_cpus")
-        gatk_version    = self.get_argument("gatk_version")
         bqsr_report     = self.get_output("BQSR_report")
 
         gatk_cmd        = self.get_gatk_command()
@@ -329,7 +330,8 @@ class BaseRecalibrator(_GATKBase):
         opts.append("-I %s" % bam)
         opts.append("{0} {1}".format(output_file_flag, bqsr_report))
         opts.append("-R %s" % ref)
-        if gatk_version >= 4:
+
+        if self.get_gatk_version() >= 4:
             opts.append("--known-sites %s" % dbsnp)
         else:
             opts.append("-knownSites %s" % dbsnp)
@@ -402,28 +404,37 @@ class FilterMutectCalls(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
         super(FilterMutectCalls, self).__init__(module_id, is_docker)
-        self.output_keys    = ["vcf"]
+        self.output_keys    = ["vcf_gz", "vcf_tbi"]
 
     def define_input(self):
         self.define_base_args()
-        self.add_argument("vcf",        is_required=True)
-        self.add_argument("nr_cpus",    is_required=True,   default_value=1)
-        self.add_argument("mem",        is_required=True,   default_value=2)
+        self.add_argument("vcf_gz",         is_required=True)
+        self.add_argument("vcf_tbi",        is_required=True)
+        self.add_argument("stats_table",    is_required=True)
+        self.add_argument("nr_cpus",        is_required=True,   default_value=1)
+        self.add_argument("mem",            is_required=True,   default_value=2)
 
     def define_output(self):
-        # Declare recoded VCF output filename
-        vcf_out = self.generate_unique_file_name(extension=".vcf")
-        self.add_output("vcf", vcf_out)
+        # Declare VCF output filename
+        vcf = self.generate_unique_file_name(extension=".vcf.gz")
+        self.add_output("vcf_gz", vcf)
+        # Declare VCF index output filename
+        vcf_idx = self.generate_unique_file_name(extension=".vcf.gz.tbi")
+        self.add_output("vcf_tbi", vcf_idx)
 
     def define_command(self):
         # Get input arguments
-        vcf_in      = self.get_argument("vcf")
+        vcf_in      = self.get_argument("vcf_gz")
         gatk_cmd    = self.get_gatk_command()
-        vcf_out     = self.get_output("vcf")
+        vcf_out     = self.get_output("vcf_gz")
+        ref         = self.get_argument("ref")
+        stats_table = self.get_argument("stats_table")
 
         output_file_flag = self.get_output_file_flag()
 
-        return "{0} FilterMutectCalls -V {1} {3} {2} !LOG3!".format(gatk_cmd, vcf_in, vcf_out, output_file_flag)
+        return "{0} FilterMutectCalls -V {1} -R {4} --stats {5} {3} {2} !LOG3!".format(gatk_cmd, vcf_in, vcf_out,
+                                                                                       output_file_flag, ref,
+                                                                                       stats_table)
 
 class CollectReadCounts(_GATKBase):
 
@@ -452,7 +463,7 @@ class CollectReadCounts(_GATKBase):
 
         output_file_flag = self.get_output_file_flag()
 
-        cmd = "{0} CollectReadCounts -I {1} {3} {2} --format TSV ".format(gatk_cmd, bam, read_count_out, output_file_flag)
+        cmd = "{0} CollectReadCounts -I {1} {3} {2} --format TSV -DF MappingQualityReadFilter ".format(gatk_cmd, bam, read_count_out, output_file_flag)
 
         if interval_list is not None:
             cmd = "{0} -L {1} --interval-merging-rule OVERLAPPING_ONLY".format(cmd, interval_list)
@@ -569,7 +580,6 @@ class SplitNCigarReads(_GATKBase):
         bam        = self.get_argument("bam")
         output_bam = self.get_output("bam")
         ref        = self.get_argument("ref")
-        gatk_version = self.get_argument("gatk_version")
 
         # Get JVM options and GATK command
         gatk_cmd = self.get_gatk_command()
@@ -582,12 +592,7 @@ class SplitNCigarReads(_GATKBase):
         opts.append("-I {0}".format(bam))
         opts.append("{0} {1}".format(output_file_flag, output_bam))
 
-        # Determine numeric version of GATK to see if GATK3 options should be added
-        gatk_version = str(gatk_version).lower().replace("gatk","")
-        gatk_version = gatk_version.strip()
-        gatk_version = int(gatk_version.split(".")[0])
-
-        if gatk_version < 4:
+        if self.get_gatk_version() < 4:
             opts.append("-rf ReassignOneMappingQuality")
             opts.append("-RMQF 255")
             opts.append("-RMQT 60")
@@ -600,7 +605,7 @@ class Mutect2(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
         super(Mutect2, self).__init__(module_id, is_docker)
-        self.output_keys = ["vcf", "vcf_idx"]
+        self.output_keys = ["vcf_gz", "vcf_tbi", "stats_table"]
 
     def define_input(self):
         self.define_base_args()
@@ -608,30 +613,38 @@ class Mutect2(_GATKBase):
         self.add_argument("bam_idx",            is_required=True)
         self.add_argument("sample_name",        is_required=True)
         self.add_argument("is_tumor",           is_required=True)
+        self.add_argument("pon_vcf_gz",         is_required=False)
+        self.add_argument("pon_vcf_tbi",        is_required=False)
+        self.add_argument("max_mnp_distance",   is_required=False)
         self.add_argument("germline_vcf",       is_required=False,  is_resource=True)
         self.add_argument("nr_cpus",            is_required=True,   default_value=8)
         self.add_argument("mem",                is_required=True,   default_value=30)
 
     def define_output(self):
         # Declare VCF output filename
-        vcf = self.generate_unique_file_name(extension=".vcf")
-        self.add_output("vcf", vcf)
+        vcf = self.generate_unique_file_name(extension=".vcf.gz")
+        self.add_output("vcf_gz", vcf)
         # Declare VCF index output filename
-        vcf_idx = self.generate_unique_file_name(extension=".vcf.idx")
-        self.add_output("vcf_idx", vcf_idx)
+        vcf_idx = self.generate_unique_file_name(extension=".vcf.gz.tbi")
+        self.add_output("vcf_tbi", vcf_idx)
+        # Declare stats table output filename
+        stats_table = self.generate_unique_file_name(extension=".vcf.gz.stats")
+        self.add_output("stats_table", stats_table)
 
     def define_command(self):
         # Get input arguments
-        bams            = self.get_argument("bam")
-        ref             = self.get_argument("ref")
-        germline_vcf    = self.get_argument("germline_vcf")
-        L               = self.get_argument("location")
-        XL              = self.get_argument("excluded_location")
-        nr_cpus         = self.get_argument("nr_cpus")
-        interval        = self.get_argument("interval_list")
-        bed             = self.get_argument("bed")
+        bams                = self.get_argument("bam")
+        ref                 = self.get_argument("ref")
+        germline_vcf        = self.get_argument("germline_vcf")
+        L                   = self.get_argument("location")
+        XL                  = self.get_argument("excluded_location")
+        nr_cpus             = self.get_argument("nr_cpus")
+        interval            = self.get_argument("interval_list")
+        bed                 = self.get_argument("bed")
+        pon_vcf_gz          = self.get_argument("pon_vcf_gz")
+        max_mnp_distance    = self.get_argument("max_mnp_distance")
 
-        vcf = self.get_output("vcf")
+        vcf = self.get_output("vcf_gz")
 
         gatk_cmd        = self.get_gatk_command()
 
@@ -644,12 +657,9 @@ class Mutect2(_GATKBase):
         opts = list()
 
         # Add Tumor/Normal sample names
-        if is_tumor[0]:
-            opts.append("-tumor %s" % sample_names[0])
-            opts.append("-normal %s" % sample_names[1])
-        else:
-            opts.append("-tumor %s" % sample_names[1])
-            opts.append("-normal %s" % sample_names[0])
+        for _sample_name, _is_tumor in zip(sample_names, is_tumor):
+            if not _is_tumor and pon_vcf_gz:
+                opts.append("-normal {0}".format(_sample_name))
 
         def flatten(lis):
             """Given a list, possibly nested to any level, return it flattened."""
@@ -662,8 +672,11 @@ class Mutect2(_GATKBase):
             return new_lis
 
         # Add arguments for bams
-        bams = flatten(bams)
-        opts.extend(["-I %s" % bam for bam in bams])
+        if isinstance(bams, list):
+            bams = flatten(bams)
+            opts.extend(["-I %s" % bam for bam in bams])
+        else:
+            opts.append("-I {0}".format(bams))
 
         opts.append("{0} {1}".format(output_file_flag, vcf))
         opts.append("-R %s" % ref)
@@ -687,13 +700,25 @@ class Mutect2(_GATKBase):
             else:
                 opts.append("-XL \"%s\"" % XL)
 
+        # Check if an interval list and bed was provided and if yes, use interval list
+        if interval is not None and bed is not None:
+            logging.warning("Interval list gets the higher precedence over BED file.")
+            opts.append("-L {0}".format(interval))
+
         # Check if an interval list was provided and if yes, place it
-        if interval is not None:
+        elif interval is not None:
             opts.append("-L {0}".format(interval))
 
         # Check if a BED file was provided and if yes, place it
-        if bed is not None:
+        elif bed is not None:
             opts.append("-L {0}".format(bed))
+
+        # "Note that as of May, 2019 -max-mnp-distance must be set to zero to avoid a bug in GenomicsDBImport."
+        if max_mnp_distance:
+            opts.append("-max-mnp-distance {0}".format(max_mnp_distance))
+
+        if pon_vcf_gz:
+            opts.append("-pon {0}".format(pon_vcf_gz))
 
         # Generating command for Mutect2
         return "{0} Mutect2 {1} !LOG3!".format(gatk_cmd, " ".join(opts))
@@ -714,16 +739,31 @@ class Mutect2(_GATKBase):
         # Add each sample to the tumor status dictionary
         for _name, _tumor in zip(sample_names, is_tumor):
 
-            # Extract the sample ID
-            _id = _name.rsplit("_", 1)[0]
+            # Ensure tumor status is not a list but one single unique value
+            if isinstance(_tumor, list):
+                _tumor = set(_tumor)
 
-            # Check if the current sample id has already been introduced but with a different tumor status
-            if _id in tumor_status and tumor_status[_id] != _tumor:
-                logging.error("Same sample ID '%s' was provided as different tumor status!" % _id)
-                raise RuntimeError("Same sample ID '%s' was provided as different tumor status!" % _id)
+                if len(_tumor) != 1:
+                    raise Exception("More one tumor status {0} for a sample".format(_tumor))
+                else:
+                    _tumor = _tumor.pop()
+
+            # Ensure sample name is not a list but one single unique value
+            if isinstance(_name, list):
+                _name = set(_name)
+
+                if len(_name) != 1:
+                    raise Exception("More one tumor status {0} for a sample".format(_name))
+                else:
+                    _name = _name.pop()
+
+            # Check if the current sample name has already been introduced but with a different tumor status
+            if _name in tumor_status and tumor_status[_name] != _tumor:
+                logging.error("Same sample ID '%s' was provided as different tumor status!" % _name)
+                raise RuntimeError("Same sample ID '%s' was provided as different tumor status!" % _name)
 
             # If we have not stopped, just added it (possibly again) in the dictionary
-            tumor_status[_id] = _tumor
+            tumor_status[_name] = _tumor
 
         return list(tumor_status.keys()), list(tumor_status.values())
 
@@ -737,15 +777,17 @@ class DepthOfCoverage(_GATKBase):
 
     def define_input(self):
         self.define_base_args()
-        self.add_argument("bam",            is_required=True)
-        self.add_argument("bam_idx",        is_required=True)
-        self.add_argument("ref",            is_required=True, is_resource=True)
-        self.add_argument("interval_list",  is_required=False, is_resource=True)
-        self.add_argument("gene_list",      is_required=False, default_value=None)
-        self.add_argument("read_group",     is_required=False, default_value=None)
-        self.add_argument("unsafe",         is_required=False, default_value='ALLOW_N_CIGAR_READS')
-        self.add_argument("nr_cpus",        is_required=True, default_value=2)
-        self.add_argument("mem",            is_required=True, default_value=4)
+        self.add_argument("bam",                is_required=True)
+        self.add_argument("bam_idx",            is_required=True)
+        self.add_argument("ref",                is_required=True, is_resource=True)
+        self.add_argument("interval_list",      is_required=False)
+        self.add_argument("gene_list",          is_required=False, default_value=None)
+        self.add_argument("read_group",         is_required=False, default_value=None)
+        self.add_argument("unsafe",             is_required=False, default_value='ALLOW_N_CIGAR_READS')
+        self.add_argument("count_type",         is_required=False, default_value='COUNT_FRAGMENTS')
+        self.add_argument("per_base_summary",   is_required=False, default_value=None)
+        self.add_argument("nr_cpus",            is_required=True, default_value=8)
+        self.add_argument("mem",                is_required=True, default_value="nr_cpus * 2")
 
     def define_output(self):
         # Declare unique file name for a single output file
@@ -762,7 +804,9 @@ class DepthOfCoverage(_GATKBase):
         cumulative_coverage_counts      = "{0}.sample_cumulative_coverage_counts".format(self.prefix)
         cumulative_coverage_proportions = "{0}.sample_cumulative_coverage_proportions".format(self.prefix)
 
-        self.add_output("per_base_summary", self.prefix)
+        if self.get_argument("per_base_summary"):
+            self.add_output("per_base_summary", self.prefix)
+
         self.add_output("interval_summary", interval_summary)
         self.add_output("interval_statistics", interval_statistics)
         self.add_output("sample_summary", sample_summary)
@@ -772,12 +816,14 @@ class DepthOfCoverage(_GATKBase):
 
     def define_command(self):
         # Get input arguments
-        bam             = self.get_argument("bam")
-        ref             = self.get_argument("ref")
-        interval_list   = self.get_argument("interval_list")
-        gene_list       = self.get_argument("gene_list")
-        read_group      = self.get_argument("read_group")
-        unsafe          = self.get_argument("unsafe")
+        bam                 = self.get_argument("bam")
+        ref                 = self.get_argument("ref")
+        interval_list       = self.get_argument("interval_list")
+        gene_list           = self.get_argument("gene_list")
+        read_group          = self.get_argument("read_group")
+        unsafe              = self.get_argument("unsafe")
+        count_type          = self.get_argument("count_type")
+        per_base_summary    = self.get_argument("per_base_summary")
 
         # Get base GATK command line
         gatk_cmd = self.get_gatk_command()
@@ -786,8 +832,11 @@ class DepthOfCoverage(_GATKBase):
         output_file_flag = self.get_output_file_flag()
 
         # Generate the command line for DepthOfCoverage
-        cmd = "{0} DepthOfCoverage -I {1} -R {2} -ct 1 -ct 10 -ct 25 -ct 50 -ct 75 -ct 100 -ct 150 -ct 200 -ct 250 " \
-              "-ct 500 {3} {4}".format(gatk_cmd, bam, ref, output_file_flag, self.prefix)
+        cmd = "{0} DepthOfCoverage -I {1} -R {2} --countType {5} -ct 1 -ct 10 -ct 25 -ct 50 -ct 75 -ct 100 -ct 150 " \
+              "-ct 200 -ct 250 -ct 500 {3} {4}".format(gatk_cmd, bam, ref, output_file_flag, self.prefix, count_type)
+
+        if not per_base_summary:
+            cmd = "{0} --omitDepthOutputAtEachBase".format(cmd)
 
         if interval_list is not None:
             cmd = "{0} -L {1}".format(cmd, interval_list)
@@ -1198,5 +1247,45 @@ class PlotModeledSegments(_GATKBase):
         # add the rest of the arguments to command
         cmd = "{0} --denoised-copy-ratios {1} --segments {2} --sequence-dictionary {3} --output-prefix {4} {5} {6}" \
               "".format(cmd, denoise_copy_ratio, model_final_seg, ref_dict, prefix, output_file_flag, out_dir)
+
+        return "{0} !LOG3!".format(cmd)
+
+
+class CreateSomaticPanelOfNormals(_GATKBase):
+
+    def __init__(self, module_id, is_docker=False):
+        super(CreateSomaticPanelOfNormals, self).__init__(module_id, is_docker)
+        self.output_keys = ["pon_vcf_gz", "pon_vcf_tbi"]
+
+    def define_input(self):
+        self.define_base_args()
+        self.add_argument("sample_name",    is_required=True)
+        self.add_argument("genomicsDB",     is_required=True)
+        self.add_argument("nr_cpus",        is_required=True, default_value=4)
+        self.add_argument("mem",            is_required=True, default_value=8)
+
+    def define_output(self):
+
+        # Declare VCF output filename
+        pon_vcf = self.generate_unique_file_name(extension=".vcf.gz")
+        self.add_output("pon_vcf_gz", pon_vcf)
+
+        # Declare VCF index output filename
+        pon_vcf_tbi = self.generate_unique_file_name(extension=".vcf.gz.tbi")
+        self.add_output("pon_vcf_tbi", pon_vcf_tbi)
+
+    def define_command(self):
+        # Get input arguments
+        genomicsDB  = self.get_argument("genomicsDB")
+        ref         = self.get_argument("ref")
+
+        # get the output file name
+        pon = self.get_output("pon_vcf_gz")
+
+        # Get GATK base command
+        gatk_cmd = self.get_gatk_command()
+
+        # Generate the command line for CreateSomaticPanelOfNormals
+        cmd = "{0} CreateSomaticPanelOfNormals -R {1} -V gendb://{2} -O {3}".format(gatk_cmd, ref, genomicsDB, pon)
 
         return "{0} !LOG3!".format(cmd)

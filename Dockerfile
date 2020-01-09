@@ -1,5 +1,5 @@
 # Base Image
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 # Metadata
 LABEL base.image="CloudConductor:v0.1.1"
@@ -13,11 +13,17 @@ LABEL tags="NGS Cloud CloudConductor GoogleCloud AWS Bioinformatics Workflow Pip
 MAINTAINER davelab  <lab.dave@gmail.com>
 
 # update the OS related packages
+RUN apt-get update && \
+		apt-get install -y software-properties-common && \
+        add-apt-repository ppa:jonathonf/python-3.6
+
 RUN apt-get update -y &&\
-    apt-get install -y python-pip curl git
+    apt-get install -y build-essential python2.7-dev python3.6-dev python3-pip && \
+    apt-get install -y curl git netcat
 
 # upgrade pip, setuptools, and wheel Python modules
-RUN pip install -U pip setuptools wheel configobj jsonschema requests
+RUN python3.6 -m pip install pip --upgrade && \
+	python3.6 -m pip install setuptools wheel configobj jsonschema requests
 
 # Install gcloud
 RUN curl -sSL https://sdk.cloud.google.com > /tmp/gcl &&\

@@ -4,16 +4,16 @@ class SampleSplitter(Splitter):
 
     def __init__(self, module_id, is_docker=False):
         super(SampleSplitter, self).__init__(module_id, is_docker)
-        self.output_keys = ["sample_name"]
+        self.output_keys = ["sample_id"]
 
     def define_input(self):
-        self.add_argument("sample_name",    is_required=True)
+        self.add_argument("sample_id",      is_required=True)
         self.add_argument("nr_cpus",        is_required=True,   default_value=1)
         self.add_argument("mem",            is_required=True,   default_value=1)
 
     def define_output(self):
         # Obtaining the arguments
-        samples = self.get_argument("sample_name")
+        samples = self.get_argument("sample_id")
 
         # Make one split if only one sample
         if not isinstance(samples, list):
@@ -32,17 +32,17 @@ class TumorNormalSplitter(Splitter):
 
     def __init__(self, module_id, is_docker=False):
         super(TumorNormalSplitter, self).__init__(module_id, is_docker)
-        self.output_keys = ["sample_name"]
+        self.output_keys = ["sample_id"]
 
     def define_input(self):
-        self.add_argument("sample_name",    is_required=True)
+        self.add_argument("sample_id",    is_required=True)
         self.add_argument("is_tumor",       is_required=True)
         self.add_argument("nr_cpus",        is_required=True,   default_value=1)
         self.add_argument("mem",            is_required=True,   default_value=1)
 
     def define_output(self):
         # Obtaining the arguments
-        samples = self.get_argument("sample_name")
+        samples = self.get_argument("sample_id")
         is_tumor = self.get_argument("is_tumor")
 
         # Make one split if only one sample

@@ -16,7 +16,14 @@ class BaseParser(object, metaclass=abc.ABCMeta):
         if os.path.isabs(config_spec_file):
             self.config_spec_file = config_spec_file
         else:
-            self.config_spec_file = os.path.join(sys.path[0], config_spec_file)
+            self.config_spec_file = os.path.join(
+                os.path.dirname(
+                    os.path.dirname(
+                        os.path.dirname(__file__)
+                    )
+                ),
+                config_spec_file
+            )
 
         # Check to make sure config file and config spec file actually exist
         self.__check_files()

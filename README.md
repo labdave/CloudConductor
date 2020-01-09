@@ -37,13 +37,13 @@ Currently, the framework has been tested extensively on the [Google Cloud Platfo
 CloudConductor is currently designed only for *Linux* systems. 
 You will need to install and configure the following tools to run your pipelines on Google Cloud:  
 
-1. [Python](https://www.python.org/) v2.7.*
+1. [Python](https://www.python.org/) v3.6+
 
     You can check your Python version by running the following command in your terminal:
 
     ```sh
-    $ python -V
-    Python 2.7.10
+    $ python3 -V
+    Python 3.6.8
     ```
 
     To install the correct version of Python, visit the official Python [website](https://www.python.org/downloads/).
@@ -55,10 +55,10 @@ You will need to install and configure the following tools to run your pipelines
 
     ``` sh
     # Upgrade pip
-    sudo pip install -U pip
+    sudo pip3 install -U pip
     
     # Install Python modules
-    sudo pip install -U configobj jsonschema requests
+    sudo pip3 install -U configobj jsonschema requests
     ```
 
 3. Clone the **CloudConductor** repo
@@ -80,8 +80,11 @@ Get started with our full [documentation](https://cloudconductor.readthedocs.io)
 
 CloudConductor is actively under development. To get involved or request features, please contact [Razvan Panea](https://github.com/ripanea).
 
-## Authors
+## Authors & Contributors
 
-* [Alex Waldrop](https://github.com/alexwaldrop)
 * [Razvan Panea](https://github.com/ripanea)
+* [Alex Waldrop](https://github.com/alexwaldrop)
 * [Tushar Dave](https://github.com/tushardave26)
+* [Clay Parker](https://github.com/parkerc71)
+* [Qiu Qin](https://github.com/qiuosier)
+* [Rachel Kositsky](https://github.com/rkositsky)

@@ -7,7 +7,7 @@ class GAPFileMetadataError(Exception):
 
 class GAPFile(object):
     # Hold GAP-Related file information
-    def __init__(self, file_id,  file_type, path, **kwargs):
+    def __init__(self, file_id, file_type, path, **kwargs):
 
         # File Id
         self.file_id = file_id
@@ -30,6 +30,9 @@ class GAPFile(object):
 
         # File size
         self.size = kwargs.pop("file_size", None)
+
+        # Sample information
+        self.sample_name = kwargs.pop("sample_name", None)
 
         # Standardize aspects of the resource path provided
         self.__standardize()

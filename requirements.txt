@@ -1,0 +1,4 @@
+requests
+jsonschema
+configobj
+apache-libcloud

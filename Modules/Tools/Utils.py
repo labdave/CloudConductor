@@ -1,8 +1,10 @@
 import logging
 import copy
+from itertools import zip_longest
 
 from System.Datastore import GAPFile
 from Modules import Module
+
 
 class ConcatFastq(Module):
     # Module designed to concatentate one or more R1, R2 files from the same sample
@@ -11,7 +13,7 @@ class ConcatFastq(Module):
     # If 1 read pair: return original file name without doing anything
     def __init__(self, module_id, is_docker=False):
         super(ConcatFastq, self).__init__(module_id, is_docker)
-        self.output_keys    = ["R1", "R2"]
+        self.output_keys = ["R1", "R2"]
 
     def define_input(self):
         self.add_argument("R1",         is_required=True)
@@ -90,6 +92,81 @@ class ConcatFastq(Module):
             raise RuntimeError("Incorrect input to ConcatFastq!")
 
 
+class ConsolidateSampleName(Module):
+
+    def __init__(self, module_id, is_docker=False):
+        super(ConsolidateSampleName, self).__init__(module_id, is_docker)
+        self.output_keys = ["sample_name", "is_tumor"]
+
+    def define_input(self):
+        self.add_argument("sample_name",    is_required=True)
+        self.add_argument("is_tumor",       is_required=False)
+        self.add_argument("nr_cpus",        is_required=True, default_value=1)
+        self.add_argument("mem",            is_required=True, default_value=1)
+
+    def define_output(self):
+
+        # Obtain the sample name(s)
+        sample_name = self.get_argument("sample_name")
+        is_tumor = self.get_argument("is_tumor")
+
+        # Check if there is more than one sample name
+        if isinstance(sample_name, list):
+
+            # Ensure is_tumor is iterable
+            if is_tumor is None:
+                is_tumor = []
+
+            # Simplify the sample names and make them unique
+            samples = set()
+            for _s, _t in zip_longest(sample_name, is_tumor):
+
+                # Check if sample name is a list
+                if isinstance(_s, list):
+                    samples.update([(self.simplify_sample_ID(_ss), _t) for _ss in _s])
+                else:
+                    samples.add((self.simplify_sample_ID(_s), _t))
+
+            # If more than one unique sample is found, throw a warning as this should NOT happen
+            if len(samples) > 1:
+                logging.warning("The output for sample name consolidation is more than one unique sample! "
+                                "The analysis might not be biologically correct if alignment is performed "
+                                "as one readgroup should be associated with maximum one sample!")
+
+            # Obtain the first unique sample name
+            sample_name, is_tumor = next(iter(samples))
+
+        self.add_output("sample_name", sample_name, is_path=False)
+        self.add_output("is_tumor", is_tumor, is_path=False)
+
+    def define_command(self):
+        return None
+
+    @staticmethod
+    def simplify_sample_ID(sample_ID):
+        # Define list of special characters: (s)ubmission, (l)ibrary, (c)apture
+        special_letters = ["s", "l", "c", "a"]
+
+        # Remove elements that start with a special letter and the following characters are numbers
+        valid = False
+        while not valid:
+
+            # Split current ID by the last underscore
+            possible_sample_ID, last_ID = sample_ID.rsplit("_", 1)
+
+            # Check if the ID after the last underscore is a special ID
+            if last_ID[0].lower() in special_letters and \
+                    (last_ID[1:].lower().isdigit() or last_ID[1:].lower() == "none"):
+
+                sample_ID = possible_sample_ID
+
+            # The last ID is not special, so we should keep it as part of the ID
+            else:
+                valid = True
+
+        return sample_ID
+
+
 class RecodeVCF(Module):
 
     def __init__(self, module_id, is_docker=False):
@@ -101,8 +178,8 @@ class RecodeVCF(Module):
         self.add_argument("recode_vcf",         is_required=True,   is_resource=True)   # Path to RecodeVCF.py executable
         self.add_argument("min-call-depth",     is_required=True,   default_value=10)   # Minimum reads supporting an allele to call a GT
         self.add_argument("info-columns",       is_required=False)                      # Optional list of INFO column names to include in output
-        self.add_argument("nr_cpus",            is_required=True,   default_value=1)
-        self.add_argument("mem",                is_required=True,   default_value=2)
+        self.add_argument("nr_cpus",            is_required=True,   default_value=2)
+        self.add_argument("mem",                is_required=True,   default_value=10)
 
     def define_output(self):
         # Declare recoded VCF output filename
@@ -257,12 +334,12 @@ class IndexVCF(Module):
 
     def __init__(self, module_id, is_docker=False):
         super(IndexVCF, self).__init__(module_id, is_docker)
-        self.output_keys    = ["vcf_gz", "vcf_csi"]
+        self.output_keys    = ["vcf_gz", "vcf_tbi"]
 
     def define_input(self):
         self.add_argument("vcf",        is_required=True)
         self.add_argument("bgzip",      is_required=True,   is_resource=True)
-        self.add_argument("bcftools",   is_required=True,   is_resource=True)
+        self.add_argument("tabix",      is_required=True,   is_resource=True)
         self.add_argument("nr_cpus",    is_required=True,   default_value=8)
         self.add_argument("mem",        is_required=True,   default_value=16)
 
@@ -270,22 +347,49 @@ class IndexVCF(Module):
         # Declare recoded VCF output filename
         vcf_in = self.get_argument("vcf")
         self.add_output("vcf_gz", "%s.gz" % vcf_in)
-        self.add_output("vcf_csi", "%s.gz.csi" % vcf_in)
+        self.add_output("vcf_tbi", "%s.gz.tbi" % vcf_in)
 
     def define_command(self):
         # Get input arguments
         vcf_in      = self.get_argument("vcf")
         bgzip       = self.get_argument("bgzip")
-        bcftools    = self.get_argument("bcftools")
+        tabix       = self.get_argument("tabix")
         vcf_out     = self.get_output("vcf_gz")
         # Get final normalized VCF output file path
-        return "{0} {1} !LOG2!; {2} index -f {3} !LOG2!".format(bgzip, vcf_in, bcftools, vcf_out)
+        return "{0} {1} !LOG2!; {2} -p vcf {3} !LOG2!".format(bgzip, vcf_in, tabix, vcf_out)
 
 
-class BGZip(Module):
+class IndexBED(Module):
 
     def __init__(self, module_id, is_docker=False):
-        super(BGZip, self).__init__(module_id, is_docker)
+        super(IndexBED, self).__init__(module_id, is_docker)
+        self.output_keys    = ["bed_tbi"]
+
+    def define_input(self):
+        self.add_argument("bed_gz",     is_required=True)
+        self.add_argument("tabix",      is_required=True, is_resource=True)
+        self.add_argument("nr_cpus",    is_required=True, default_value=2)
+        self.add_argument("mem",        is_required=True, default_value=4)
+
+    def define_output(self):
+        # Declare recoded VCF output filename
+        bed_in = self.get_argument("bed_gz")
+
+        self.add_output("bed_tbi", "{0}.tbi".format(bed_in))
+
+    def define_command(self):
+        # Get input arguments
+        bed_in      = self.get_argument("bed_gz")
+        tabix       = self.get_argument("tabix")
+
+        # return the command line
+        return "{0} -p bed {1} !LOG2!".format(tabix, bed_in)
+
+
+class BGZipVCF(Module):
+
+    def __init__(self, module_id, is_docker=False):
+        super(BGZipVCF, self).__init__(module_id, is_docker)
         self.output_keys    = ["vcf_gz"]
 
     def define_input(self):
@@ -307,7 +411,36 @@ class BGZip(Module):
         vcf_out     = self.get_output("vcf_gz")
 
         # Get final normalized VCF output file path
-        cmd = "{0} {1} > {2} !LOG3!".format(bgzip, vcf_in, vcf_out)
+        cmd = "{0} -c {1} > {2} !LOG2!".format(bgzip, vcf_in, vcf_out)
+        return cmd
+
+
+class BGZipBED(Module):
+
+    def __init__(self, module_id, is_docker=False):
+        super(BGZipBED, self).__init__(module_id, is_docker)
+        self.output_keys    = ["bed_gz"]
+
+    def define_input(self):
+        self.add_argument("bed",        is_required=True)
+        self.add_argument("bgzip",      is_required=True, is_resource=True)
+        self.add_argument("nr_cpus",    is_required=True, default_value=1)
+        self.add_argument("mem",        is_required=True, default_value=2)
+
+    def define_output(self):
+        # Declare recoded VCF output filename
+        bed_in = self.get_argument("bed")
+
+        self.add_output("bed_gz", "{0}.gz".format(bed_in))
+
+    def define_command(self):
+        # Get input arguments
+        bed_in      = self.get_argument("bed")
+        bgzip       = self.get_argument("bgzip")
+        bed_out     = self.get_output("bed_gz")
+
+        # Get final normalized VCF output file path
+        cmd = "{0} -c {1} > {2} !LOG2!".format(bgzip, bed_in, bed_out)
         return cmd
 
 
@@ -343,8 +476,8 @@ class GetReadGroup(Module):
         seq_platform = self.get_argument("seq_platform")
         fastq_header_data = out.lstrip("@").strip("\n").split(":")
 
-        # Generate the correct sample name
-        sample_name = self.get_argument("sample_name").rsplit("_", 1)[0]
+        # Obtain the sample name(s)
+        sample_name = self.get_argument("sample_name")
 
         # Generating the read group information from command output
         rg_id = ":".join(fastq_header_data[0:4])  # Read Group ID
@@ -636,3 +769,35 @@ class GetDemuxFASTQ(Module):
 
     def define_command(self):
         return None
+
+
+class GetSampleFromBAMHeader(Module):
+    def __init__(self, module_id, is_docker = False):
+        super(GetSampleFromBAMHeader, self).__init__(module_id, is_docker)
+        self.output_keys = ["sample_name"]
+
+    def define_input(self):
+        self.add_argument("bam",            is_required=True)
+        self.add_argument("samtools",       is_required=True, is_resource=True)
+        self.add_argument("nr_cpus",        is_required=True, default_value=2)
+        self.add_argument("mem",            is_required=True, default_value=4)
+
+    def define_output(self):
+        self.add_output("sample_name", None, is_path=False)
+
+    def define_command(self):
+        # Get arguments to run SAMTOOLS
+        bam = self.get_argument("bam")
+        # extract read group line from the header
+        cmd = 'samtools view -H {0} | grep "^@RG"'.format(bam)
+
+        return cmd
+
+    def process_cmd_output(self, out, err):
+
+        # example of read group line
+        # @RG	ID:HISEQ-WALDORF:249:C92LDANXX:2	PU:TATGATGG	SM:4339_B_S21599	LB:S21599	PL:Illumina
+        sample_name = out.split('\t')[3].split(':')[-1]
+
+        # Obtain necessary data
+        self.set_output("sample_name", sample_name)

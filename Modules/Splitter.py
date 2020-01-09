@@ -52,8 +52,7 @@ class Splitter(Module):
 
         # Convert paths to GAPFiles if they haven't already been converted
         if is_path and not isinstance(value, GAPFile) and value is not None:
-            file_id = "%s.%s.%s" % (self.module_id, split_id, key)
-            self.output[split_id][key] = GAPFile(file_id, file_type=key, path=value, **kwargs)
+            self.output[split_id][key] = self.convert_to_gapfile(split_id, key, value, **kwargs)
         # Otherwise just set the value
         else:
             self.output[split_id][key] = value
@@ -97,6 +96,19 @@ class Splitter(Module):
             path = os.path.join(self.output_dir, path)
 
         return path
+
+    def generate_gapfile(self, split_id, key, value, **kwargs):
+        # Generate file id
+        file_id = "%s.%s.%s" % (self.module_id, split_id, key)
+
+        return GAPFile(file_id, file_type=key, path=value, **kwargs)
+
+    def convert_to_gapfile(self, _split_id, _key, _value, **_kwargs):
+        # Recursively convert all paths to GAPFile
+        if not isinstance(_value, list):
+            return self.generate_gapfile(_split_id, _key, _value, **_kwargs)
+        else:
+            return [self.convert_to_gapfile(_split_id, _key, _file, **_kwargs) for _file in _value]
 
     def get_output_values(self):
         # Get list of current output values from all splits aggregated into single list

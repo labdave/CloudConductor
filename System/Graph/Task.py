@@ -200,7 +200,10 @@ class Task(object):
     def get_task_string(self, input_from=None):
         # Get the module names
         to_ret = "[%s]\n" % self.__task_id
-        to_ret +="\tmodule\t= %s\n" % self.module.__class__.__name__
+        to_ret +="\tmodule\t= %s\n" % self.__module_name
+
+        if self.__submodule_name:
+            to_ret += "\tsubmodule\t= %s\n" % self.__submodule_name
 
         if len(self.__final_output_keys) == 1:
             to_ret += "\tfinal_output\t= %s\n" % self.__final_output_keys[0]

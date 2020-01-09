@@ -476,3 +476,70 @@ class DOCIntervalSummaryStats(_QCParser):
         # Output qc_report to file
         cmd += " > %s !LOG2!" % qc_report
         return cmd
+
+
+class DOCSampleSummaryStats(_QCParser):
+
+    def __init__(self, module_id, is_docker=False):
+        super(DOCSampleSummaryStats, self).__init__(module_id, is_docker)
+
+    def define_input(self):
+        super(DOCSampleSummaryStats, self).define_input()
+        self.add_argument("sample_summary", is_required=True)
+
+    def define_command(self):
+        # Get options from kwargs
+        input_file      = self.get_argument("sample_summary")
+        qc_parser       = self.get_argument("qc_parser")
+        sample_name     = self.get_argument("sample_name")
+        parser_note     = self.get_argument("note")
+        qc_report       = self.get_output("qc_report")
+
+        # Generate base command
+        cmd = "%s GATKDOCSampleSummary -i %s -s %s" % (qc_parser, input_file, sample_name)
+
+        # Add parser note if necessary
+        if parser_note is not None:
+            cmd += " -n \"%s\"" % parser_note
+
+        # Output qc_report to file
+        cmd += " > %s !LOG2!" % qc_report
+        return cmd
+
+
+class DOCSampleIntervalSummary(_QCParser):
+
+    def __init__(self, module_id, is_docker=False):
+        super(DOCSampleIntervalSummary, self).__init__(module_id, is_docker)
+
+    def define_input(self):
+        super(DOCSampleIntervalSummary, self).define_input()
+        self.add_argument("interval_summary", is_required=True)
+        self.add_argument("intervals", default_value=["ERCC-00004","ERCC-00046","ERCC-00085","ERCC-00095",
+                                                       "ERCC-00108","ERCC-00142","ERCC-00148","ERCC-00156",
+                                                       "ERCC-00171"])
+
+        # Overwrite the default values for nr_cpus and mem
+        self.add_argument("nr_cpus", is_required=True, default_value=4)
+        self.add_argument("mem", is_required=True, default_value=10)
+
+    def define_command(self):
+        # Get options from kwargs
+        input_file      = self.get_argument("interval_summary")
+        intervals       = self.get_argument("intervals")
+        qc_parser       = self.get_argument("qc_parser")
+        sample_name     = self.get_argument("sample_name")
+        parser_note     = self.get_argument("note")
+        qc_report       = self.get_output("qc_report")
+
+        # Generate base command
+        cmd = "%s GATKDOCSampleIntervalSummary -i %s -s %s --int %s" % (qc_parser, input_file, sample_name,
+                                                                        ' '.join(intervals))
+
+        # Add parser note if necessary
+        if parser_note is not None:
+            cmd += " -n \"%s\"" % parser_note
+
+        # Output qc_report to file
+        cmd += " > %s !LOG2!" % qc_report
+        return cmd

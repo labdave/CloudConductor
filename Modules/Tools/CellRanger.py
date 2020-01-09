@@ -5,7 +5,7 @@ from Modules import Module
 
 class CellRanger(Module):
     def __init__(self, module_id, is_docker = False):
-        super(CellRanger, self).__init__(module_id, is_docker)
+        super(CellRanger, self).__init__(module_id, is_docker, is_resumable=True)
         self.output_keys = ["cellranger_output_dir"]
 
     def define_input(self):
@@ -20,7 +20,15 @@ class CellRanger(Module):
     def define_output(self):
         # Declare cell ranger output dir
         sample_name = self.get_argument("sample_name")
-        self.add_output("cellranger_output_dir", sample_name, is_path=True)
+
+        # Sample "names" are now the sample_id + the submission id, so we could have multiple sample "names"
+        # If so, just use the first one as the sample name for all of them
+        # Could parse out the sample ID to make this cleaner
+        if isinstance(sample_name, list) and (len(sample_name) > 0):
+            sample_name = sample_name[0]
+
+        cellranger_output_dir = os.path.join(self.output_dir, sample_name)
+        self.add_output("cellranger_output_dir", cellranger_output_dir, is_path=True)
 
     def define_command(self):
         # Generate command for running Cell Ranger
@@ -35,6 +43,12 @@ class CellRanger(Module):
         cellranger_dir  = os.path.dirname(cellranger)
         source_path     = os.path.join(cellranger_dir, "sourceme.bash")
         wrk_dir         = self.get_output_dir()
+
+        # Sample "names" are now the sample_id + the submission id, so we could have multiple sample "names"
+        # If so, just use the first one as the sample name for all of them
+        # Could parse out the sample ID to make this cleaner
+        if isinstance(sample_name, list) and (len(sample_name) > 0):
+            sample_name = sample_name[0]
 
         # We accommodate two idiosynchroses of Cell Ranger:
         # 1. CR accepts a folder of fastqs, not a list of files,
@@ -71,19 +85,17 @@ class CellRanger(Module):
         mv_R2_cmd = ""
         for i in range(len(R1)):
             new_R1 = os.path.join(fastq_dir,
-                                  "sample_S0_L000_R1_00{}.fastq.gz".format(
-                                      i))
+                                  "sample_s0_L000_R1_00{0}.fastq.gz".format(i))
             new_R2 = os.path.join(fastq_dir,
-                                  "sample_S0_L000_R2_00{}.fastq.gz".format(
-                                      i))
-            mv_R1_cmd += "mv {0} {1};".format(R1[i], new_R1)
-            mv_R2_cmd += "mv {0} {1};".format(R2[i], new_R2)
+                                  "sample_s0_L000_R2_00{0}.fastq.gz".format(i))
+            mv_R1_cmd += "mv -u {0} {1};".format(R1[i], new_R1)
+            mv_R2_cmd += "mv -u {0} {1};".format(R2[i], new_R2)
 
         # If interrupted, the lock file needs to be removed before restarting,
         # so we remove the lock file just in case it exists
         cmd = "cd {0}; source {1}; rm -f {0}{2}/_lock; mkdir -p {3}; {4} {5} " \
               "cellranger count --id={2} --fastqs={3} " \
-              "--transcriptome={6} --localcores={7} --localmem={8}".format(
+              "--transcriptome={6} --localcores={7} --localmem={8} !LOG3! ".format(
             wrk_dir, source_path, sample_name, fastq_dir, mv_R1_cmd, mv_R2_cmd,
             transcriptome, nr_cpus, mem)
 
