@@ -19,6 +19,6 @@
 
     cmd_retries             = integer(default=3)
 
-    ssh_connection_user     = string(default=root)
+    ssh_connection_user     = string(default=ubuntu)
 
     [[extra]]
