@@ -39,7 +39,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
         # Initialize the workspace directories
         self.wrk_dir = "/data"
-        self.log_dir = f"{self.wrk_dir}/log"
+        self.wrk_log_dir = f"{self.wrk_dir}/log"
         self.wrk_out_dir = f"{self.wrk_dir}/output"
 
         # Default number of times to retry commands if none specified at command runtime
@@ -166,8 +166,8 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
             # Generate name of log file
             log_file = f"{job_name}.log"
-            if self.log_dir is not None:
-                log_file = os.path.join(self.log_dir, log_file)
+            if self.wrk_log_dir is not None:
+                log_file = os.path.join(self.wrk_log_dir, log_file)
 
             # Generating all the logging pipes
             log_cmd_null    = " >>/dev/null 2>&1 "
