@@ -56,8 +56,6 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Initialize external IP address
         self.external_IP = None
 
-        # Create the instance
-        self.create_instance()
 
     def create(self):
 
