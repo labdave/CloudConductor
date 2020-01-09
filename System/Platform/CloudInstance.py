@@ -383,6 +383,30 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             }
         })
 
+    def get_name(self):
+        return self.name
+
+    def get_start_time(self):
+
+        # Return the timestamp of the first CREATE event
+        for event in self.history:
+            if event["type"] == "CREATE":
+                return event["timestamp"]
+
+        return None
+
+    def get_stop_time(self):
+
+        # Return the timestamp of the last DESTROY event
+        for event in reversed(self.history):
+            if event["type"] == "DESTROY":
+                return event["timestamp"]
+
+        return time.time()
+
+    def get_runtime(self):
+        return self.get_stop_time() - self.get_start_time()
+
     # ABSTRACT METHODS TO BE IMPLEMENTED BY INHERITING CLASSES
 
     @abc.abstractmethod
