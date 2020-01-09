@@ -50,14 +50,37 @@ class GoogleInstance(CloudInstance):
         with open(f"{self.ssh_private_key}.pub") as inp:
             ssh_key_content = inp.read()
 
+        # Generate service account scope
+        sa_scope = [
+            {
+                "email": self.service_account,
+                "scopes": ["https://www.googleapis.com/auth/cloud-platform"]
+            }
+        ]
+
+        # Generate the correct metadata that will contain the SSH key
+        metadata = {
+            "ssh-keys": f"{self.ssh_connection_user}: {ssh_key_content} {self.ssh_connection_user}"
+        }
+
+        # Generate the boot disk information
+        disks = [
+            {
+                "boot": True,
+                "initializeParams": {
+                    "sourceImage" : f"global/images/{self.image}",
+                    "diskSizeGb" : str(self.disk_space)
+                }
+            }
+        ]
+
         # Create instance
         self.node = self.driver.create_node(name=self.name,
                                             image=self.image,
                                             size=node_size,
-                                            ex_metadata={
-                                                "ssh-keys": f"{self.ssh_connection_user}:"
-                                                            f"{ssh_key_content} {self.ssh_connection_user}"
-                                            })
+                                            ex_disks_gce_struct=disks,
+                                            ex_service_accounts=sa_scope,
+                                            ex_metadata=metadata)
 
         # Return the external IP from node
         return self.node.public_ips[0]
