@@ -386,6 +386,35 @@ class IndexBED(Module):
         return "{0} -p bed {1} !LOG2!".format(tabix, bed_in)
 
 
+class GunzipVCF(Module):
+
+    def __init__(self, module_id, is_docker=False):
+        super(GunzipVCF, self).__init__(module_id, is_docker)
+        self.output_keys    = ["vcf"]
+
+    def define_input(self):
+        self.add_argument("vcf_gz",         is_required=True)
+        self.add_argument("gunzip",         is_required=True, is_resource=True)
+        self.add_argument("nr_cpus",        is_required=True, default_value=1)
+        self.add_argument("mem",            is_required=True, default_value=2)
+
+    def define_output(self):
+        # Declare recoded VCF output filename
+        vcf_in = self.get_argument("vcf_gz").rsplit(".",1)[0]
+
+        self.add_output("vcf", vcf_in)
+
+    def define_command(self):
+        # Get input arguments
+        vcf_in      = self.get_argument("vcf_gz")
+        gunzip       = self.get_argument("gunzip")
+
+        # Get final normalized VCF output file path
+        cmd = "{0} {1} !LOG2!".format(gunzip, vcf_in)
+
+        return cmd
+
+
 class BGZipVCF(Module):
 
     def __init__(self, module_id, is_docker=False):
