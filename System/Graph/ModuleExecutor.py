@@ -175,9 +175,6 @@ class ModuleExecutor(object):
         for job_name in job_names:
             self.processor.wait_process(job_name)
 
-        # Wait for output files to finish transferring
-        self.processor.wait()
-
     def save_logs(self):
         # Move log files to final output log directory
         log_files = os.path.join(self.workspace.get_wrk_log_dir(), "*")
