@@ -56,6 +56,8 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Initialize external IP address
         self.external_IP = None
 
+        # Initialize the checkpoints of the instance
+        self.checkpoints = []
 
     def create(self):
 
@@ -411,6 +413,12 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         self.wrk_dir = wrk_dir
         self.wrk_log_dir = wrk_log_dir
         self.wrk_out_dir = wrk_out_dir
+
+    def add_checkpoint(self, clear_output=True):
+        """ Function for setting where processor should fall back to in case of a preemption.
+            -clear_output: Flag to indicate that, in case of preemption, the task's output directory needs to be cleared.
+        """
+        self.checkpoints.append((next(reversed(self.processes)), clear_output))
 
     # ABSTRACT METHODS TO BE IMPLEMENTED BY INHERITING CLASSES
 
