@@ -4,6 +4,7 @@ from System.Platform import CloudInstance
 
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
+from libcloud.common.google import ResourceNotFoundError
 
 
 class GoogleInstance(CloudInstance):
@@ -95,7 +96,11 @@ class GoogleInstance(CloudInstance):
         self.driver.ex_stop_node(self.node)
 
     def get_status(self):
-        self.node = self.driver.ex_get_node(self.name)
+
+        try:
+            self.node = self.driver.ex_get_node(self.name)
+        except ResourceNotFoundError:
+            return CloudInstance.OFF
 
         # Define mapping between the cloud status and the current class status
         status_map = {
