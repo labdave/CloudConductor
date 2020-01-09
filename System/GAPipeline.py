@@ -103,7 +103,6 @@ class GAPipeline(object):
 
         # Create helper processor and storage/docker helpers for checking input files
         self.helper_processor   = self.platform.get_instance(1,1, 100, is_helper=True)
-        self.helper_processor.create()
 
         self.storage_helper     = StorageHelper(self.helper_processor)
         self.docker_helper      = DockerHelper(self.helper_processor)

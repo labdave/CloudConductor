@@ -142,12 +142,6 @@ class TaskWorker(Thread):
             # Check to see if pipeline has been cancelled
             self.__check_cancelled()
 
-            # Create the processor
-            self.proc.create()
-
-            # Check to see if pipeline has been cancelled
-            self.__check_cancelled()
-
             # Create module executor
             self.module_executor = ModuleExecutor(task_id=self.task.get_ID(),
                                                   processor=self.proc,
