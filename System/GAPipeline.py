@@ -69,6 +69,9 @@ class GAPipeline(object):
         plat_class      = plat_module.__dict__[self.__plat_module]
         self.platform   = plat_class(self.pipeline_id, self.__platform_config, self.__final_output_dir)
 
+        # Initialize the platform
+        self.platform.init_platform()
+
         # Create datastore and scheduler
         self.datastore = Datastore(self.graph, self.resource_kit, self.sample_data, self.platform)
         self.scheduler = Scheduler(self.graph, self.datastore, self.platform)
