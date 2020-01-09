@@ -120,6 +120,11 @@ class GAPipeline(object):
         workspace = self.datastore.get_task_workspace()
         for dir_type, dir_path in workspace.get_workspace().items():
             self.storage_helper.mkdir(dir_path=str(dir_path), job_name="mkdir_%s" % dir_type, wait=True)
+
+        # Validate granting of permission
+        self.helper_processor.run("grant_perm_helper", "sudo chmod -R 777 %s" % workspace.get_wrk_dir())
+        self.helper_processor.wait_process("grant_perm_helper")
+
         logging.info("CloudCounductor run validated! Beginning pipeline execution.")
 
     def run(self, rm_tmp_output_on_success=True):
