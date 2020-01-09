@@ -407,6 +407,11 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
     def get_runtime(self):
         return self.get_stop_time() - self.get_start_time()
 
+    def set_workspace(self, wrk_dir, wrk_log_dir, wrk_out_dir):
+        self.wrk_dir = wrk_dir
+        self.wrk_log_dir = wrk_log_dir
+        self.wrk_out_dir = wrk_out_dir
+
     # ABSTRACT METHODS TO BE IMPLEMENTED BY INHERITING CLASSES
 
     @abc.abstractmethod

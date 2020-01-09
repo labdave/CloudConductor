@@ -189,9 +189,11 @@ class ModuleExecutor(object):
             self.storage_helper.mkdir(dir_obj, job_name="mkdir_%s" % dir_type, wait=True)
 
         # Set processor wrk, log directories
-        self.processor.set_wrk_dir(self.workspace.get_wrk_dir())
-        self.processor.set_wrk_out_dir(self.workspace.get_wrk_out_dir())
-        self.processor.set_log_dir(self.workspace.get_wrk_log_dir())
+        self.processor.set_workspace(
+            wrk_dir=self.workspace.get_wrk_dir(),
+            wrk_out_dir=self.workspace.get_wrk_out_dir(),
+            wrk_log_dir=self.workspace.get_wrk_log_dir()
+        )
 
         # Give everyone all the permissions on working directory
         logging.info("(%s) Updating workspace permissions..." % self.processor.name)
