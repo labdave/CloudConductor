@@ -866,23 +866,24 @@ class PreprocessIntervals(_GATKBase):
 
     def define_input(self):
         self.define_base_args()
+        self.add_argument("interval_list", is_required=True, default_value=0)
         self.add_argument("bin_length", is_required=True, default_value=0)
         self.add_argument("nr_cpus", is_required=True, default_value=1)
         self.add_argument("mem", is_required=True, default_value=2)
 
     def define_output(self):
         # Declare interval list output filename
-        interval_list = self.generate_unique_file_name(extension=".interval.list")
+        interval_list = self.generate_unique_file_name(extension=".preprocessed.interval.list")
         self.add_output("interval_list", interval_list)
 
     def define_command(self):
         # Get input arguments
-        L = self.get_argument("location")
+        interval_list = self.get_argument("interval_list")
         bin_length = self.get_argument("bin_length")
         ref = self.get_argument("ref")
 
         # Get output arguments
-        interval_list = self.get_output("interval_list")
+        interval_list_out = self.get_output("interval_list")
 
         # Get the output file flag depends on GATK version
         output_file_flag = self.get_output_file_flag()
@@ -892,11 +893,11 @@ class PreprocessIntervals(_GATKBase):
 
         # Generate the command line for PreProcessIntervals
         cmd = "{0} PreprocessIntervals -R {1} --bin-length {2} {3} {4}".format(gatk_cmd, ref, bin_length,
-                                                                               output_file_flag, interval_list)
+                                                                               output_file_flag, interval_list_out)
 
         # pass the location to include in the processing
-        if L is not None:
-            cmd = "{0} -L {1} --interval-merging-rule OVERLAPPING_ONLY".format(cmd, L)
+        if interval_list is not None:
+            cmd = "{0} -L {1} --interval-merging-rule OVERLAPPING_ONLY".format(cmd, interval_list)
 
         return "{0} !LOG3!".format(cmd)
 
