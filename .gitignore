@@ -5,6 +5,9 @@ GAP.config
 # pycharm
 .idea/
 
+# vs code
+.vscode
+
 # sphinx
 docs/build/
 
