@@ -300,7 +300,7 @@ class DownsampleSam(Module):
             java = self.get_argument("java")
             # Generate JVM arguments
             jvm_options = "-Xmx{0:d}G -Djava.io.tmp={1}".format(mem * 4 // 5, "/tmp/")
-            basecmd = "{0} {1} -jar {2} --VALIDATION_STRINGENCY={3}".format(java, jvm_options, picard,
+            basecmd = "{0} {1} -jar {2} VALIDATION_STRINGENCY={3}".format(java, jvm_options, picard,
                                                                             validation_stringency)
 
         # Generate base cmd for running on docker
