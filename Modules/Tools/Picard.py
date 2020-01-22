@@ -252,6 +252,7 @@ class DownsampleSam(Module):
         self.add_argument("read_len",   is_required=True, default_value=150)
         # Maximum probability to still consider downsampling
         self.add_argument("max_probability",    is_required=True, default_value=0.75)
+        self.add_argument("validation_stringency", is_required=True, default_value="STRICT")
         self.add_argument("nr_cpus",    is_required=True, default_value=2)
         self.add_argument("mem",        is_required=True, default_value=10)
 
@@ -285,6 +286,7 @@ class DownsampleSam(Module):
         mem         = self.get_argument("mem")
         picard      = self.get_argument("picard")
         max_prob    = self.get_argument("max_probability")
+        validation_stringency = self.get_argument("validation_stringency")
 
         # Get output filenames
         output_bam  = self.get_output("bam")
@@ -298,7 +300,8 @@ class DownsampleSam(Module):
             java = self.get_argument("java")
             # Generate JVM arguments
             jvm_options = "-Xmx{0:d}G -Djava.io.tmp={1}".format(mem * 4 // 5, "/tmp/")
-            basecmd = "{0} {1} -jar {2}".format(java, jvm_options, picard)
+            basecmd = "{0} {1} -jar {2} --VALIDATION_STRINGENCY={3}".format(java, jvm_options, picard,
+                                                                            validation_stringency)
 
         # Generate base cmd for running on docker
         else:
