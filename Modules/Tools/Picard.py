@@ -311,7 +311,7 @@ class DownsampleSam(Module):
         opts.append("I={0}".format(bam))
         opts.append("O={0}".format(output_bam))
         opts.append("P={0:.2g}".format(self.probability))
-        opts.append("VALIDATION_STRINGENCY".format(validation_stringency))
+        opts.append("VALIDATION_STRINGENCY={0}".format(validation_stringency))
 
         # Generating command for downsampling
         cmd = "{0} DownsampleSam {1} !LOG3!".format(basecmd, " ".join(opts))
