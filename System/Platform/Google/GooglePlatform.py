@@ -42,6 +42,9 @@ class GooglePlatform(CloudPlatform):
 
     def authenticate_platform(self):
 
+        # Retry all HTTP requests
+        os.environ['LIBCLOUD_RETRY_FAILED_HTTP_REQUESTS'] = "True"
+
         # Export google cloud credential file
         if os.path.isabs(self.identity):
             os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.identity
