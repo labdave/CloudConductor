@@ -176,11 +176,6 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
                 # Check if not overloaded
                 if not cpu_overload and not mem_overload and not disk_overload:
 
-                    # Reserve resources so that the other threads can see the new number
-                    self.cpu += nr_cpus
-                    self.mem += mem
-                    self.disk_space += disk_space
-
                     # Mark as allocated and start creating
                     allocated = True
                     if is_helper:
@@ -190,6 +185,10 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
                     else:
                         logging.debug(f'({inst_name}) Creating instance!')
 
+            if self.__locked:
+                logging.error(f'({inst_name}) Platform failed to initialize instance! Platform is currently locked!')
+                raise RuntimeError("Cannot create instance while platform is locked!")
+
             if not allocated:
                 logging.debug(f'({inst_name}) Platform fully loaded, we will wait for one minute and check again!')
                 time.sleep(60)
@@ -198,11 +197,16 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
         kwargs.update({
             "identity"              : self.identity,
             "secret"                : self.secret,
+
             "ssh_connection_user"   : self.ssh_connection_user,
             "ssh_private_key"       : self.ssh_private_key,
+
             "cmd_retries"           : self.cmd_retries,
+
             "region"                : self.region,
-            "zone"                  : self.zone
+            "zone"                  : self.zone,
+
+            "platform"              : self
         })
 
         # Also add the extra information
@@ -225,10 +229,7 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
             # TODO: Should we destroy the instance here?
 
             # Deallocate resources as no instance was created
-            with self.platform_lock:
-                self.cpu -= nr_cpus
-                self.mem -= mem
-                self.disk_space -= disk_space
+            self.deallocate_resources(nr_cpus, mem, disk_space)
 
             # Raise the actual exception
             raise
@@ -255,6 +256,20 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
     def unlock(self):
         with self.platform_lock:
             self.__locked = False
+
+    def allocate_resources(self, nr_cpus, mem, disk_space):
+
+        with self.platform_lock:
+            self.cpu += nr_cpus
+            self.mem += mem
+            self.disk_space += disk_space
+
+    def deallocate_resources(self, nr_cpus, mem, disk_space):
+
+        with self.platform_lock:
+            self.cpu -= nr_cpus
+            self.mem -= mem
+            self.disk_space -= disk_space
 
     def __check_instance(self, inst_name, nr_cpus, mem, disk_space):
         # Check that nr_cpus, mem, disk space are under max

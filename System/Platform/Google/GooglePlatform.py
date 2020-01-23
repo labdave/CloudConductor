@@ -4,6 +4,7 @@ import subprocess as sp
 import logging
 import base64
 import random
+import json
 from threading import Thread
 
 from System import CC_MAIN_DIR
@@ -13,6 +14,7 @@ from System.Platform.Google import GoogleInstance
 from google.cloud import pubsub_v1
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
+from libcloud.common.google import ResourceNotFoundError
 
 
 class GooglePlatform(CloudPlatform):
@@ -22,11 +24,23 @@ class GooglePlatform(CloudPlatform):
         # Initialize the base class
         super(GooglePlatform, self).__init__(name, platform_config_file, final_output_dir)
 
-        # Initialize additional necessary variables
+        # Obtain the service account and the project ID
+        self.service_account, self.project_id = self.parse_service_account_json()
+
+        # Initialize libcloud driver
         self.driver = None
 
-        # Obtain the service account and the project ID
-        self.service_account, self.project_id = GoogleInstance.parse_service_account_json(self.identity)
+    def parse_service_account_json(self):
+
+        # Parse service account file
+        with open(self.identity) as json_inp:
+            service_account_data = json.load(json_inp)
+
+        # Save data locally
+        service_account = service_account_data["client_email"]
+        project_id = service_account_data["project_id"]
+
+        return service_account, project_id
 
     def get_random_zone(self):
 
@@ -117,6 +131,9 @@ class GooglePlatform(CloudPlatform):
 
         # Launch the destroy process for each instance
         for name, instance_obj in self.instances.items():
+            if instance_obj is None:
+                continue
+
             thr = Thread(target=instance_obj.destroy, daemon=True)
             thr.start()
             destroy_threads.append(thr)
