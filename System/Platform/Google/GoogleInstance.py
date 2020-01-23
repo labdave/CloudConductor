@@ -1,4 +1,6 @@
 import json
+import requests
+import logging
 
 from System.Platform import CloudInstance
 
