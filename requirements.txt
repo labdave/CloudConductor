@@ -2,3 +2,4 @@ requests
 jsonschema
 configobj
 apache-libcloud
+google-cloud-pubsub
