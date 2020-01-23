@@ -11,11 +11,12 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
 
 from Config import ConfigParser
+from System import CC_MAIN_DIR
 
 
 class CloudPlatform(object, metaclass=abc.ABCMeta):
 
-    CONFIG_SPEC = f"{os.path.dirname(__file__)}/Platform.validate"
+    CONFIG_SPEC = f"{CC_MAIN_DIR}/System/Platform/Platform.validate"
 
     def __init__(self, name, platform_config_file, final_output_dir):
 
