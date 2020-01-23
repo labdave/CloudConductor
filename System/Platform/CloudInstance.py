@@ -321,7 +321,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             elif event["type"] == "DESTROY" and storage_is_present is not None:
 
                 # Calculate time delta 
-                time_delta = (event["timestamp"] - storage_is_present)
+                time_delta = (event["timestamp"] - storage_is_present) / 3600.0
                 logging.info(f"Storage Cost calc for {self.name} is {time_delta} * {storage_cost}")
 
                 # Add cost since last start-up

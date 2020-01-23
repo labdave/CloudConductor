@@ -166,7 +166,9 @@ class GoogleInstance(CloudInstance):
             # if is_preemptible:
             #     cpu_price_key += "-PREEMPTIBLE"
             #     mem_price_key += "-PREEMPTIBLE"
-            compute_cost += prices[cpu_price_key][self.region] + prices[mem_price_key][self.region]
+
+            # calculate hourly price for all CPUs and memory
+            compute_cost += prices[cpu_price_key][self.region]*self.nr_cpus + prices[mem_price_key][self.region]*self.mem
 
 
         except BaseException as e:
@@ -206,7 +208,8 @@ class GoogleInstance(CloudInstance):
 
             prices = requests.get(price_json_url).json()["gcp_price_list"]
 
-            storage_cost += prices["CP-COMPUTEENGINE-STORAGE-PD-CAPACITY"][self.region]
+            # Calculate hourly rate for all disk space
+            storage_cost += (prices["CP-COMPUTEENGINE-STORAGE-PD-CAPACITY"][self.region] / 730 ) * self.disk_space
 
         except BaseException as e:
             if str(e) != "":
