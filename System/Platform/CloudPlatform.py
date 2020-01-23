@@ -64,6 +64,10 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
         self.cmd_retries = self.config["cmd_retries"]
         self.ssh_connection_user = self.config["ssh_connection_user"]
 
+        # Obtain disk image name
+        self.disk_image = self.config["disk_image"]
+        self.disk_image_obj = None
+
         #TODO: I still have to add this, because Datastore required a work directory
         self.wrk_dir = "/data"
         self.final_output_dir = self.standardize_dir(final_output_dir)
@@ -206,7 +210,8 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
 
         # Initialize new instance
         try:
-            self.instances[inst_name] = self.CloudInstanceClass(inst_name, nr_cpus, mem, disk_space, **kwargs)
+            self.instances[inst_name] = self.CloudInstanceClass(inst_name, nr_cpus, mem, disk_space,
+                                                                self.disk_image_obj, **kwargs)
 
             # Create instance
             self.instances[inst_name].create()
@@ -273,6 +278,10 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_random_zone(self):
+        pass
+
+    @abc.abstractmethod
+    def get_disk_image_size(self):
         pass
 
     @abc.abstractmethod

@@ -37,6 +37,14 @@ class GooglePlatform(CloudPlatform):
 
         return random.choice(zones_in_region)
 
+    def get_disk_image_size(self):
+
+        # Obtain image information
+        if self.disk_image_obj is None:
+            self.disk_image_obj = self.driver.ex_get_image(self.disk_image)
+
+        return int(self.disk_image_obj.extra["diskSizeGb"])
+
     def get_cloud_instance_class(self):
         return GoogleInstance
 
@@ -58,8 +66,13 @@ class GooglePlatform(CloudPlatform):
                                    project=self.project_id)
 
     def validate(self):
-        # Nothing to validate for Google Cloud
-        pass
+
+        # Validate if image exists
+        try:
+            self.disk_image_obj = self.driver.ex_get_image(self.disk_image)
+        except ResourceNotFoundError:
+            logging.error(f"Disk image '{self.disk_image}' not found!")
+            raise
 
     @staticmethod
     def standardize_instance(inst_name, nr_cpus, mem, disk_space):
