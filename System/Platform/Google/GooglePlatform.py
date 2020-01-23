@@ -78,6 +78,10 @@ class GooglePlatform(CloudPlatform):
         # Generate destination file path
         dest_path = os.path.join(self.final_output_dir, os.path.basename(report_path))
 
+        #Authenticate for gsutil use
+        cmd = "gcloud auth activate-service-account --key-file %s" % self.identity
+        GooglePlatform.__run_cmd(cmd, err_msg="Authentication to Google Cloud failed!")
+
         # Transfer report file to bucket
         options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
         cmd = "gsutil %s cp -r '%s' '%s' 1>/dev/null 2>&1 " % (options_fast, report_path, dest_path)
