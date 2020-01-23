@@ -43,7 +43,10 @@ class GooglePlatform(CloudPlatform):
     def authenticate_platform(self):
 
         # Export google cloud credential file
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(CC_MAIN_DIR, self.identity)
+        if os.path.isabs(self.identity):
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.identity
+        else:
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(CC_MAIN_DIR, self.identity)
 
         # Initialize libcloud driver
         driver_class = get_driver(Provider.GCE)
