@@ -14,12 +14,12 @@ class GoogleInstance(CloudInstance):
     gcp_billing_api_url = "https://cloudbilling.googleapis.com/v1/services/"
     nanos_conversion_rate = .000000001 # 10^-9
 
-    def __init__(self, name, nr_cpus, mem, disk_space, **kwargs):
+    def __init__(self, name, nr_cpus, mem, disk_space, disk_image, **kwargs):
 
-        super(GoogleInstance, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
+        super(GoogleInstance, self).__init__(name, nr_cpus, mem, disk_space, disk_image, **kwargs)
 
         # Initialize the instance credentials
-        self.service_account, self.project_id = self.parse_service_account_json(self.identity)
+        self.service_account, self.project_id = self.platform.parse_service_account_json()
 
         self.api_key = ''
 
@@ -29,24 +29,8 @@ class GoogleInstance(CloudInstance):
                                    datacenter=self.zone,
                                    project=self.project_id)
 
-        # Initialize the extra information
-        self.image = kwargs.get("disk_image")
-
         # Initialize the node variable
         self.node = None
-
-    @staticmethod
-    def parse_service_account_json(identity_json_file):
-
-        # Parse service account file
-        with open(identity_json_file) as json_inp:
-            service_account_data = json.load(json_inp)
-
-        # Save data locally
-        service_account = service_account_data["client_email"]
-        project_id = service_account_data["project_id"]
-
-        return service_account, project_id
 
     def create_instance(self):
 
@@ -76,7 +60,7 @@ class GoogleInstance(CloudInstance):
             {
                 "boot": True,
                 "initializeParams": {
-                    "sourceImage" : f"global/images/{self.image}",
+                    "sourceImage" : f"global/images/{self.disk_image.name}",
                     "diskSizeGb" : str(self.disk_space)
                 }
             }
@@ -84,7 +68,7 @@ class GoogleInstance(CloudInstance):
 
         # Create instance
         self.node = self.driver.create_node(name=self.name,
-                                            image=self.image,
+                                            image=self.disk_image,
                                             size=node_size,
                                             ex_disks_gce_struct=disks,
                                             ex_service_accounts=sa_scope,

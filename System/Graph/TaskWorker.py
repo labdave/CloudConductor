@@ -320,11 +320,17 @@ class TaskWorker(Thread):
         min_disk_size = self.platform.get_min_disk_space()
         max_disk_size = self.platform.get_max_disk_space()
 
-        # Must be at least as big as minimum disk size
-        disk_size = disk_size + min_disk_size
+        # Obtain platform disk image
+        disk_image_size = self.platform.get_disk_image_size()
+
+        # Must be at least as big as minimum disk size + disk image
+        disk_size = disk_size + disk_image_size + min_disk_size
 
         # And smaller than max disk size
-        disk_size = min(disk_size, max_disk_size)
+        if disk_size > max_disk_size:
+            logging.warning("(%s) Current task disk size (%s GB) exceeds the maximum disk size enforced "
+                            "by the platform (%s GB). Disk size will be set to the platform maximum!")
+            disk_size = max_disk_size
         return disk_size
 
     def __check_cancelled(self):

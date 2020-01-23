@@ -17,13 +17,17 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
     STATUSES    = ["OFF", "CREATING", "DESTROYING", "AVAILABLE"]
 
-    def __init__(self, name, nr_cpus, mem, disk_space, **kwargs):
+    def __init__(self, name, nr_cpus, mem, disk_space, disk_image, **kwargs):
 
         # Initialize main instance information
         self.name       = name
         self.nr_cpus    = nr_cpus
         self.mem        = mem
         self.disk_space = disk_space
+        self.disk_image = disk_image
+
+        # Obtain the mother platform object
+        self.platform = kwargs.pop("platform")
 
         # Obtain the CloudConductor SSH private key from platform
         self.ssh_private_key = kwargs.pop("ssh_private_key")
@@ -64,6 +68,9 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Add creation event to instance history
         self.__add_history_event("CREATE")
 
+        # Allocate resources on the platform for current instance
+        self.platform.allocate_resources(self.nr_cpus, self.mem, self.disk_space)
+
         # Create the actual instance
         self.external_IP = self.create_instance()
 
@@ -94,6 +101,9 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             # If status is not DESTROYING then we destroy the instance
             elif status != CloudInstance.DESTROYING:
                 self.destroy_instance()
+
+                # Allocate resources on the platform for current instance
+                self.platform.deallocate_resources(self.nr_cpus, self.mem, self.disk_space)
 
             # Wait for 10 seconds before checking again for status
             time.sleep(10)

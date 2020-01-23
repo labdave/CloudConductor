@@ -4,6 +4,7 @@ import subprocess as sp
 import logging
 import base64
 import random
+import json
 from threading import Thread
 
 from System import CC_MAIN_DIR
@@ -13,6 +14,7 @@ from System.Platform.Google import GoogleInstance
 from google.cloud import pubsub_v1
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
+from libcloud.common.google import ResourceNotFoundError
 
 
 class GooglePlatform(CloudPlatform):
@@ -22,11 +24,23 @@ class GooglePlatform(CloudPlatform):
         # Initialize the base class
         super(GooglePlatform, self).__init__(name, platform_config_file, final_output_dir)
 
-        # Initialize additional necessary variables
+        # Obtain the service account and the project ID
+        self.service_account, self.project_id = self.parse_service_account_json()
+
+        # Initialize libcloud driver
         self.driver = None
 
-        # Obtain the service account and the project ID
-        self.service_account, self.project_id = GoogleInstance.parse_service_account_json(self.identity)
+    def parse_service_account_json(self):
+
+        # Parse service account file
+        with open(self.identity) as json_inp:
+            service_account_data = json.load(json_inp)
+
+        # Save data locally
+        service_account = service_account_data["client_email"]
+        project_id = service_account_data["project_id"]
+
+        return service_account, project_id
 
     def get_random_zone(self):
 
@@ -37,13 +51,27 @@ class GooglePlatform(CloudPlatform):
 
         return random.choice(zones_in_region)
 
+    def get_disk_image_size(self):
+
+        # Obtain image information
+        if self.disk_image_obj is None:
+            self.disk_image_obj = self.driver.ex_get_image(self.disk_image)
+
+        return int(self.disk_image_obj.extra["diskSizeGb"])
+
     def get_cloud_instance_class(self):
         return GoogleInstance
 
     def authenticate_platform(self):
 
+        # Retry all HTTP requests
+        os.environ['LIBCLOUD_RETRY_FAILED_HTTP_REQUESTS'] = "True"
+
         # Export google cloud credential file
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(CC_MAIN_DIR, self.identity)
+        if os.path.isabs(self.identity):
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.identity
+        else:
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(CC_MAIN_DIR, self.identity)
 
         # Initialize libcloud driver
         driver_class = get_driver(Provider.GCE)
@@ -52,8 +80,13 @@ class GooglePlatform(CloudPlatform):
                                    project=self.project_id)
 
     def validate(self):
-        # Nothing to validate for Google Cloud
-        pass
+
+        # Validate if image exists
+        try:
+            self.disk_image_obj = self.driver.ex_get_image(self.disk_image)
+        except ResourceNotFoundError:
+            logging.error(f"Disk image '{self.disk_image}' not found!")
+            raise
 
     @staticmethod
     def standardize_instance(inst_name, nr_cpus, mem, disk_space):
@@ -78,7 +111,7 @@ class GooglePlatform(CloudPlatform):
         # Generate destination file path
         dest_path = os.path.join(self.final_output_dir, os.path.basename(report_path))
 
-        #Authenticate for gsutil use
+        # Authenticate for gsutil use
         cmd = "gcloud auth activate-service-account --key-file %s" % self.identity
         GooglePlatform.__run_cmd(cmd, err_msg="Authentication to Google Cloud failed!")
 
@@ -102,6 +135,9 @@ class GooglePlatform(CloudPlatform):
 
         # Launch the destroy process for each instance
         for name, instance_obj in self.instances.items():
+            if instance_obj is None:
+                continue
+
             thr = Thread(target=instance_obj.destroy, daemon=True)
             thr.start()
             destroy_threads.append(thr)
