@@ -123,7 +123,7 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
         """Initialize new instance and register with platform"""
 
         # Obtain task_id that will be used
-        task_id = kwargs.pop("task_id", None)
+        task_id = kwargs.pop("task_id", "NONAME")
 
         # Identify if the instance is a helper instance
         is_helper = kwargs.pop("is_helper", False)
