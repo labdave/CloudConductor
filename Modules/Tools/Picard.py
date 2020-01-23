@@ -300,8 +300,7 @@ class DownsampleSam(Module):
             java = self.get_argument("java")
             # Generate JVM arguments
             jvm_options = "-Xmx{0:d}G -Djava.io.tmp={1}".format(mem * 4 // 5, "/tmp/")
-            basecmd = "{0} {1} -jar {2} VALIDATION_STRINGENCY={3}".format(java, jvm_options, picard,
-                                                                            validation_stringency)
+            basecmd = "{0} {1} -jar {2}".format(java, jvm_options, picard)
 
         # Generate base cmd for running on docker
         else:
@@ -312,6 +311,7 @@ class DownsampleSam(Module):
         opts.append("I={0}".format(bam))
         opts.append("O={0}".format(output_bam))
         opts.append("P={0:.2g}".format(self.probability))
+        opts.append("VALIDATION_STRINGENCY".format(validation_stringency))
 
         # Generating command for downsampling
         cmd = "{0} DownsampleSam {1} !LOG3!".format(basecmd, " ".join(opts))
