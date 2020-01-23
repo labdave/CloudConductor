@@ -107,10 +107,14 @@ class GoogleInstance(CloudInstance):
         return status_map[self.node.extra["status"]]
 
     def get_compute_price(self):
-        return self.gcp_compute_price_old_json()
+        price = self.gcp_compute_price_old_json()
+        logging.info(f"Compute price/hour for {self.name} is {price}")
+        return price
 
     def get_storage_price(self):
-        return self.gcp_storage_price_old_json()
+        price = self.gcp_storage_price_old_json()
+        logging.info(f"Storage price for {self.name} is {price}")
+        return price
 
     def gcp_compute_price_new_api(self):
         compute_cost = 0

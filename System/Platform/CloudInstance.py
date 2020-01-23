@@ -299,8 +299,9 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             elif event["type"] in ["DESTROY", "STOP"] and instance_is_on is not None:
 
                 # Add cost since last start-up
+                logging.info(f"Compute Cost calc for {self.name} is {str((event["timestamp"] - instance_is_on) / 3600.0)} * {compute_cost}")
                 total_compute_cost += (event["timestamp"] - instance_is_on) / 3600.0 * compute_cost
-
+                logging.info(f"Total Compute Cost for {self.name} is {total_compute_cost}")
                 # Mark the instance shut down and no compute cost present
                 instance_is_on = None
                 compute_cost = 0
@@ -315,7 +316,9 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             elif event["type"] == "DESTROY" and storage_is_present is not None:
 
                 # Add cost since last start-up
+                logging.info(f"Storage Cost calc for {self.name} is {str(event["timestamp"] - storage_is_present)} * {storage_cost}")
                 total_storage_cost += (event["timestamp"] - storage_is_present) * storage_cost
+                logging.info(f"Total Storage Cost for {self.name} is {total_storage_cost}")
 
                 # Mark the storage are removed and no storage cost present
                 storage_is_present = None
