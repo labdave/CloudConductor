@@ -1,18 +1,17 @@
-import json
-import requests
 import logging
-
-from System.Platform import CloudInstance
+import requests
 
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
 from libcloud.common.google import ResourceNotFoundError
 
+from System.Platform import CloudInstance
+
 
 class GoogleInstance(CloudInstance):
 
     gcp_billing_api_url = "https://cloudbilling.googleapis.com/v1/services/"
-    nanos_conversion_rate = .000000001 # 10^-9
+    nanos_conversion_rate = .000000001  # 10^-9
 
     def __init__(self, name, nr_cpus, mem, disk_space, disk_image, **kwargs):
 
@@ -61,7 +60,7 @@ class GoogleInstance(CloudInstance):
                 "boot": True,
                 "initializeParams": {
                     "sourceImage" : f"global/images/{self.disk_image.name}",
-                    "diskSizeGb" : str(self.disk_space)
+                    "diskSizeGb"  : str(self.disk_space)
                 }
             }
         ]
@@ -121,31 +120,31 @@ class GoogleInstance(CloudInstance):
         ram_cost = 0
 
         # get the compute engine service id
-        gcp_services = requests.get(self.gcp_billing_api_url+"?key="+self.api_key).json()
-        gce_id = [x["serviceId"] for x in gcp_services["services"] if x["displayName"]== "Compute Engine"]
-        
+        gcp_services = requests.get(self.gcp_billing_api_url + "?key=" + self.api_key).json()
+        gce_id = [x["serviceId"] for x in gcp_services["services"] if x["displayName"] == "Compute Engine"]
+
         if gce_id and gce_id[0]:
             # retrieve gcp sku pricing info
-            gcp_skus = requests.get(self.gcp_billing_api_url+gce_id[0]+"/skus?key="+self.api_key).json()
-            
+            gcp_skus = requests.get(self.gcp_billing_api_url + gce_id[0] + "/skus?key=" + self.api_key).json()
+
             # calculate cost for compute resources
-            compute_skus = [x for x in gcp_skus['skus'] if any(self.region in reg for reg in x['serviceRegions']) \
-                                        and x['category']['resourceFamily']=='Compute' \
-                                        and x['category']['usageType']=='OnDemand' \
-                                        and x['category']['resourceGroup']=='CPU' \
-                                        and 'custom' in x['description'].lower() ]
+            compute_skus = [x for x in gcp_skus['skus'] if any(self.region in reg for reg in x['serviceRegions'])
+                            and x['category']['resourceFamily'] == 'Compute'
+                            and x['category']['usageType'] == 'OnDemand'
+                            and x['category']['resourceGroup'] == 'CPU'
+                            and 'custom' in x['description'].lower()]
 
             if compute_skus and compute_skus[0]:
                 compute_nanos = int(compute_skus[0]["pricingInfo"][0]["pricingExpression"]["tieredRates"][0]["unitPrice"]["nanos"])
                 compute_cost = compute_nanos * self.nanos_conversion_rate
 
             # calculate cost for memory resources
-            ram_skus = [x for x in gcp_skus['skus'] if any(self.region in reg for reg in x['serviceRegions']) \
-                                                        and x['category']['resourceFamily']=='Compute' \
-                                                        and x['category']['usageType']=='OnDemand' \
-                                                        and x['category']['resourceGroup']=='RAM' \
-                                                        and 'custom' in x['description'].lower() ]
-            
+            ram_skus = [x for x in gcp_skus['skus'] if any(self.region in reg for reg in x['serviceRegions'])
+                        and x['category']['resourceFamily'] == 'Compute'
+                        and x['category']['usageType'] == 'OnDemand'
+                        and x['category']['resourceGroup'] == 'RAM'
+                        and 'custom' in x['description'].lower()]
+
             if ram_skus and ram_skus[0]:
                 ram_nanos = int(ram_skus[0]["pricingInfo"][0]["pricingExpression"]["tieredRates"][0]["unitPrice"]["nanos"])
                 ram_cost = ram_nanos * self.nanos_conversion_rate
@@ -168,8 +167,7 @@ class GoogleInstance(CloudInstance):
             #     mem_price_key += "-PREEMPTIBLE"
 
             # calculate hourly price for all CPUs and memory
-            compute_cost += prices[cpu_price_key][self.region]*self.nr_cpus + prices[mem_price_key][self.region]*self.mem
-
+            compute_cost += prices[cpu_price_key][self.region] * self.nr_cpus + prices[mem_price_key][self.region] * self.mem
 
         except BaseException as e:
             if str(e) != "":
@@ -182,18 +180,18 @@ class GoogleInstance(CloudInstance):
         storage_cost = 0
 
         # get the compute engine service id
-        gcp_services = requests.get(self.gcp_billing_api_url+"?key="+self.api_key).json()
-        gce_id = [x["serviceId"] for x in gcp_services["services"] if x["displayName"]== "Compute Engine"]
-        
+        gcp_services = requests.get(self.gcp_billing_api_url + "?key=" + self.api_key).json()
+        gce_id = [x["serviceId"] for x in gcp_services["services"] if x["displayName"] == "Compute Engine"]
+
         if gce_id and gce_id[0]:
             # retrieve gcp sku pricing info
-            gcp_skus = requests.get(self.gcp_billing_api_url+gce_id[0]+"/skus?key="+self.api_key).json()
-            
+            gcp_skus = requests.get(self.gcp_billing_api_url + gce_id[0] + "/skus?key=" + self.api_key).json()
+
             # calculate cost for storage resources
-            storage_skus = [x for x in gcp_skus['skus'] if any(self.region in reg for reg in x['serviceRegions']) \
-                                        and x['category']['resourceFamily']=='Storage' \
-                                        and x['category']['usageType']=='OnDemand' \
-                                        and x['category']['resourceGroup']=='PDStandard' ]
+            storage_skus = [x for x in gcp_skus['skus'] if any(self.region in reg for reg in x['serviceRegions'])
+                            and x['category']['resourceFamily'] == 'Storage'
+                            and x['category']['usageType'] == 'OnDemand'
+                            and x['category']['resourceGroup'] == 'PDStandard']
 
             if storage_skus and storage_skus[0]:
                 storage_nanos = int(storage_skus[0]["pricingInfo"][0]["pricingExpression"]["tieredRates"][0]["unitPrice"]["nanos"])
@@ -209,7 +207,7 @@ class GoogleInstance(CloudInstance):
             prices = requests.get(price_json_url).json()["gcp_price_list"]
 
             # Calculate hourly rate for all disk space
-            storage_cost += (prices["CP-COMPUTEENGINE-STORAGE-PD-CAPACITY"][self.region] / 730 ) * self.disk_space
+            storage_cost += (prices["CP-COMPUTEENGINE-STORAGE-PD-CAPACITY"][self.region] / 730) * self.disk_space
 
         except BaseException as e:
             if str(e) != "":
