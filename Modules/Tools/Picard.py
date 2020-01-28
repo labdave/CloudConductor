@@ -252,6 +252,7 @@ class DownsampleSam(Module):
         self.add_argument("read_len",   is_required=True, default_value=150)
         # Maximum probability to still consider downsampling
         self.add_argument("max_probability",    is_required=True, default_value=0.75)
+        self.add_argument("validation_stringency", is_required=True, default_value="STRICT")
         self.add_argument("nr_cpus",    is_required=True, default_value=2)
         self.add_argument("mem",        is_required=True, default_value=10)
 
@@ -285,6 +286,7 @@ class DownsampleSam(Module):
         mem         = self.get_argument("mem")
         picard      = self.get_argument("picard")
         max_prob    = self.get_argument("max_probability")
+        validation_stringency = self.get_argument("validation_stringency")
 
         # Get output filenames
         output_bam  = self.get_output("bam")
@@ -309,6 +311,7 @@ class DownsampleSam(Module):
         opts.append("I={0}".format(bam))
         opts.append("O={0}".format(output_bam))
         opts.append("P={0:.2g}".format(self.probability))
+        opts.append("VALIDATION_STRINGENCY={0}".format(validation_stringency))
 
         # Generating command for downsampling
         cmd = "{0} DownsampleSam {1} !LOG3!".format(basecmd, " ".join(opts))
