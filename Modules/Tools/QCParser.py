@@ -515,9 +515,11 @@ class DOCSampleIntervalSummary(_QCParser):
     def define_input(self):
         super(DOCSampleIntervalSummary, self).define_input()
         self.add_argument("interval_summary", is_required=True)
-        self.add_argument("intervals", default_value=["ERCC-00004","ERCC-00046","ERCC-00085","ERCC-00095",
-                                                       "ERCC-00108","ERCC-00142","ERCC-00148","ERCC-00156",
-                                                       "ERCC-00171"])
+        self.add_argument("intervals", default_value=["ERCC-00004", "ERCC-00046", "ERCC-00051", "ERCC-00054",
+                                                      "ERCC-00060", "ERCC-00074","ERCC-00077", "ERCC-00079",
+                                                      "ERCC-00085", "ERCC-00095", "ERCC-00097", "ERCC-00108",
+                                                      "ERCC-00116", "ERCC-00134", "ERCC-00142", "ERCC-00148",
+                                                      "ERCC-00156", "ERCC-00171"])
 
         # Overwrite the default values for nr_cpus and mem
         self.add_argument("nr_cpus", is_required=True, default_value=4)
