@@ -830,3 +830,69 @@ class GetSampleFromBAMHeader(Module):
 
         # Obtain necessary data
         self.set_output("sample_name", sample_name)
+
+
+class GetReadNames(Module):
+    def __init__(self, module_id, is_docker=False):
+        super(GetReadNames, self).__init__(module_id, is_docker)
+        self.output_keys = ["read_names"]
+
+    def define_input(self):
+        self.add_argument("bam",                is_required=True)
+        self.add_argument("bed",                is_required=False, is_resource=True)
+        self.add_argument("bedtools",           is_required=True, is_resource=True)
+        self.add_argument("samtools",           is_required=True, is_resource=True)
+        self.add_argument("spliced_reads",      is_required=False)
+        self.add_argument("nr_cpus",            is_required=True, default_value=2)
+        self.add_argument("mem",                is_required=True, default_value=4)
+
+    def define_output(self):
+        read_names = self.generate_unique_file_name(extension=".read_names.txt")
+        self.add_output("read_names", read_names)
+
+    def define_command(self):
+        # Get arguments
+        bam             = self.get_argument("bam")
+        bed             = self.get_argument("bed")
+        bedtools        = self.get_argument("bedtools")
+        samtools        = self.get_argument("samtools")
+        spliced_reads   = self.get_argument("spliced_reads")
+
+        # get the file name to store the read names
+        read_names = self.get_output("read_names")
+
+        if spliced_reads:
+
+            # Generating the commands that will be piped together
+            cmds = list()
+
+            # Convert BAM to SAM
+            cmds.append("{0} view {1}".format(samtools, bam))
+
+            # Search for the "N" character in CIGAR string
+            cmds.append('awk \'\"\'\"\'($6 ~ /N/)\'\"\'\"\'')
+
+            # get the spliced read names
+            cmds.append("cut -f 1 > {0} !LOG2!".format(read_names))
+
+            # Pipe everything together
+            cmd = " | ".join(cmds)
+
+            return cmd
+
+        # Generating the commands that will be piped together
+        cmds = list()
+
+        # intresect BAM with a given BED
+        cmds.append("{0} intersect -a {1} -b {2} -split".format(bedtools, bam, bed))
+
+        # Convert BAM to SAM
+        cmds.append("{0} view".format(samtools))
+
+        # get the read names
+        cmds.append("cut -f 1 > {0} !LOG2!".format(read_names))
+
+        # Pipe everything together
+        cmd = " | ".join(cmds)
+
+        return cmd
