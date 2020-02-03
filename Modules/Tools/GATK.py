@@ -1345,3 +1345,66 @@ class CollectGcBiasMetrics(_GATKBase):
                                                                    gc_bias_plot, summary_matrics)
 
         return "{0} !LOG3!".format(cmd)
+
+
+class FilterSamReads(_GATKBase):
+
+    def __init__(self, module_id, is_docker=False):
+        super(FilterSamReads, self).__init__(module_id, is_docker)
+        self.output_keys = ["bam"]
+
+    def define_input(self):
+        self.define_base_args()
+        self.add_argument("sample_name",    is_required=True)
+        self.add_argument("bam",            is_required=True)
+        self.add_argument("read_names",     is_required=False)
+        self.add_argument("interval_list",  is_required=False)
+        self.add_argument("nr_cpus",        is_required=True, default_value=4)
+        self.add_argument("mem",            is_required=True, default_value=16)
+
+    def define_output(self):
+        # Get the sample name to use it in file name creation
+        sample_name = self.get_argument("sample_name")
+
+        # Declare unique file name for a single output file
+        bam     = self.generate_unique_file_name(extension="{0}.bam".format(sample_name))
+
+        self.add_output("bam", bam)
+
+    def define_command(self):
+
+        # Get input arguments
+        bam                 = self.get_argument("bam")
+        read_names_file     = self.get_argument("read_names")
+        interval_list       = self.get_argument("interval_list")
+
+        if read_names_file is None and interval_list is None:
+            raise Exception("Neither read names file nor interval list are provided. Please provide either of them.")
+
+        if read_names_file is not None and interval_list is not None:
+            raise Exception("Both read names file and interval list are provided. Please provide either of them.")
+
+        # Get the output file names
+        bam_out = self.get_output("bam")
+
+        # Get GATK base command
+        gatk_cmd = self.get_gatk_command()
+
+        # Get the output file flag depends on GATK version
+        output_file_flag = self.get_output_file_flag()
+
+        # Generate the command line for DenoiseReadCounts
+        cmd = "{0} FilterSamReads".format(gatk_cmd)
+
+        # Add the rest of the arguments to command
+        cmd = "{0} -I {1} {2} {3}".format(cmd, bam, output_file_flag, bam_out)
+
+        # Add read list file if read list is provided
+        if read_names_file:
+            cmd = "{0} --READ_LIST_FILE {1} --FILTER includeReadList".format(cmd, read_names_file)
+
+        # Add interval list file if interval list is provided
+        if interval_list:
+            cmd = "{0} --INTERVAL_LIST {1} --FILTER includePairedIntervals".format(cmd, interval_list)
+
+        return "{0} !LOG3!".format(cmd)
