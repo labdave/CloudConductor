@@ -547,13 +547,13 @@ class DOCSampleIntervalSummary(_QCParser):
         return cmd
 
 
-class ABCGCBSCore(_QCParser):
+class ABCGCBScore(_QCParser):
 
     def __init__(self, module_id, is_docker=False):
-        super(ABCGCBSCore, self).__init__(module_id, is_docker)
+        super(ABCGCBScore, self).__init__(module_id, is_docker)
 
     def define_input(self):
-        super(ABCGCBSCore, self).define_input()
+        super(ABCGCBScore, self).define_input()
         self.add_argument("abc_gcb_score", is_required=True)
 
     def define_command(self):
@@ -565,7 +565,7 @@ class ABCGCBSCore(_QCParser):
         qc_report = self.get_output("qc_report")
 
         # Generate base command
-        cmd = "%s ABCGCBSCore -i %s -s %s" % (qc_parser, input_file, sample_name)
+        cmd = "%s ABCGCBScore -i %s -s %s" % (qc_parser, input_file, sample_name)
 
         # Add parser note if necessary
         if parser_note is not None:
