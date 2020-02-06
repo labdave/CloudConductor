@@ -894,7 +894,7 @@ class PreprocessIntervals(_GATKBase):
         gatk_cmd = self.get_gatk_command()
 
         # Generate the command line for PreProcessIntervals
-        cmd = "{0} PreprocessIntervals -R {1} --bin-length {2} --padding {3} {4} {5}".format(gatk_cmd, ref, bin_length, padding
+        cmd = "{0} PreprocessIntervals -R {1} --bin-length {2} --padding {3} {4} {5}".format(gatk_cmd, ref, bin_length, padding,
                                                                                              output_file_flag, interval_list_out)
 
         # pass the location to include in the processing
