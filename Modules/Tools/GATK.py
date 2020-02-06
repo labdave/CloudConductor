@@ -881,6 +881,7 @@ class PreprocessIntervals(_GATKBase):
         # Get input arguments
         interval_list = self.get_argument("interval_list")
         bin_length = self.get_argument("bin_length")
+        padding = self.get_argument("padding")
         ref = self.get_argument("ref")
 
         # Get output arguments
