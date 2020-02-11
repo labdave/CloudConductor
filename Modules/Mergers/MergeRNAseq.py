@@ -154,6 +154,58 @@ class AggregateRSEMResults(Merger):
 
         return [mk_sample_sheet_cmd1, mk_sample_sheet_cmd2, cmd]
 
+class AggregateNormalizedCounts(Merger):
+    def __init__(self, module_id, is_docker = False):
+        super(AggregateNormalizedCounts, self).__init__(module_id, is_docker)
+        self.output_keys = ["aggregated_normalized_gene_counts"]
+
+    def define_input(self):
+        self.add_argument("sample_name",                    is_required=True)
+        self.add_argument("normalized_gene_counts",         is_required=True)
+        self.add_argument("aggregate_script",               is_required=True, is_resource=True)
+        self.add_argument("nr_cpus",                        is_required=True, default_value=8)
+        self.add_argument("mem",                            is_required=True, default_value="nr_cpus * 2")
+
+    def define_output(self):
+
+        # Declare unique file name
+        aggregated_normalized_gene_counts = self.generate_unique_file_name(extension=".normalized.counts.combined.txt")
+
+        self.add_output("aggregated_normalized_gene_counts", aggregated_normalized_gene_counts)
+
+    def define_command(self):
+
+        # Get arguments
+        samples                 = self.get_argument("sample_name")
+        normalized_gene_counts  = self.get_argument("normalized_gene_counts")
+
+        #get the aggregate script to run
+        aggregate_script = self.get_argument("aggregate_script")
+
+        # Get current working dir
+        working_dir = self.get_output_dir()
+
+        # Generate file containing information about the normalized count file with sample information
+        normalized_gene_counts_info = os.path.join(working_dir, "{0}".format("normalized_gene_counts.txt"))
+
+        #get the output file and make appropriate path for it
+        aggregated_normalized_gene_counts                 = self.get_output("aggregated_normalized_gene_counts")
+
+        # generate command line for Rscript
+        mk_sample_sheet_cmd = generate_sample_sheet_cmd(samples, normalized_gene_counts, normalized_gene_counts_info)
+
+        # generate command line for Rscript
+        if not self.is_docker:
+            cmd = "sudo Rscript --vanilla {0} -f {1} -o {2} !LOG3!".format(aggregate_script,
+                                                                           normalized_gene_counts_info,
+                                                                           aggregated_normalized_gene_counts)
+        else:
+            cmd = "Rscript --vanilla {0} -f {1} -o {2} !LOG3!".format(aggregate_script, normalized_gene_counts_info,
+                                                                      aggregated_normalized_gene_counts)
+
+        return [mk_sample_sheet_cmd, cmd]
+
+
 class Cuffnorm(Merger):
     def __init__(self, module_id, is_docker = False):
         super(Cuffnorm, self).__init__(module_id, is_docker)
