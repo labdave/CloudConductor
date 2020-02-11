@@ -161,6 +161,7 @@ class AggregateNormalizedCounts(Merger):
 
     def define_input(self):
         self.add_argument("sample_name",                    is_required=True)
+        self.add_argument("sample_id",                      is_required=True)
         self.add_argument("normalized_gene_counts",         is_required=True)
         self.add_argument("aggregate_script",               is_required=True, is_resource=True)
         self.add_argument("nr_cpus",                        is_required=True, default_value=8)
@@ -177,6 +178,7 @@ class AggregateNormalizedCounts(Merger):
 
         # Get arguments
         samples                 = self.get_argument("sample_name")
+        sample_ids              = self.get_argument("sample_id")
         normalized_gene_counts  = self.get_argument("normalized_gene_counts")
 
         #get the aggregate script to run
@@ -192,7 +194,7 @@ class AggregateNormalizedCounts(Merger):
         aggregated_normalized_gene_counts                 = self.get_output("aggregated_normalized_gene_counts")
 
         # generate command line for Rscript
-        mk_sample_sheet_cmd = generate_sample_sheet_cmd(samples, normalized_gene_counts, normalized_gene_counts_info)
+        mk_sample_sheet_cmd = generate_sample_sheet_cmd(sample_ids, normalized_gene_counts, normalized_gene_counts_info)
 
         # generate command line for Rscript
         if not self.is_docker:
