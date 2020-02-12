@@ -71,7 +71,7 @@ class HaplotypeCaller(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
         super(HaplotypeCaller, self).__init__(module_id, is_docker)
-        self.output_keys = ["gvcf", "gvcf_idx", "vcf", "vcf_idx"]
+        self.output_keys = ["gvcf_gz", "gvcf_idx", "vcf_gz", "vcf_idx"]
 
     def define_input(self):
         self.define_base_args()
@@ -89,16 +89,16 @@ class HaplotypeCaller(_GATKBase):
         randomer = Platform.generate_unique_id()
         # generate uniques file name based on the output mode set for the Haplotypecaller
         if self.get_argument("output_type") == "gvcf":
-            gvcf = self.generate_unique_file_name(extension="{0}.g.vcf".format(randomer))
-            self.add_output("gvcf", gvcf)
+            gvcf = self.generate_unique_file_name(extension="{0}.g.vcf.gz".format(randomer))
+            self.add_output("gvcf_gz", gvcf)
             # Declare GVCF index output filename
-            gvcf_idx = self.generate_unique_file_name(extension="{0}.g.vcf.idx".format(randomer))
+            gvcf_idx = self.generate_unique_file_name(extension="{0}.g.vcf.gz.idx".format(randomer))
             self.add_output("gvcf_idx", gvcf_idx)
         else:
-            vcf = self.generate_unique_file_name(extension="{0}.vcf".format(randomer))
-            self.add_output("vcf", vcf)
+            vcf = self.generate_unique_file_name(extension="{0}.vcf.gz".format(randomer))
+            self.add_output("vcf_gz", vcf)
             # Declare VCF index output filename
-            vcf_idx = self.generate_unique_file_name(extension="{0}.vcf.idx".format(randomer))
+            vcf_idx = self.generate_unique_file_name(extension="{0}.vcf.gz.idx".format(randomer))
             self.add_output("vcf_idx", vcf_idx)
 
     def define_command(self):
