@@ -196,11 +196,7 @@ class AggregateNormalizedCounts(Merger):
         #get the output file and make appropriate path for it
         aggregated_normalized_gene_counts = self.get_output("aggregated_normalized_gene_counts")
 
-        # if the nickname is a list
-        if isinstance(nickname, list):
-            nickname = nickname[0]
-
-        nickname = re.sub("\s+", "_", nickname)
+        nickname = [re.sub('\s+','_', x) for x in nickname]
 
         # generate command line for Rscript
         # mk_sample_sheet_cmd = generate_sample_sheet_cmd(sample_ids, normalized_gene_counts, normalized_gene_counts_info)
