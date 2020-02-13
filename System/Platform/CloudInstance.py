@@ -76,12 +76,15 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
         # Check if external IP was set
         if self.external_IP is None:
-            logging.error(f'({self.name}) No IP address was provided by the create() method!')
+            logging.error(f'({self.name}) No IP address was provided by the create_instance() method!')
             raise NotImplementedError(f'({self.name}) Create() method for {self.__class__.__name__} did not return '
                                       f'an IP address! Please check the documentation and method implementation.')
 
         # Wait until instance is ready (aka the SSH server is responsive)
         self.__wait_until_ready()
+
+        # Run post_startup_tasks
+        self.post_startup()
 
         # Return an instance of self
         return self
@@ -441,6 +444,9 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             -clear_output: Flag to indicate that, in case of preemption, the task's output directory needs to be cleared.
         """
         self.checkpoints.append((next(reversed(self.processes)), clear_output))
+
+    def post_startup(self):
+        pass
 
     # ABSTRACT METHODS TO BE IMPLEMENTED BY INHERITING CLASSES
 

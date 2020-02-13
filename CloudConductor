@@ -11,7 +11,8 @@ from System import GAPipeline
 
 # Define the available platform modules
 available_plat_modules = {
-    "Google": "GooglePlatform"
+    "Google": "GooglePlatform",
+    "Amazon": "AmazonPlatform"
 }
 
 def configure_argparser(argparser_obj):

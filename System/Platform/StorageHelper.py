@@ -1,4 +1,5 @@
 import logging
+import os
 
 from System.Platform import CloudPlatform
 
@@ -209,4 +210,37 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
     @staticmethod
     def rm(path):
         return "gsutil rm -r %s" % path
+
+
+class AmazonStorageCmdGenerator(StorageCmdGenerator):
+
+    PROTOCOL = "s3"
+
+    @staticmethod
+    def mv(src_path, dest_dir):
+
+        # Reformat source path
+        src_path = src_path.rstrip("/*")
+        dest_dir = dest_dir.rstrip("/*")
+
+        return "aws s3 cp $( [ -d %s ] && echo --recursive ) %s %s/%s" % \
+               (src_path, src_path, dest_dir, os.path.basename(src_path))
+
+    @staticmethod
+    def mkdir(dir_path):
+        # Makes a directory if it doesn't already exists
+        return "touch dummy.txt ; aws s3 cp dummy.txt %s" % dir_path
+
+    @staticmethod
+    def get_file_size(path):
+        # Return cmd for getting file size in bytes
+        return "aws s3 ls %s --recursive --summarize | tail -n1 | cut -d' ' -f6" % path
+
+    @staticmethod
+    def ls(path):
+        return "aws s3 ls %s" % path
+
+    @staticmethod
+    def rm(path):
+        return "aws s3 rm --recursive %s" % path
 
