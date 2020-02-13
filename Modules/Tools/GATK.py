@@ -92,13 +92,13 @@ class HaplotypeCaller(_GATKBase):
             gvcf = self.generate_unique_file_name(extension="{0}.g.vcf.gz".format(randomer))
             self.add_output("gvcf_gz", gvcf)
             # Declare GVCF index output filename
-            gvcf_idx = self.generate_unique_file_name(extension="{0}.g.vcf.gz.idx".format(randomer))
+            gvcf_idx = self.generate_unique_file_name(extension="{0}.g.vcf.gz.tbi".format(randomer))
             self.add_output("gvcf_idx", gvcf_idx)
         else:
             vcf = self.generate_unique_file_name(extension="{0}.vcf.gz".format(randomer))
             self.add_output("vcf_gz", vcf)
             # Declare VCF index output filename
-            vcf_idx = self.generate_unique_file_name(extension="{0}.vcf.gz.idx".format(randomer))
+            vcf_idx = self.generate_unique_file_name(extension="{0}.vcf.gz.tbi".format(randomer))
             self.add_output("vcf_idx", vcf_idx)
 
     def define_command(self):
