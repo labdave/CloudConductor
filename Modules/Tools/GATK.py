@@ -126,9 +126,9 @@ class HaplotypeCaller(_GATKBase):
 
         # Setting the output file based on the output mode
         if output_type == "gvcf":
-            opts.append("{0} {1}".format(output_file_flag, self.get_output("gvcf")))
+            opts.append("{0} {1}".format(output_file_flag, self.get_output("gvcf_gz")))
         else:
-            opts.append("{0} {1}".format(output_file_flag, self.get_output("vcf")))
+            opts.append("{0} {1}".format(output_file_flag, self.get_output("vcf_gz")))
 
         # Setting the output mode
         if output_type == "gvcf":
