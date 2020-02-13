@@ -61,7 +61,8 @@ class GoogleInstance(CloudInstance):
                 "initializeParams": {
                     "sourceImage" : f"global/images/{self.disk_image.name}",
                     "diskSizeGb"  : str(self.disk_space)
-                }
+                },
+                "autoDelete": True
             }
         ]
 
