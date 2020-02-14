@@ -30,6 +30,31 @@ def generate_sample_sheet_cmd(sample_names, sample_files, outfile, in_type=None)
             cmds.append('echo -e "{0}\\t$i/{1}" >> $o'.format(sample_names[index], os.path.basename(sample_files[index])))
     return " ; ".join(cmds)
 
+def generate_sample_diease_cmd(names, diagnosis, outfile):
+
+    # list of cmds
+    cmds = list()
+
+    # make a list of one sample if theere is only one sample in the analysis
+    if not isinstance(names, list):
+        names = [names]
+        diagnosis = [diagnosis]
+
+    # Define the output file as a bash variable
+    cmds.append("o={0}".format(outfile))
+
+    # Define the containing directory of the input files
+    # cmds.append("i={0}".format(os.path.dirname(outfile)))
+
+    #iterate through all the samples to create a sample info file for Rscript
+    for index in range(len(names)):
+        if index == 0:
+            cmds.append('echo -e "samples\\tdisease" > $o')
+            cmds.append('echo -e "{0}\\t{1}" >> $o'.format(names[index], diagnosis[index]))
+        else:
+            cmds.append('echo -e "{0}\\t{1}" >> $o'.format(names[index], diagnosis[index]))
+    return " ; ".join(cmds)
+
 class AggregateRawReadCounts(Merger):
     def __init__(self, module_id, is_docker = False):
         super(AggregateRawReadCounts, self).__init__(module_id, is_docker)
