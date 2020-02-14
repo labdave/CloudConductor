@@ -183,7 +183,8 @@ class AggregateRSEMResults(Merger):
 class AggregateNormalizedCounts(Merger):
     def __init__(self, module_id, is_docker = False):
         super(AggregateNormalizedCounts, self).__init__(module_id, is_docker)
-        self.output_keys = ["aggregated_normalized_gene_counts"]
+        self.output_keys = ["aggregated_normalized_gene_counts", "aggregated_normalized_gene_counts_long",
+                            "sample_disease"]
 
     def define_input(self):
         self.add_argument("sample_name",                    is_required=True)
@@ -197,9 +198,15 @@ class AggregateNormalizedCounts(Merger):
     def define_output(self):
 
         # Declare unique file name
-        aggregated_normalized_gene_counts = self.generate_unique_file_name(extension=".normalized.counts.combined.txt")
+        aggregated_normalized_gene_counts       = self.generate_unique_file_name(extension=".normalized.counts.combined.txt")
+        aggregated_normalized_gene_counts_long  = self.generate_unique_file_name(extension=".normalized.counts.combined.long.txt")
+
+        sample_disease = self.generate_unique_file_name(extension=".sample.disease.txt")
 
         self.add_output("aggregated_normalized_gene_counts", aggregated_normalized_gene_counts)
+        self.add_output("aggregated_normalized_gene_counts_long", aggregated_normalized_gene_counts_long)
+
+        self.add_output("sample_disease", sample_disease)
 
     def define_command(self):
 
@@ -218,6 +225,9 @@ class AggregateNormalizedCounts(Merger):
         # Generate file containing information about the normalized count file with sample information
         normalized_gene_counts_info = os.path.join(working_dir, "{0}".format("normalized_gene_counts.txt"))
 
+        # Generate file containing information about the normalized count file with sample information
+        sample_disease = self.get_output("sample_disease")
+
         #get the output file and make appropriate path for it
         aggregated_normalized_gene_counts = self.get_output("aggregated_normalized_gene_counts")
 
@@ -226,6 +236,9 @@ class AggregateNormalizedCounts(Merger):
         # generate command line for Rscript
         # mk_sample_sheet_cmd = generate_sample_sheet_cmd(sample_ids, normalized_gene_counts, normalized_gene_counts_info)
         mk_sample_sheet_cmd = generate_sample_sheet_cmd(nickname, normalized_gene_counts, normalized_gene_counts_info)
+
+        # generate command line to generate file containing sample and associated dignosis/disease
+        mk_sample_disease_cmd = generate_sample_diease_cmd(sample_name_nickname, diagnosis, sample_disease.get_path())
 
         # generate command line for Rscript
         if not self.is_docker:
@@ -236,7 +249,7 @@ class AggregateNormalizedCounts(Merger):
             cmd = "Rscript --vanilla {0} -f {1} -o {2} !LOG3!".format(aggregate_script, normalized_gene_counts_info,
                                                                       aggregated_normalized_gene_counts)
 
-        return [mk_sample_sheet_cmd, cmd]
+        return [mk_sample_sheet_cmd, mk_sample_disease_cmd, cmd]
 
 
 class Cuffnorm(Merger):
