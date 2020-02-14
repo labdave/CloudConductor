@@ -190,6 +190,7 @@ class AggregateNormalizedCounts(Merger):
         self.add_argument("sample_name",                    is_required=True)
         self.add_argument("sample_id",                      is_required=True)
         self.add_argument("nickname",                       is_required=True)
+        self.add_argument("diagnosis",                      is_required=True)
         self.add_argument("normalized_gene_counts",         is_required=True)
         self.add_argument("aggregate_script",               is_required=True, is_resource=True)
         self.add_argument("nr_cpus",                        is_required=True, default_value=8)
@@ -214,6 +215,7 @@ class AggregateNormalizedCounts(Merger):
         samples                 = self.get_argument("sample_name")
         sample_ids              = self.get_argument("sample_id")
         nickname                = self.get_argument("nickname")
+        diagnosis               = self.get_argument("diagnosis")
         normalized_gene_counts  = self.get_argument("normalized_gene_counts")
 
         #get the aggregate script to run
