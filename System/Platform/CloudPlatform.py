@@ -23,9 +23,6 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
         # Platform name
         self.name = name
 
-        # Check if CloudInstance class is set by the user
-        self.CloudInstanceClass = self.get_cloud_instance_class()
-
         # Initialize platform config
         config_parser       = ConfigParser(platform_config_file, self.CONFIG_SPEC)
         self.config         = config_parser.get_config()
@@ -68,7 +65,7 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
         self.disk_image = self.config["disk_image"]
         self.disk_image_obj = None
 
-        #TODO: I still have to add this, because Datastore required a work directory
+        # TODO: I still have to add this, because Datastore required a work directory
         self.wrk_dir = "/data"
         self.final_output_dir = self.standardize_dir(final_output_dir)
 
@@ -93,6 +90,9 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
 
         # Initialize the location of the CloudConductor ssh_key
         self.ssh_private_key = None
+
+        # Check if CloudInstance class is set by the user
+        self.CloudInstanceClass = self.get_cloud_instance_class()
 
     def init_platform(self):
 

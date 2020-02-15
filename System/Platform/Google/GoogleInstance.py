@@ -1,5 +1,6 @@
 import logging
 import requests
+import time
 
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
@@ -21,6 +22,7 @@ class GoogleInstance(CloudInstance):
         self.service_account, self.project_id = self.platform.parse_service_account_json()
 
         self.api_key = ''
+        self.is_preemptible = False
 
         # Create libcloud driver
         driver_class = get_driver(Provider.GCE)
@@ -67,11 +69,15 @@ class GoogleInstance(CloudInstance):
         ]
 
         # Create instance
+        if self.name.startswith("helper-"):
+            # don't want helper instances to be preemptible
+            self.is_preemptible = False
         self.node = self.driver.create_node(name=self.name,
                                             image=self.disk_image,
                                             size=node_size,
                                             ex_disks_gce_struct=disks,
                                             ex_service_accounts=sa_scope,
+                                            ex_preemptible=self.is_preemptible,
                                             ex_metadata=metadata)
 
         # Return the external IP from node
@@ -82,6 +88,27 @@ class GoogleInstance(CloudInstance):
 
     def start_instance(self):
         self.driver.ex_start_node(self.node)
+
+        # Initializing the cycle count
+        cycle_count = 0
+        started = False
+
+        # Waiting for 5 minutes for instance to be SSH-able
+        while cycle_count < 30:
+            if self.get_status() == CloudInstance.AVAILABLE:
+                started = True
+                break
+
+            # Wait for 10 seconds before checking the status again
+            time.sleep(10)
+
+            # Increment the cycle count
+            cycle_count += 1
+
+        if not started:
+            raise RuntimeError("(%s) Instance was unable to restart" % self.name)
+
+        return self.node.public_ips[0]
 
     def stop_instance(self):
         self.driver.ex_stop_node(self.node)
@@ -163,9 +190,9 @@ class GoogleInstance(CloudInstance):
             # Get price of CPUs, mem for custom instance
             cpu_price_key = "CP-COMPUTEENGINE-CUSTOM-VM-CORE"
             mem_price_key = "CP-COMPUTEENGINE-CUSTOM-VM-RAM"
-            # if is_preemptible:
-            #     cpu_price_key += "-PREEMPTIBLE"
-            #     mem_price_key += "-PREEMPTIBLE"
+            if self.is_preemptible:
+                cpu_price_key += "-PREEMPTIBLE"
+                mem_price_key += "-PREEMPTIBLE"
 
             # calculate hourly price for all CPUs and memory
             compute_cost += prices[cpu_price_key][self.region] * self.nr_cpus + prices[mem_price_key][self.region] * self.mem

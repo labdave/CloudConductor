@@ -1,2 +1,3 @@
 from .GoogleInstance import GoogleInstance
 from .GooglePlatform import GooglePlatform
+from .GooglePreemptibleInstance import GooglePreemptibleInstance

@@ -9,7 +9,7 @@ from threading import Thread
 
 from System import CC_MAIN_DIR
 from System.Platform import CloudPlatform
-from System.Platform.Google import GoogleInstance
+from System.Platform.Google import GoogleInstance, GooglePreemptibleInstance
 
 from google.cloud import pubsub_v1
 from libcloud.compute.types import Provider
@@ -26,6 +26,8 @@ class GooglePlatform(CloudPlatform):
 
         # Obtain the service account and the project ID
         self.service_account, self.project_id = self.parse_service_account_json()
+
+        self.extra = self.config.get("extra", {})
 
         # Initialize libcloud driver
         self.driver = None
@@ -60,6 +62,8 @@ class GooglePlatform(CloudPlatform):
         return int(self.disk_image_obj.extra["diskSizeGb"])
 
     def get_cloud_instance_class(self):
+        if self.extra["preemptible"]:
+            return GooglePreemptibleInstance
         return GoogleInstance
 
     def authenticate_platform(self):
