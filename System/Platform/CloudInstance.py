@@ -3,6 +3,7 @@ import logging
 import abc
 import subprocess as sp
 import time
+import socket
 from collections import OrderedDict
 
 from System.Platform import Process
@@ -243,7 +244,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             return proc_obj.get_output()
 
         # Retry process if it can be retried
-        if self.handle_failure(proc_obj):
+        if self.handle_failure(proc_name, proc_obj):
             logging.warning(f"({self.name}) Process '{proc_name}' failed but we will retry it!")
             self.run(job_name=proc_name,
                      cmd=proc_obj.get_command(),
@@ -263,7 +264,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Raise an error
         raise RuntimeError(f"({self.name}) Instance failed at process '{proc_name}'!")
 
-    def handle_failure(self, proc_obj):
+    def handle_failure(self, proc_name, proc_obj):
         return self.default_num_cmd_retries != 0 and proc_obj.get_num_retries() > 0
 
     def compute_cost(self):
@@ -320,7 +321,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
             elif event["type"] == "DESTROY" and storage_is_present is not None:
 
-                # Calculate time delta 
+                # Calculate time delta
                 time_delta = (event["timestamp"] - storage_is_present) / 3600.0
                 logging.info(f"Storage Cost calc for {self.name} is {time_delta} * {storage_cost}")
 
@@ -354,14 +355,14 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             # Wait for 15 seconds before checking the SSH server and status again
             time.sleep(30)
 
-            # Check if ssh server is accessible
-            if self.__check_ssh():
-                needs_recreate = False
-                break
-
             # If instance is not creating, it means it does not exist on the cloud or it's stopped
             if self.get_status() not in [CloudInstance.CREATING, CloudInstance.AVAILABLE]:
                 logging.debug(f'({self.name}) Instance has been shut down, removed, or preempted. Resetting instance!')
+                break
+
+            # Check if ssh server is accessible
+            if self.__check_ssh():
+                needs_recreate = False
                 break
 
         # Check if it needs resetting
@@ -379,19 +380,20 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         if self.external_IP is None:
             return False
 
-        # Generate the command to run
-        cmd = "nc -w 1 {0} 22".format(self.external_IP)
+        out = ''
 
-        # Run the command
-        proc = sp.Popen(cmd, stderr=sp.PIPE, stdout=sp.PIPE, shell=True)
-        out, err = proc.communicate()
-
-        # Convert to string formats
-        out = out.decode("utf8")
-        err = err.decode("utf8")
-
-        # If any error occured, then the ssh is not ready
-        if err:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((self.external_IP, 22))
+            s.sendall(''.encode())
+            s.shutdown(socket.SHUT_WR)
+            while True:
+                data = s.recv(4096)
+                if not data:
+                    break
+                out = repr(data)
+            s.close()
+        except Exception:
             return False
 
         # Otherwise, return only if there is ssh in the received header
