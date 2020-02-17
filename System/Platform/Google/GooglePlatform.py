@@ -1,6 +1,5 @@
 import math
 import os
-import subprocess as sp
 import logging
 import base64
 import random
@@ -8,7 +7,7 @@ import json
 from threading import Thread
 
 from System import CC_MAIN_DIR
-from System.Platform import CloudPlatform
+from System.Platform import Process, CloudPlatform
 from System.Platform.Google import GoogleInstance, GooglePreemptibleInstance
 
 from google.cloud import pubsub_v1
@@ -117,12 +116,12 @@ class GooglePlatform(CloudPlatform):
 
         # Authenticate for gsutil use
         cmd = "gcloud auth activate-service-account --key-file %s" % self.identity
-        GooglePlatform.__run_cmd(cmd, err_msg="Authentication to Google Cloud failed!")
+        Process.run_local_cmd(cmd, err_msg="Authentication to Google Cloud failed!")
 
         # Transfer report file to bucket
         options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
         cmd = "gsutil %s cp -r '%s' '%s' 1>/dev/null 2>&1 " % (options_fast, report_path, dest_path)
-        GooglePlatform.__run_cmd(cmd, err_msg="Could not transfer final report to the final output directory!")
+        Process.run_local_cmd(cmd, err_msg="Could not transfer final report to the final output directory!")
 
         # Check if the user has provided a Pub/Sub report topic
         pubsub_topic = self.extra.get("report_topic", None)
@@ -149,32 +148,6 @@ class GooglePlatform(CloudPlatform):
         # Wait for all threads to finish
         for _thread in destroy_threads:
             _thread.join()
-
-    @staticmethod
-    def __run_cmd(cmd, err_msg=None, num_retries=5):
-        # Running and waiting for the command
-        proc = sp.Popen(cmd, shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
-        out, err = proc.communicate()
-
-        # Convert to string formats
-        out = out.decode("utf8")
-        err = err.decode("utf8")
-
-        # Check if any error has appeared
-        if len(err) != 0 and "error" in err.lower():
-
-            # Retry command if possible
-            if num_retries > 0:
-                return GooglePlatform.__run_cmd(cmd, err_msg, num_retries=num_retries-1)
-
-            logging.error(f"GooglePlatform could not run the following command:\n{cmd}")
-
-            if err_msg is not None:
-                logging.error(f"{err_msg}.\nThe following error appeared:\n    {err}")
-
-            raise RuntimeError("Error running command in GooglePlatform!")
-
-        return out
 
     @staticmethod
     def __send_pubsub_message(topic_name, project_id, message, encode=True):
