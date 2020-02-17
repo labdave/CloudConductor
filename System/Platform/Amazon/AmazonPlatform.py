@@ -1,10 +1,9 @@
 import os
-import subprocess as sp
 import logging
 import random
 from threading import Thread
 
-from System.Platform import CloudPlatform
+from System.Platform import Process, CloudPlatform
 from System.Platform.Amazon import AmazonInstance
 
 from libcloud.compute.types import Provider
@@ -116,7 +115,12 @@ class AmazonPlatform(CloudPlatform):
 
         # Transfer report file to bucket
         cmd = "aws s3 cp -r '%s' '%s' 1>/dev/null 2>&1 " % (report_path, dest_path)
-        self.__run_cmd(cmd, err_msg="Could not transfer final report to the final output directory!")
+        err_msg = "Could not transfer final report to the final output directory!"
+        env_var = {
+            "AWS_ACCESS_KEY_ID": self.identity,
+            "AWS_SECRET_ACCESS_KEY": self.secret
+        }
+        Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var)
 
     def clean_up(self):
 
@@ -138,35 +142,3 @@ class AmazonPlatform(CloudPlatform):
 
         # Destroy SSH key pair
         self.driver.delete_key_pair(self.driver.get_key_pair(self.ssh_key_pair))
-
-    def __run_cmd(self, cmd, err_msg=None, num_retries=5):
-
-        # Create envitonrmnet variable for AWS authentication
-        env_var = {
-            "AWS_ACCESS_KEY_ID": self.identity,
-            "AWS_SECRET_ACCESS_KEY": self.secret
-        }
-
-        # Running and waiting for the command
-        proc = sp.Popen(cmd, shell=True, stdout=sp.PIPE, stderr=sp.PIPE, env=env_var)
-        out, err = proc.communicate()
-
-        # Convert to string formats
-        out = out.decode("utf8")
-        err = err.decode("utf8")
-
-        # Check if any error has appeared
-        if len(err) != 0 and "error" in err.lower():
-
-            # Retry command if possible
-            if num_retries > 0:
-                return AmazonPlatform.__run_cmd(cmd, err_msg, num_retries=num_retries-1)
-
-            logging.error(f"AmazonPlatform could not run the following command:\n{cmd}")
-
-            if err_msg is not None:
-                logging.error(f"{err_msg}.\nThe following error appeared:\n    {err}")
-
-            raise RuntimeError("Error running command in AmazonPlatform!")
-
-        return out
