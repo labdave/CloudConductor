@@ -241,7 +241,7 @@ class AggregateNormalizedCounts(Merger):
 
         # generate command line for Rscript
         # mk_sample_sheet_cmd = generate_sample_sheet_cmd(sample_ids, normalized_gene_counts, normalized_gene_counts_info)
-        mk_sample_sheet_cmd = generate_sample_sheet_cmd(nickname, normalized_gene_counts, normalized_gene_counts_info)
+        mk_sample_sheet_cmd = generate_sample_sheet_cmd(sample_name_nickname, normalized_gene_counts, normalized_gene_counts_info)
 
         # generate command line to generate file containing sample and associated dignosis/disease
         mk_sample_disease_cmd = generate_sample_diease_cmd(sample_name_nickname, diagnosis, sample_disease.get_path())
