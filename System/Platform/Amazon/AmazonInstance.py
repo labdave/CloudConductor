@@ -19,6 +19,9 @@ class AmazonInstance(CloudInstance):
         driver_class = get_driver(Provider.EC2)
         self.driver = driver_class(self.identity, self.secret, region=self.region)
 
+        # Obtain the Google JSON path
+        self.google_json = kwargs.get("google_json", None)
+
         # Initialize the node variable
         self.node = None
 
@@ -59,6 +62,24 @@ class AmazonInstance(CloudInstance):
         cmd = "device=$(ls /dev/sda || echo /dev/xvda) ; sudo growpart ${device} 1 ; sudo resize2fs ${device}1"
         self.run("resize_disk", cmd)
         self.wait_process("resize_disk")
+
+        # Copy Google key to instance and authenticate
+        if self.google_json is not None:
+
+            # Transfer key to instance
+            cmd = f'scp -i {self.ssh_private_key} {self.google_json} ' \
+                  f'{self.ssh_connection_user}@{self.external_IP}:GCP.json'
+
+            Process.run_local_cmd(cmd, err_msg="Could not authenticate Google SDK on instance!")
+
+            # Activate service account
+            cmd = f'gcloud auth activate-service-account --key-file /home/{self.ssh_connection_user}/GCP.json'
+            self.run("authenticate_google", cmd)
+            self.wait_process("authenticate_google")
+
+        else:
+            logging.warning("(%s) Google JSON key not provided! "
+                            "Instance will not be able to access GCP buckets!" % self.name)
 
     def destroy_instance(self):
         self.driver.destroy_node(self.node)
@@ -103,9 +124,11 @@ class AmazonInstance(CloudInstance):
 
         # Wrap the command around ssh
         cmd = f"ssh -i {self.ssh_private_key} " \
-            f"-o CheckHostIP=no -o StrictHostKeyChecking=no " \
-            f"-o SendEnv=AWS_ACCESS_KEY_ID -o SendEnv=AWS_SECRET_ACCESS_KEY " \
-            f"{self.ssh_connection_user}@{self.external_IP} -- '{cmd}'"
+              f"-o CheckHostIP=no -o StrictHostKeyChecking=no " \
+              f"-o SendEnv=AWS_ACCESS_KEY_ID " \
+              f"-o SendEnv=AWS_SECRET_ACCESS_KEY " \
+              f"-o SendEnv=GOOGLE_APPLICATION_CREDENTIALS " \
+              f"{self.ssh_connection_user}@{self.external_IP} -- '{cmd}'"
 
         # Run command using subprocess popen and add Popen object to self.processes
         logging.info("(%s) Process '%s' started!" % (self.name, job_name))
@@ -120,6 +143,7 @@ class AmazonInstance(CloudInstance):
             "stderr": sp.PIPE,
             "close_fds": True,
             "env":  {
+                "GOOGLE_APPLICATION_CREDENTIALS": f"/home/{self.ssh_connection_user}/GCP.json",
                 "AWS_ACCESS_KEY_ID": self.identity,
                 "AWS_SECRET_ACCESS_KEY": self.secret
             },
