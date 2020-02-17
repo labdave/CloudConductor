@@ -49,7 +49,7 @@ def generate_sample_diease_cmd(names, diagnosis, outfile):
     #iterate through all the samples to create a sample info file for Rscript
     for index in range(len(names)):
         if index == 0:
-            cmds.append('echo -e "samples\\tdisease" > $o')
+            cmds.append('echo -e "sample\\tdisease" > $o')
             cmds.append('echo -e "{0}\\t{1}" >> $o'.format(names[index], diagnosis[index]))
         else:
             cmds.append('echo -e "{0}\\t{1}" >> $o'.format(names[index], diagnosis[index]))
