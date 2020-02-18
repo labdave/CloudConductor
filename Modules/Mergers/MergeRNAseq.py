@@ -30,6 +30,31 @@ def generate_sample_sheet_cmd(sample_names, sample_files, outfile, in_type=None)
             cmds.append('echo -e "{0}\\t$i/{1}" >> $o'.format(sample_names[index], os.path.basename(sample_files[index])))
     return " ; ".join(cmds)
 
+def generate_sample_diease_cmd(names, diagnosis, outfile):
+
+    # list of cmds
+    cmds = list()
+
+    # make a list of one sample if theere is only one sample in the analysis
+    if not isinstance(names, list):
+        names = [names]
+        diagnosis = [diagnosis]
+
+    # Define the output file as a bash variable
+    cmds.append("o={0}".format(outfile))
+
+    # Define the containing directory of the input files
+    # cmds.append("i={0}".format(os.path.dirname(outfile)))
+
+    #iterate through all the samples to create a sample info file for Rscript
+    for index in range(len(names)):
+        if index == 0:
+            cmds.append('echo -e "sample\\tdisease" > $o')
+            cmds.append('echo -e "{0}\\t{1}" >> $o'.format(names[index], diagnosis[index]))
+        else:
+            cmds.append('echo -e "{0}\\t{1}" >> $o'.format(names[index], diagnosis[index]))
+    return " ; ".join(cmds)
+
 class AggregateRawReadCounts(Merger):
     def __init__(self, module_id, is_docker = False):
         super(AggregateRawReadCounts, self).__init__(module_id, is_docker)
@@ -158,12 +183,14 @@ class AggregateRSEMResults(Merger):
 class AggregateNormalizedCounts(Merger):
     def __init__(self, module_id, is_docker = False):
         super(AggregateNormalizedCounts, self).__init__(module_id, is_docker)
-        self.output_keys = ["aggregated_normalized_gene_counts"]
+        self.output_keys = ["aggregated_normalized_gene_counts", "aggregated_normalized_gene_counts_long",
+                            "sample_disease"]
 
     def define_input(self):
         self.add_argument("sample_name",                    is_required=True)
         self.add_argument("sample_id",                      is_required=True)
         self.add_argument("nickname",                       is_required=True)
+        self.add_argument("diagnosis",                      is_required=True)
         self.add_argument("normalized_gene_counts",         is_required=True)
         self.add_argument("aggregate_script",               is_required=True, is_resource=True)
         self.add_argument("nr_cpus",                        is_required=True, default_value=8)
@@ -172,9 +199,15 @@ class AggregateNormalizedCounts(Merger):
     def define_output(self):
 
         # Declare unique file name
-        aggregated_normalized_gene_counts = self.generate_unique_file_name(extension=".normalized.counts.combined.txt")
+        aggregated_normalized_gene_counts       = self.generate_unique_file_name(extension=".normalized.counts.combined.txt")
+        aggregated_normalized_gene_counts_long  = self.generate_unique_file_name(extension=".normalized.counts.combined.long.txt")
+
+        sample_disease = self.generate_unique_file_name(extension=".sample.disease.txt")
 
         self.add_output("aggregated_normalized_gene_counts", aggregated_normalized_gene_counts)
+        self.add_output("aggregated_normalized_gene_counts_long", aggregated_normalized_gene_counts_long)
+
+        self.add_output("sample_disease", sample_disease)
 
     def define_command(self):
 
@@ -182,6 +215,7 @@ class AggregateNormalizedCounts(Merger):
         samples                 = self.get_argument("sample_name")
         sample_ids              = self.get_argument("sample_id")
         nickname                = self.get_argument("nickname")
+        diagnosis               = self.get_argument("diagnosis")
         normalized_gene_counts  = self.get_argument("normalized_gene_counts")
 
         #get the aggregate script to run
@@ -193,14 +227,24 @@ class AggregateNormalizedCounts(Merger):
         # Generate file containing information about the normalized count file with sample information
         normalized_gene_counts_info = os.path.join(working_dir, "{0}".format("normalized_gene_counts.txt"))
 
+        # Generate file containing information about the normalized count file with sample information
+        sample_disease = self.get_output("sample_disease")
+
         #get the output file and make appropriate path for it
         aggregated_normalized_gene_counts = self.get_output("aggregated_normalized_gene_counts")
 
+        # replace space/s with underscore in nickname
         nickname = [re.sub('\s+','_', x) for x in nickname]
+
+        # combine the nicknames with the sample names
+        sample_name_nickname = ['_'.join([i,j]) for i, j in zip(samples, nickname)]
 
         # generate command line for Rscript
         # mk_sample_sheet_cmd = generate_sample_sheet_cmd(sample_ids, normalized_gene_counts, normalized_gene_counts_info)
-        mk_sample_sheet_cmd = generate_sample_sheet_cmd(nickname, normalized_gene_counts, normalized_gene_counts_info)
+        mk_sample_sheet_cmd = generate_sample_sheet_cmd(sample_name_nickname, normalized_gene_counts, normalized_gene_counts_info)
+
+        # generate command line to generate file containing sample and associated dignosis/disease
+        mk_sample_disease_cmd = generate_sample_diease_cmd(sample_name_nickname, diagnosis, sample_disease.get_path())
 
         # generate command line for Rscript
         if not self.is_docker:
@@ -211,7 +255,7 @@ class AggregateNormalizedCounts(Merger):
             cmd = "Rscript --vanilla {0} -f {1} -o {2} !LOG3!".format(aggregate_script, normalized_gene_counts_info,
                                                                       aggregated_normalized_gene_counts)
 
-        return [mk_sample_sheet_cmd, cmd]
+        return [mk_sample_sheet_cmd, mk_sample_disease_cmd, cmd]
 
 
 class Cuffnorm(Merger):
