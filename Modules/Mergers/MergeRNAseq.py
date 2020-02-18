@@ -218,6 +218,13 @@ class AggregateNormalizedCounts(Merger):
         diagnosis               = self.get_argument("diagnosis")
         normalized_gene_counts  = self.get_argument("normalized_gene_counts")
 
+        diagnosis_pairs = {
+            "Diffuse large B cell lymphoma, NOS(Activated B-cell type)": "ABC_DLBCL",
+            "Diffuse large B cell lymphoma, NOS(Germinal center B-cell type)": "GCB_DLBCL"
+        }
+
+        diagnosis = [diagnosis_pairs[x] for x in diagnosis]
+
         #get the aggregate script to run
         aggregate_script = self.get_argument("aggregate_script")
 
