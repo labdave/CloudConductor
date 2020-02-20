@@ -576,7 +576,7 @@ class ABCGCBScore(_QCParser):
 
         return cmd
 
-   class ClonotypeIG(_QCParser):
+class ClonotypeIG(_QCParser):
 
     def __init__(self, module_id, is_docker=False):
         super(ClonotypeIG, self).__init__(module_id, is_docker)
@@ -622,8 +622,46 @@ class ClonotypeT(_QCParser):
         parser_note     = self.get_argument("note")
         qc_report       = self.get_output("qc_report")
 
-        # Generate base command
         cmd = "%s ClonotypeT -i %s -s %s" % (qc_parser, input_file, sample_name)
+
+        # Add parser note if necessary
+        if parser_note is not None:
+            cmd += " -n \"%s\"" % parser_note
+
+        # Output qc_report to file
+        cmd += " > %s !LOG2!" % qc_report
+        return cmd
+
+class StarGeneReadCounts(_QCParser):
+
+    def __init__(self, module_id, is_docker=False):
+        super(StarGeneReadCounts, self).__init__(module_id, is_docker)
+
+    def define_input(self):
+        super(StarGeneReadCounts, self).define_input()
+        self.add_argument("raw_read_counts", is_required=True)
+        self.add_argument("ercc_baits", default_value=["ERCC-00004", "ERCC-00046", "ERCC-00051", "ERCC-00054",
+                                                      "ERCC-00060", "ERCC-00074","ERCC-00077", "ERCC-00079",
+                                                      "ERCC-00085", "ERCC-00095", "ERCC-00097", "ERCC-00108",
+                                                      "ERCC-00116", "ERCC-00134", "ERCC-00142", "ERCC-00148",
+                                                      "ERCC-00156", "ERCC-00171"])
+
+        # Overwrite the default values for nr_cpus and mem
+        self.add_argument("nr_cpus", is_required=True, default_value=4)
+        self.add_argument("mem", is_required=True, default_value=10)
+
+    def define_command(self):
+        # Get options from kwargs
+        input_file      = self.get_argument("raw_read_counts")
+        ercc_baits      = self.get_argument("ercc_baits")
+        qc_parser       = self.get_argument("qc_parser")
+        sample_name     = self.get_argument("sample_name")
+        parser_note     = self.get_argument("note")
+        qc_report       = self.get_output("qc_report")
+
+        # Generate base command
+        cmd = "%s StarGeneReadCounts -i %s -s %s --ercc-baits %s" % (qc_parser, input_file, sample_name,
+                                                                     ' '.join(ercc_baits))
 
         # Add parser note if necessary
         if parser_note is not None:
