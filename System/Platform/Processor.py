@@ -91,11 +91,15 @@ class Processor(object, metaclass=abc.ABCMeta):
         original_cmd = cmd
 
         # Run in docker image if specified
+        # Docker run usage: docker run [OPTIONS] IMAGE [COMMAND] [ARG...]
+        # Use the --entrypoint OPTION to Force the entry point to be /bin/bash
+        # '-c' will be the COMMAND (argument) for the entry point
+        # The actual command 'cmd' will be ARG.
         if docker_image is not None:
             cmd = "sudo docker run --rm --user root" \
                   " -v %s:%s" \
                   " --entrypoint '/bin/bash'" \
-                  " %s '-c %s'" % (self.wrk_dir, self.wrk_dir, docker_image, cmd)
+                  " %s '-c' '%s'" % (self.wrk_dir, self.wrk_dir, docker_image, cmd)
 
         # Make any modifications to the command to allow it to be run on a specific platform
         cmd = self.adapt_cmd(cmd)
