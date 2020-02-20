@@ -92,7 +92,10 @@ class Processor(object, metaclass=abc.ABCMeta):
 
         # Run in docker image if specified
         if docker_image is not None:
-            cmd = "sudo docker run --rm --user root -v %s:%s %s /bin/bash -c '%s'" % (self.wrk_dir, self.wrk_dir, docker_image, cmd)
+            cmd = "sudo docker run --rm --user root" \
+                  " -v %s:%s" \
+                  " --entrypoint '/bin/bash'" \
+                  " %s '-c %s'" % (self.wrk_dir, self.wrk_dir, docker_image, cmd)
 
         # Make any modifications to the command to allow it to be run on a specific platform
         cmd = self.adapt_cmd(cmd)
