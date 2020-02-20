@@ -66,14 +66,14 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
     def create(self):
 
-        # Add creation event to instance history
-        self.__add_history_event("CREATE")
-
         # Allocate resources on the platform for current instance
         self.platform.allocate_resources(self.nr_cpus, self.mem, self.disk_space)
 
         # Create the actual instance
         self.external_IP = self.create_instance()
+
+        # Add creation event to instance history
+        self.__add_history_event("CREATE")
 
         # Check if external IP was set
         if self.external_IP is None:

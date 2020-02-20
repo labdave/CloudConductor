@@ -61,7 +61,7 @@ class GooglePlatform(CloudPlatform):
         return int(self.disk_image_obj.extra["diskSizeGb"])
 
     def get_cloud_instance_class(self):
-        if self.extra["preemptible"]:
+        if "preemptible" in self.extra and self.extra["preemptible"]:
             return GooglePreemptibleInstance
         return GoogleInstance
 

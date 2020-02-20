@@ -1,10 +1,12 @@
 import os
 import logging
 import random
+import csv
+
 from threading import Thread
 
 from System.Platform import Process, CloudPlatform
-from System.Platform.Amazon import AmazonInstance
+from System.Platform.Amazon import AmazonInstance, AmazonSpotInstance
 
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
@@ -30,16 +32,16 @@ class AmazonPlatform(CloudPlatform):
 
         # Parse service account file
         with open(self.identity) as csv_inp:
-            lines = csv_inp.readlines()
+            aws_dict = csv.DictReader(csv_inp)
 
-        _, _, access_key, secret, _ = lines[1].strip("\n").split(",")
-
-        return access_key, secret
+            for row in aws_dict:
+                return row["Access key ID"], row["Secret access key"]
+        return None, None
 
     def get_random_zone(self):
 
         # Get list of zones and filter them to start with the current region
-        zones_in_region = [ zone_obj.name for zone_obj in self.driver.driver.ex_list_availability_zones() ]
+        zones_in_region = [zone_obj.name for zone_obj in self.driver.driver.ex_list_availability_zones()]
 
         return random.choice(zones_in_region)
 
@@ -57,6 +59,8 @@ class AmazonPlatform(CloudPlatform):
             raise RuntimeError(f"Could not obtain disk size in GB for the image '{self.disk_image}'!")
 
     def get_cloud_instance_class(self):
+        if "preemptible" in self.extra and self.extra["preemptible"]:
+            return AmazonSpotInstance
         return AmazonInstance
 
     def authenticate_platform(self):

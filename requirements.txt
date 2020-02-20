@@ -3,3 +3,4 @@ jsonschema
 configobj
 apache-libcloud
 google-cloud-pubsub
+boto3
