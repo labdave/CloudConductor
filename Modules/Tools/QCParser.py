@@ -576,13 +576,13 @@ class ABCGCBScore(_QCParser):
 
         return cmd
 
-   class Clonotype_IG(_QCParser):
+   class ClonotypeIG(_QCParser):
 
     def __init__(self, module_id, is_docker=False):
-        super(Clonotype_IG, self).__init__(module_id, is_docker)
+        super(ClonotypeIG, self).__init__(module_id, is_docker)
 
     def define_input(self):
-        super(Clonotype_IG, self).define_input()
+        super(ClonotypeIG, self).define_input()
         self.add_argument("ig_clones",   is_required=True)
 
     def define_command(self):
@@ -594,7 +594,7 @@ class ABCGCBScore(_QCParser):
         qc_report       = self.get_output("qc_report")
 
         # Generate base command
-        cmd = "%s Clonotype_IG -i %s -s %s" % (qc_parser, input_file, sample_name)
+        cmd = "%s ClonotypeIG -i %s -s %s" % (qc_parser, input_file, sample_name)
 
         # Add parser note if necessary
         if parser_note is not None:
@@ -605,13 +605,13 @@ class ABCGCBScore(_QCParser):
         return cmd
 
 
-class Clonotype_T(_QCParser):
+class ClonotypeT(_QCParser):
 
     def __init__(self, module_id, is_docker=False):
-        super(Clonotype_T, self).__init__(module_id, is_docker)
+        super(ClonotypeT, self).__init__(module_id, is_docker)
 
     def define_input(self):
-        super(Clonotype_T, self).define_input()
+        super(ClonotypeT, self).define_input()
         self.add_argument("t_clones",   is_required=True)
 
     def define_command(self):
@@ -623,7 +623,7 @@ class Clonotype_T(_QCParser):
         qc_report       = self.get_output("qc_report")
 
         # Generate base command
-        cmd = "%s Clonotype_T -i %s -s %s" % (qc_parser, input_file, sample_name)
+        cmd = "%s ClonotypeT -i %s -s %s" % (qc_parser, input_file, sample_name)
 
         # Add parser note if necessary
         if parser_note is not None:
