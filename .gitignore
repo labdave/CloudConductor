@@ -77,3 +77,4 @@ _build
 
 # PyBuilder
 target/
+.vscode/
