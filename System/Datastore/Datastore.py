@@ -288,6 +288,8 @@ class Datastore(object):
                     nr_cpus = len(inputs)
                 else:
                     nr_cpus = 1
+            else:
+                raise IOError("Number of CPUs defined incorrectly: %s" % nr_cpus)
 
         # CPUs > 'max' converted to maximum cpus
         elif int(nr_cpus) > int(max_cpus):
