@@ -39,7 +39,7 @@ class Datastore(object):
             logging.debug("(%s) Arg type: %s, val: %s" % (task_id, input_type, val))
 
         # Re-format nr_cpus, mem
-        nr_cpus     = self.__reformat_nr_cpus(task_module.get_argument("nr_cpus"))
+        nr_cpus     = self.__reformat_nr_cpus(task_module)
         mem         = self.__reformat_mem(task_module.get_argument("mem"), nr_cpus)
         logging.debug("(%s) Reformatted arg type: nr_cpus, val: %s" % (task_id, nr_cpus))
         logging.debug("(%s) Reformatted arg type: mem, val: %s" % (task_id, mem))
@@ -269,14 +269,25 @@ class Datastore(object):
 
         return args
 
-    def __reformat_nr_cpus(self, nr_cpus):
+    def __reformat_nr_cpus(self, task_module):
+        nr_cpus = task_module.get_argument("nr_cpus")
+
         # Makes sure the argument for nr_cpus is valid
         max_cpus = self.platform.get_max_nr_cpus()
 
         # CPUs = 'max' converted to platform maximum cpus
-        if isinstance(nr_cpus, str) and nr_cpus.lower() == "max":
-            # Set special case for maximum nr_cpus
-            nr_cpus = max_cpus
+        if isinstance(nr_cpus, str):
+            if nr_cpus.lower() == "max":
+                # Set special case for maximum nr_cpus
+                nr_cpus = max_cpus
+            elif nr_cpus in task_module.arguments:
+                # If nr_cpus is a str of input argument
+                # Set nr_cpus to be the number of elements in the inputs
+                inputs = task_module.get_argument(nr_cpus)
+                if isinstance(inputs, list):
+                    nr_cpus = len(inputs)
+                else:
+                    nr_cpus = 1
 
         # CPUs > 'max' converted to maximum cpus
         elif int(nr_cpus) > int(max_cpus):
