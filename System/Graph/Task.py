@@ -1,8 +1,9 @@
 import logging
 import importlib
 import copy
-
+from inspect import signature
 from Modules import Module, Splitter, Merger, PseudoMerger
+
 
 class Task(object):
 
@@ -195,7 +196,9 @@ class Task(object):
             module_id = "%s_%s" % (module_id, submodule)
 
         # Return instance of module class
-        return _class(module_id, is_docker, self.__module_args)
+        if len(signature(_class.__init__).parameters) == 4:
+            return _class(module_id, is_docker, self.__module_args)
+        return _class(module_id, is_docker)
 
     def get_task_string(self, input_from=None):
         # Get the module names
