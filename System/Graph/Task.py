@@ -196,8 +196,8 @@ class Task(object):
             module_id = "%s_%s" % (module_id, submodule)
 
         # Return instance of module class
-        if len(signature(_class.__init__).parameters) == 4:
-            return _class(module_id, is_docker, self.__module_args)
+        if "module_args" in signature(_class.__init__).parameters:
+            return _class(module_id, is_docker, module_args=self.get_graph_config_args())
         return _class(module_id, is_docker)
 
     def get_task_string(self, input_from=None):
