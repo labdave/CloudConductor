@@ -107,7 +107,7 @@ class Task(object):
         # Return input keys. get_keys() returns input_keys and output_keys.
         return self.module.get_input_types()
 
-    def get_output_keys(self):
+    def get_(self):
         # Return output keys. get_keys() returns input_keys and output_keys.
         return self.module.get_output_types()
 
@@ -195,7 +195,7 @@ class Task(object):
             module_id = "%s_%s" % (module_id, submodule)
 
         # Return instance of module class
-        return _class(module_id, is_docker)
+        return _class(module_id, is_docker, self.__module_args)
 
     def get_task_string(self, input_from=None):
         # Get the module names
