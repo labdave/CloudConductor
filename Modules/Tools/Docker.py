@@ -66,7 +66,7 @@ class Docker(Module):
         # inputs, outputs and command must be defined in the config args
         self.add_argument("inputs")
         self.add_argument("outputs")
-        self.add_argument("command")
+        self.add_argument("commands")
         # cpus and memory are optional
         self.add_argument("cpus", is_required=False)
         self.add_argument("memory", is_required=False)
@@ -106,7 +106,7 @@ class Docker(Module):
 
     def define_command(self):
         var_dict = self.get_var_dict()
-        command = self.get_argument("command")
+        command = self.get_argument("commands")
         # logger.debug("Variables: %s" % var_dict)
         command = self.replace_var(command, var_dict)
         # Covert line break to "&&" and remove empty command
