@@ -277,7 +277,9 @@ class Datastore(object):
 
         # CPUs = 'max' converted to platform maximum cpus
         if isinstance(nr_cpus, str):
-            if nr_cpus.lower() == "max":
+            if nr_cpus.isdigit():
+                nr_cpus = int(nr_cpus)
+            elif nr_cpus.lower() == "max":
                 # Set special case for maximum nr_cpus
                 nr_cpus = max_cpus
             elif nr_cpus in task_module.arguments:
@@ -292,7 +294,7 @@ class Datastore(object):
                 raise IOError("Number of CPUs defined incorrectly: %s" % nr_cpus)
 
         # CPUs > 'max' converted to maximum cpus
-        elif int(nr_cpus) > int(max_cpus):
+        if int(nr_cpus) > int(max_cpus):
             nr_cpus = max_cpus
 
         # Update module nr_cpus argument
