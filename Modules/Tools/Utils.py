@@ -896,3 +896,79 @@ class GetReadNames(Module):
         cmd = " | ".join(cmds)
 
         return cmd
+
+
+class CovertToSAM(Module):
+    def __init__(self, module_id, is_docker=False):
+        super(CovertToSAM, self).__init__(module_id, is_docker)
+        self.output_keys = ["sam"]
+
+    def define_input(self):
+        self.add_argument("bam",            is_required=True)
+        self.add_argument("bam_idx",        is_required=True)
+        self.add_argument("bed",            is_required=False, is_resource=True)
+        self.add_argument("samtools",       is_required=True, is_resource=True)
+        self.add_argument("exclude_flag",   is_required=False)
+        self.add_argument("include_flag",   is_required=False)
+        self.add_argument("nr_cpus",        is_required=True, default_value=2)
+        self.add_argument("mem",            is_required=True, default_value=4)
+
+    def define_output(self):
+        sam = self.generate_unique_file_name(extension=".sam")
+        self.add_output("sam", sam)
+
+    def define_command(self):
+        # Get arguments
+        bam             = self.get_argument("bam")
+        bed             = self.get_argument("bed")
+        samtools        = self.get_argument("samtools")
+        exclude_flag    = self.get_argument("exclude_flag")
+        include_flag    = self.get_argument("include_flag")
+
+        # get the file name to store the read names
+        sam = self.get_output("sam")
+
+        # generate base command to convert BAM to SAM
+        cmd = "{0} view {1}".format(samtools, bam)
+
+        # if the exclude flag provided
+        if exclude_flag:
+            cmd += " -F {0}".format(exclude_flag)
+
+        # if the include flag provided
+        if include_flag:
+            cmd += " -f {0}".format(include_flag)
+
+        # if bed file provided
+        if bed:
+            cmd += " -L {0}".format(bed)
+
+        cmd += " > {0}".format(sam)
+
+        return cmd
+
+
+class GetERCCReadCounts(Module):
+    def __init__(self, module_id, is_docker=False):
+        super(GetERCCReadCounts, self).__init__(module_id, is_docker)
+        self.output_keys = ["read_counts"]
+
+    def define_input(self):
+        self.add_argument("sam",                is_required=True)
+        self.add_argument("nr_cpus",            is_required=True, default_value=2)
+        self.add_argument("mem",                is_required=True, default_value=4)
+
+    def define_output(self):
+        read_counts = self.generate_unique_file_name(extension=".ercc_read_counts.txt")
+        self.add_output("read_counts", read_counts)
+
+    def define_command(self):
+        # Get arguments
+        sam             = self.get_argument("sam")
+
+        read_counts     = self.get_output("read_counts")
+
+        # generate command to count the reads and then filter for ERCC baits
+        cmd = "awk '{A[$3]++}END{for(i in A)print i,A[i]}' %s | grep '^ERCC' > %s" % (sam,read_counts)
+
+        return cmd
