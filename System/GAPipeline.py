@@ -10,6 +10,7 @@ from System.Validators import GraphValidator, InputValidator, SampleValidator
 from System.Platform import StorageHelper, DockerHelper
 from System import CC_MAIN_DIR
 
+
 class GAPipeline(object):
 
     def __init__(self, pipeline_id,

@@ -3,8 +3,10 @@ import os
 
 from System.Platform import CloudPlatform
 
+
 class InvalidStorageTypeError(Exception):
     pass
+
 
 class StorageHelper(object):
     # Class designed to facilitate remote file manipulations for a processor

@@ -50,6 +50,7 @@ class AmazonPlatform(CloudPlatform):
         # Obtain image information
         if self.disk_image_obj is None:
             self.disk_image_obj = self.driver.get_image(self.disk_image)
+            logging.info(f"DISK IMAGE****************************{self.disk_image_obj}")
 
         # Obtain the disk size
         for disk_info in self.disk_image_obj.extra["block_device_mapping"]:

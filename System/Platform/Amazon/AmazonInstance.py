@@ -52,6 +52,14 @@ class AmazonInstance(CloudInstance):
                 type_cpus = instance_type['VCpuInfo']['DefaultVCpus']
                 # get amount of mem in instance type in MiB
                 type_mem = instance_type['MemoryInfo']['SizeInMiB']
+                # get network performance
+                type_network_perf = instance_type['NetworkInfo']['NetworkPerformance']
+                perf_number = ''.join([s for s in type_network_perf.split() if s.isdigit()])
+                high_perf = False
+                if perf_number:
+                    high_perf = int(perf_number) >= 10
+                else:
+                    high_perf = type_network_perf == 'High'
                 # make sure instance type has more resources than our minimum requirement
                 if type_cpus >= self.nr_cpus and type_mem >= self.mem * 1024:
                     if not selected_instance_type:
@@ -124,39 +132,27 @@ class AmazonInstance(CloudInstance):
         # Obtain our node
         self.node, external_IP = [(n, ext_IP[0]) for n, ext_IP in running_nodes if n.uuid == node.uuid][0]
 
-        # Obtain the volume attached to the instance
-        # volume = self.driver.list_volumes(self.node)[0]
-
-        # Resize to the correct disk size
-        # self.driver.ex_modify_volume(volume, {"Size": self.disk_space})
-
         # Return the external IP from node
         return external_IP
 
     def post_startup(self):
-        pass
-        # Resize by sending the correct command
-        # cmd = "device=$(ls /dev/sda || echo /dev/xvda) ; sudo growpart ${device} 1 ; sudo resize2fs ${device}1"
-        # self.run("resize_disk", cmd)
-        # self.wait_process("resize_disk")
+        # Copy Google key to instance and authenticate
+        if self.google_json is not None:
 
-        # # Copy Google key to instance and authenticate
-        # if self.google_json is not None:
+            # Transfer key to instance
+            cmd = f'scp -i {self.ssh_private_key} {self.google_json} ' \
+                  f'{self.ssh_connection_user}@{self.external_IP}:GCP.json'
 
-        #     # Transfer key to instance
-        #     cmd = f'scp -i {self.ssh_private_key} {self.google_json} ' \
-        #           f'{self.ssh_connection_user}@{self.external_IP}:GCP.json'
+            Process.run_local_cmd(cmd, err_msg="Could not authenticate Google SDK on instance!")
 
-        #     Process.run_local_cmd(cmd, err_msg="Could not authenticate Google SDK on instance!")
+            # Activate service account
+            cmd = f'gcloud auth activate-service-account --key-file /home/{self.ssh_connection_user}/GCP.json'
+            self.run("authenticate_google", cmd)
+            self.wait_process("authenticate_google")
 
-        #     # Activate service account
-        #     cmd = f'gcloud auth activate-service-account --key-file /home/{self.ssh_connection_user}/GCP.json'
-        #     self.run("authenticate_google", cmd)
-        #     self.wait_process("authenticate_google")
-
-        # else:
-        #     logging.warning("(%s) Google JSON key not provided! "
-        #                     "Instance will not be able to access GCP buckets!" % self.name)
+        else:
+            logging.warning("(%s) Google JSON key not provided! "
+                            "Instance will not be able to access GCP buckets!" % self.name)
 
     def destroy_instance(self):
         self.driver.destroy_node(self.node)
