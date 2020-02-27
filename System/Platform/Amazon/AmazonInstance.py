@@ -140,7 +140,7 @@ class AmazonInstance(CloudInstance):
         if self.google_json is not None:
 
             # Transfer key to instance
-            cmd = f'scp -i {self.ssh_private_key} {self.google_json} ' \
+            cmd = f'scp -i {self.ssh_private_key} -o CheckHostIP=no -o StrictHostKeyChecking=no {self.google_json} ' \
                   f'{self.ssh_connection_user}@{self.external_IP}:GCP.json'
 
             Process.run_local_cmd(cmd, err_msg="Could not authenticate Google SDK on instance!")
