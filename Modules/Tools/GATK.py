@@ -1361,6 +1361,8 @@ class FilterSamReads(_GATKBase):
         self.add_argument("bam",            is_required=True)
         self.add_argument("read_names",     is_required=False)
         self.add_argument("interval_list",  is_required=False)
+        self.add_argument("include_reads",  is_required=False, default_value=True)
+        self.add_argument("exclude_reads",  is_required=False, default_value=False)
         self.add_argument("nr_cpus",        is_required=True, default_value=4)
         self.add_argument("mem",            is_required=True, default_value=16)
 
@@ -1379,6 +1381,11 @@ class FilterSamReads(_GATKBase):
         bam                 = self.get_argument("bam")
         read_names_file     = self.get_argument("read_names")
         interval_list       = self.get_argument("interval_list")
+        include_reads       = self.get_argument("include_reads")
+        exclude_reads       = self.get_argument("exclude_reads")
+
+        if exclude_reads:
+            include_reads = False
 
         if read_names_file is None and interval_list is None:
             raise Exception("Neither read names file nor interval list are provided. Please provide either of them.")
@@ -1403,7 +1410,10 @@ class FilterSamReads(_GATKBase):
 
         # Add read list file if read list is provided
         if read_names_file:
-            cmd = "{0} --READ_LIST_FILE {1} --FILTER includeReadList".format(cmd, read_names_file)
+            if include_reads:
+                cmd = "{0} --READ_LIST_FILE {1} --FILTER includeReadList".format(cmd, read_names_file)
+            elif exclude_reads:
+                cmd = "{0} --READ_LIST_FILE {1} --FILTER excludeReadList".format(cmd, read_names_file)
 
         # Add interval list file if interval list is provided
         if interval_list:
