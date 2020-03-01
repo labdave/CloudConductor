@@ -109,14 +109,9 @@ class AmazonSpotInstance(AmazonInstance):
         if not self.is_preemptible:
             return
 
-        # Reset as standard instance if preempted b/c runtime > 24 hours
-        if self.get_recent_start_time() is not None and time.time() - self.get_recent_start_time() >= (3600 * 24):
-            logging.warning("(%s) Instance failed! Preemptible runtime > 24 hrs. Resetting as standard instance." % self.name)
-            self.is_preemptible = False
-
         # Incrementing the reset count and checking if it reached the threshold
         self.reset_count += 1
-        logging.info(f"This is recent attempt #{self.reset_count}. Max retries is {self.max_resets} attempts.")
+        logging.info(f"This is reset attempt #{self.reset_count}. Max retries is {self.max_resets} attempts.")
         if self.reset_count > self.max_resets:
             logging.warning("(%s) Instance failed! Instance preempted and has reached the maximum number of resets (num resets: %s). "
                             "Resetting as standard instance." % (self.name, self.max_resets))
@@ -127,7 +122,11 @@ class AmazonSpotInstance(AmazonInstance):
         if self.is_preemptible and not force_destroy:
 
             # Restart the instance
-            self.stop()
+            stopped = self.get_status() == CloudInstance.OFF
+            while not stopped:
+                logging.warning("(%s) Waiting for 30 seconds for instance to stop" % self.name)
+                time.sleep(30)
+                stopped = self.get_status() == CloudInstance.OFF
             self.start()
 
             # Instance restart complete

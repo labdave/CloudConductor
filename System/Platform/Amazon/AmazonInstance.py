@@ -4,6 +4,7 @@ import subprocess as sp
 import boto3
 import json
 import statistics
+import time
 
 from pkg_resources import resource_filename
 
@@ -52,14 +53,6 @@ class AmazonInstance(CloudInstance):
                 type_cpus = instance_type['VCpuInfo']['DefaultVCpus']
                 # get amount of mem in instance type in MiB
                 type_mem = instance_type['MemoryInfo']['SizeInMiB']
-                # get network performance
-                type_network_perf = instance_type['NetworkInfo']['NetworkPerformance']
-                perf_number = ''.join([s for s in type_network_perf.split() if s.isdigit()])
-                high_perf = False
-                if perf_number:
-                    high_perf = int(perf_number) >= 10
-                else:
-                    high_perf = type_network_perf == 'High'
                 # make sure instance type has more resources than our minimum requirement
                 if type_cpus >= self.nr_cpus and type_mem >= self.mem * 1024:
                     if not selected_instance_type:
@@ -117,14 +110,17 @@ class AmazonInstance(CloudInstance):
                                             ex_security_groups=[self.platform.get_security_group()],
                                             ex_blockdevicemappings=device_mappings,
                                             ex_spot_market=True,
-                                            ex_spot_price=self.instance_type['price'])
+                                            ex_spot_price=self.instance_type['price'],
+                                            interruption_behavior='stop',
+                                            ex_terminate_on_shutdown=False)
         else:
             node = self.driver.create_node(name=self.name,
                                             image=self.disk_image,
                                             size=node_size,
                                             ex_keyname=self.platform.get_ssh_key_pair(),
                                             ex_security_groups=[self.platform.get_security_group()],
-                                            ex_blockdevicemappings=device_mappings)
+                                            ex_blockdevicemappings=device_mappings,
+                                            ex_terminate_on_shutdown=False)
 
         # Get list of running nodes
         running_nodes = self.driver.wait_until_running([node])
@@ -155,10 +151,51 @@ class AmazonInstance(CloudInstance):
                             "Instance will not be able to access GCP buckets!" % self.name)
 
     def destroy_instance(self):
-        self.driver.destroy_node(self.node)
+        if self.is_preemptible:
+            self.cancel_spot_instance_request()
+            self.driver.destroy_node(self.node)
+        else:
+            self.driver.destroy_node(self.node)
 
     def start_instance(self):
-        self.driver.start_node(self.node)
+        instance_started = False
+
+        counter = 10
+        while not instance_started and counter > 0:
+            try:
+                instance_started = self.driver.ex_start_node(self.node)
+            except:
+                # we don't care if it fails, we'll retry the attempt
+                pass
+            if not instance_started:
+                logging.debug("(%s) Failed to restart instance, waiting 30 seconds before retrying" % self.name)
+                # wait 30 seconds before trying to restart again
+                time.sleep(30)
+                counter -= 1
+
+        if not instance_started:
+            raise RuntimeError("(%s) Instance was unable to restart" % self.name)
+
+        # Initializing the cycle count
+        cycle_count = 0
+        ready = False
+
+        # Waiting for 5 minutes for instance to be SSH-able
+        while cycle_count < 30:
+            if self.get_status() == CloudInstance.AVAILABLE:
+                ready = True
+                break
+
+            # Wait for 10 seconds before checking the status again
+            time.sleep(10)
+
+            # Increment the cycle count
+            cycle_count += 1
+
+        if not ready:
+            raise RuntimeError("(%s) Instance was unable to restart" % self.name)
+
+        return self.node.public_ips[0]
 
     def stop_instance(self):
         self.driver.stop_node(self.node)
@@ -243,7 +280,8 @@ class AmazonInstance(CloudInstance):
             'running':          CloudInstance.AVAILABLE,
             'shutting-down':    CloudInstance.DESTROYING,
             'stopping':         CloudInstance.DESTROYING,
-            'terminated':       CloudInstance.OFF
+            'terminated':       CloudInstance.OFF,
+            'stopped':          CloudInstance.OFF
         }
 
         return status_map[self.node.extra["status"]]
@@ -283,7 +321,7 @@ class AmazonInstance(CloudInstance):
         od = json.loads(data['PriceList'][0])['terms']['OnDemand']
         id1 = list(od)[0]
         id2 = list(od[id1]['priceDimensions'])[0]
-        return od[id1]['priceDimensions'][id2]['pricePerUnit']['USD']
+        return float(od[id1]['priceDimensions'][id2]['pricePerUnit']['USD'])
 
     def get_ebs_price(self, region, storage_type="standard"):
         ebs_name_map = {
@@ -304,10 +342,24 @@ class AmazonInstance(CloudInstance):
         od = json.loads(data['PriceList'][0])['terms']['OnDemand']
         id1 = list(od)[0]
         id2 = list(od[id1]['priceDimensions'])[0]
-        return od[id1]['priceDimensions'][id2]['pricePerUnit']['USD']
+        return float(od[id1]['priceDimensions'][id2]['pricePerUnit']['USD'])
 
     def get_spot_price(self, zone, instance_type):
         client = boto3.client('ec2', region_name='us-east-1')
         prices = client.describe_spot_price_history(InstanceTypes=[instance_type], MaxResults=100, ProductDescriptions=['Linux/UNIX (Amazon VPC)'], AvailabilityZone=zone)
         # return the average of the most recent prices multiplied by 10%
         return statistics.mean([float(x['SpotPrice']) for x in prices['SpotPriceHistory']]) * 1.10
+
+    def cancel_spot_instance_request(self):
+        client = boto3.client('ec2', region_name='us-east-1')
+        describe_args = {'Filters': [
+                            {'Name': 'instance-id', 'Values': [self.node.id]}
+                        ],
+                        'MaxResults': 5}
+        spot_requests = client.describe_spot_instance_requests(**describe_args)
+
+        if spot_requests and spot_requests['SpotInstanceRequests']:
+            request_id = spot_requests['SpotInstanceRequests'][0]['SpotInstanceRequestId']
+            response = client.cancel_spot_instance_requests(SpotInstanceRequestIds=[request_id])
+            if response and response['CancelledSpotInstanceRequests']: 
+                return response['CancelledSpotInstanceRequests'][0]['SpotInstanceRequestId'] == request_id

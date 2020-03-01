@@ -26,6 +26,11 @@ class EnhancedEC2NodeDriver(EC2NodeDriver):
             if kwargs.get("ex_spot_price", False):
                 params["InstanceMarketOptions.SpotOptions.MaxPrice"] =\
                     str(kwargs.get("ex_spot_price"))
+            if kwargs.get("interruption_behavior") and kwargs.get("interruption_behavior") == 'terminate':
+                params["InstanceMarketOptions.SpotOptions.InstanceInterruptionBehavior"] = "terminate"
+            elif kwargs.get("interruption_behavior") == 'stop':
+                params["InstanceMarketOptions.SpotOptions.SpotInstanceType"] = "persistent"
+                params["InstanceMarketOptions.SpotOptions.InstanceInterruptionBehavior"] = "stop"
 
         if kwargs.get("ex_terminate_on_shutdown", False):
             params["InstanceInitiatedShutdownBehavior"] = "terminate"
