@@ -250,11 +250,11 @@ def main():
         raise
 
     finally:
-        # Generate pipeline run report
-        pipeline.publish_report(err=err, err_msg=err_msg, git_version=git_version)
-
         # Clean up the pipeline. Only remove temporary output if pipeline completed successfully.
         pipeline.clean_up()
+        
+        # Generate pipeline run report
+        pipeline.publish_report(err=err, err_msg=err_msg, git_version=git_version)
 
 if __name__ == "__main__":
     main()

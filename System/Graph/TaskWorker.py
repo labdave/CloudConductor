@@ -6,6 +6,7 @@ import logging
 from System.Workers import Thread
 from System.Graph import ModuleExecutor
 
+
 class TaskWorker(Thread):
 
     IDLE            = 0
