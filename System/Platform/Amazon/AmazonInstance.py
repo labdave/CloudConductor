@@ -53,8 +53,16 @@ class AmazonInstance(CloudInstance):
                 type_cpus = instance_type['VCpuInfo']['DefaultVCpus']
                 # get amount of mem in instance type in MiB
                 type_mem = instance_type['MemoryInfo']['SizeInMiB']
+                # get network performance
+                type_network_perf = instance_type['NetworkInfo']['NetworkPerformance']
+                perf_number = ''.join([s for s in type_network_perf.split() if s.isdigit()])
+                high_perf = False
+                if perf_number:
+                    high_perf = int(perf_number) >= 10
+                else:
+                    high_perf = type_network_perf == 'High'
                 # make sure instance type has more resources than our minimum requirement
-                if type_cpus >= self.nr_cpus and type_mem >= self.mem * 1024:
+                if type_cpus >= self.nr_cpus and type_mem >= self.mem * 1024 and high_perf:
                     if not selected_instance_type:
                         selected_instance_type = instance_type
                         if self.is_preemptible:
