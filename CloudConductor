@@ -15,6 +15,7 @@ available_plat_modules = {
     "Amazon": "AmazonPlatform"
 }
 
+
 def configure_argparser(argparser_obj):
 
     def platform_type(arg_string):
@@ -42,7 +43,7 @@ def configure_argparser(argparser_obj):
     # Path to sample set config file
     argparser_obj.add_argument("-i", "--input",
                                action="store",
-                               #type=argparse.FileType('r'),
+                               # type=argparse.FileType('r'),
                                type=file_type,
                                dest="sample_set_config",
                                required=True,
@@ -60,7 +61,7 @@ def configure_argparser(argparser_obj):
     # Path to pipeline graph config file
     argparser_obj.add_argument("-g", "--pipeline_config",
                                action='store',
-                               #type=argparse.FileType('r'),
+                               # type=argparse.FileType('r'),
                                type=file_type,
                                dest='graph_config',
                                required=True,
@@ -70,7 +71,7 @@ def configure_argparser(argparser_obj):
     # Path to resources config file
     argparser_obj.add_argument("-k", "--res_kit_config",
                                action='store',
-                               #type=argparse.FileType('r'),
+                               # type=argparse.FileType('r'),
                                type=file_type,
                                dest='res_kit_config',
                                required=True,
@@ -80,7 +81,7 @@ def configure_argparser(argparser_obj):
     # Path to platform config file
     argparser_obj.add_argument("-p", "--plat_config",
                                action='store',
-                               #type=argparse.FileType('r'),
+                               # type=argparse.FileType('r'),
                                type=file_type,
                                dest='platform_config',
                                required=True,
@@ -111,11 +112,12 @@ def configure_argparser(argparser_obj):
 
     # Final output dir
     argparser_obj.add_argument("-o", "--output_dir",
-                              action='store',
-                              type=str,
-                              dest="final_output_dir",
-                              required=True,
-                              help="Absolute path to the final output directory.")
+                                action='store',
+                                type=str,
+                                dest="final_output_dir",
+                                required=True,
+                                help="Absolute path to the final output directory.")
+
 
 def configure_logging(verbosity):
     # Setting the format of the logs
@@ -148,6 +150,7 @@ def configure_logging(verbosity):
     level = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG][verbosity]
     logging.getLogger().setLevel(level)
 
+
 def configure_import_paths():
 
     # Get the directory of the executable
@@ -162,6 +165,7 @@ def configure_import_paths():
     for plat in available_plat_modules:
         sys.path.insert(1, os.path.join(exec_dir, "System/Platform/%s" % plat))
 
+
 def configure_res_limit():
 
     # Get the current hard limit for the number of open file descriptors
@@ -169,6 +173,7 @@ def configure_res_limit():
 
     # Set the maximum (soft) number of open file descriptors to the maximum (hard) limit
     resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
+
 
 def get_git_version():
     # Return the git commit at runtime
@@ -192,6 +197,7 @@ def get_git_version():
 
     # Return git version otherwise
     return out.strip()
+
 
 def main():
 
@@ -252,9 +258,10 @@ def main():
     finally:
         # Clean up the pipeline. Only remove temporary output if pipeline completed successfully.
         pipeline.clean_up()
-        
+
         # Generate pipeline run report
         pipeline.publish_report(err=err, err_msg=err_msg, git_version=git_version)
+
 
 if __name__ == "__main__":
     main()

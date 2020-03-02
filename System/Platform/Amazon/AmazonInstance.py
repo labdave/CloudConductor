@@ -39,7 +39,7 @@ class AmazonInstance(CloudInstance):
 
     def get_instance_size(self):
         '''Select optimal instance type for provided region, number of cpus, and memory allocation'''
-        ec2 = boto3.client('ec2', region_name=self.region)
+        ec2 = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name=self.region)
         region_name = self.__get_region_name()
         describe_args = {'Filters': [
                             {'Name': 'vcpu-info.default-vcpus', 'Values': [str(self.nr_cpus)]},
@@ -315,7 +315,7 @@ class AmazonInstance(CloudInstance):
             '{{"Field": "location", "Value": "{r}", "Type": "TERM_MATCH"}},'\
             '{{"Field": "capacitystatus", "Value": "Used", "Type": "TERM_MATCH"}}]'
 
-        client = boto3.client('pricing', region_name='us-east-1')
+        client = boto3.client('pricing', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1')
         f = FLT.format(r=region, t=instance_type)
         data = client.get_products(ServiceCode='AmazonEC2', Filters=json.loads(f))
         od = json.loads(data['PriceList'][0])['terms']['OnDemand']
@@ -336,7 +336,7 @@ class AmazonInstance(CloudInstance):
         FLT = '[{{"Field": "volumeType", "Value": "{t}", "Type": "TERM_MATCH"}},'\
             '{{"Field": "location", "Value": "{r}", "Type": "TERM_MATCH"}}]'
 
-        client = boto3.client('pricing', region_name='us-east-1')
+        client = boto3.client('pricing', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1')
         f = FLT.format(r=region, t=ebs_name_map[storage_type])
         data = client.get_products(ServiceCode='AmazonEC2', Filters=json.loads(f))
         od = json.loads(data['PriceList'][0])['terms']['OnDemand']
@@ -345,13 +345,13 @@ class AmazonInstance(CloudInstance):
         return float(od[id1]['priceDimensions'][id2]['pricePerUnit']['USD'])
 
     def get_spot_price(self, zone, instance_type):
-        client = boto3.client('ec2', region_name='us-east-1')
+        client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1')
         prices = client.describe_spot_price_history(InstanceTypes=[instance_type], MaxResults=100, ProductDescriptions=['Linux/UNIX (Amazon VPC)'], AvailabilityZone=zone)
         # return the average of the most recent prices multiplied by 10%
         return statistics.mean([float(x['SpotPrice']) for x in prices['SpotPriceHistory']]) * 1.10
 
     def cancel_spot_instance_request(self):
-        client = boto3.client('ec2', region_name='us-east-1')
+        client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1')
         describe_args = {'Filters': [
                             {'Name': 'instance-id', 'Values': [self.node.id]}
                         ],
