@@ -206,8 +206,6 @@ class CatVariants(_GATKBase):
         java        = self.get_argument("java")
         ref         = self.get_argument("ref")
         mem         = self.get_argument("mem")
-        gvcf_out    = self.get_output("gvcf")
-        vcf_out     = self.get_output("vcf")
 
         if not gvcf_in and not vcf_in:
             raise Exception("Please provide either GVCF or VCF.")
@@ -223,6 +221,7 @@ class CatVariants(_GATKBase):
         opts.append("-R %s" % ref)
 
         if gvcf_in:
+            gvcf_out = self.get_output("gvcf")
             opts.append("-out {0}".format(gvcf_out))
             if isinstance(gvcf_in, list):
                 for gvcf_input in gvcf_in:
@@ -231,6 +230,7 @@ class CatVariants(_GATKBase):
                 opts.append("-V %s" % gvcf_in)
 
         if vcf_in:
+            vcf_out = self.get_output("vcf")
             opts.append("-out {0}".format(vcf_out))
             if isinstance(vcf_in, list):
                 for vcf_input in vcf_in:

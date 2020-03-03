@@ -72,7 +72,7 @@ class HaplotypeCaller(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
         super(HaplotypeCaller, self).__init__(module_id, is_docker)
-        self.output_keys = ["gvcf", "gvcf_idx", "vcf", "vcf_idx"]
+        self.output_keys = ["gvcf_gz", "gvcf_idx", "vcf_gz", "vcf_idx"]
 
     def define_input(self):
         self.define_base_args()
@@ -90,16 +90,16 @@ class HaplotypeCaller(_GATKBase):
         randomer = CloudPlatform.generate_unique_id()
         # generate uniques file name based on the output mode set for the Haplotypecaller
         if self.get_argument("output_type") == "gvcf":
-            gvcf = self.generate_unique_file_name(extension="{0}.g.vcf".format(randomer))
-            self.add_output("gvcf", gvcf)
+            gvcf = self.generate_unique_file_name(extension="{0}.g.vcf.gz".format(randomer))
+            self.add_output("gvcf_gz", gvcf)
             # Declare GVCF index output filename
-            gvcf_idx = self.generate_unique_file_name(extension="{0}.g.vcf.idx".format(randomer))
+            gvcf_idx = self.generate_unique_file_name(extension="{0}.g.vcf.gz.tbi".format(randomer))
             self.add_output("gvcf_idx", gvcf_idx)
         else:
-            vcf = self.generate_unique_file_name(extension="{0}.vcf".format(randomer))
-            self.add_output("vcf", vcf)
+            vcf = self.generate_unique_file_name(extension="{0}.vcf.gz".format(randomer))
+            self.add_output("vcf_gz", vcf)
             # Declare VCF index output filename
-            vcf_idx = self.generate_unique_file_name(extension="{0}.vcf.idx".format(randomer))
+            vcf_idx = self.generate_unique_file_name(extension="{0}.vcf.gz.tbi".format(randomer))
             self.add_output("vcf_idx", vcf_idx)
 
     def define_command(self):
@@ -127,9 +127,9 @@ class HaplotypeCaller(_GATKBase):
 
         # Setting the output file based on the output mode
         if output_type == "gvcf":
-            opts.append("{0} {1}".format(output_file_flag, self.get_output("gvcf")))
+            opts.append("{0} {1}".format(output_file_flag, self.get_output("gvcf_gz")))
         else:
-            opts.append("{0} {1}".format(output_file_flag, self.get_output("vcf")))
+            opts.append("{0} {1}".format(output_file_flag, self.get_output("vcf_gz")))
 
         # Setting the output mode
         if output_type == "gvcf":
@@ -867,23 +867,26 @@ class PreprocessIntervals(_GATKBase):
 
     def define_input(self):
         self.define_base_args()
-        self.add_argument("bin_length", is_required=True, default_value=0)
+        self.add_argument("interval_list", is_required=True, default_value=0)
+        self.add_argument("bin_length", is_required=False, default_value=0)
+        self.add_argument("padding", is_required=False, default_value=250)
         self.add_argument("nr_cpus", is_required=True, default_value=1)
         self.add_argument("mem", is_required=True, default_value=2)
 
     def define_output(self):
         # Declare interval list output filename
-        interval_list = self.generate_unique_file_name(extension=".interval.list")
+        interval_list = self.generate_unique_file_name(extension=".preprocessed.interval.list")
         self.add_output("interval_list", interval_list)
 
     def define_command(self):
         # Get input arguments
-        L = self.get_argument("location")
+        interval_list = self.get_argument("interval_list")
         bin_length = self.get_argument("bin_length")
+        padding = self.get_argument("padding")
         ref = self.get_argument("ref")
 
         # Get output arguments
-        interval_list = self.get_output("interval_list")
+        interval_list_out = self.get_output("interval_list")
 
         # Get the output file flag depends on GATK version
         output_file_flag = self.get_output_file_flag()
@@ -892,12 +895,12 @@ class PreprocessIntervals(_GATKBase):
         gatk_cmd = self.get_gatk_command()
 
         # Generate the command line for PreProcessIntervals
-        cmd = "{0} PreprocessIntervals -R {1} --bin-length {2} {3} {4}".format(gatk_cmd, ref, bin_length,
-                                                                               output_file_flag, interval_list)
+        cmd = "{0} PreprocessIntervals -R {1} --bin-length {2} --padding {3} {4} {5}".format(gatk_cmd, ref, bin_length, padding,
+                                                                                             output_file_flag, interval_list_out)
 
         # pass the location to include in the processing
-        if L is not None:
-            cmd = "{0} -L {1} --interval-merging-rule OVERLAPPING_ONLY".format(cmd, L)
+        if interval_list is not None:
+            cmd = "{0} -L {1} --interval-merging-rule OVERLAPPING_ONLY".format(cmd, interval_list)
 
         return "{0} !LOG3!".format(cmd)
 
@@ -1288,5 +1291,133 @@ class CreateSomaticPanelOfNormals(_GATKBase):
 
         # Generate the command line for CreateSomaticPanelOfNormals
         cmd = "{0} CreateSomaticPanelOfNormals -R {1} -V gendb://{2} -O {3}".format(gatk_cmd, ref, genomicsDB, pon)
+
+        return "{0} !LOG3!".format(cmd)
+
+
+class CollectGcBiasMetrics(_GATKBase):
+
+    def __init__(self, module_id, is_docker=False):
+        super(CollectGcBiasMetrics, self).__init__(module_id, is_docker)
+        self.output_keys = ["gc_bias_matrics", "gc_bias_plot", "summary_matrics"]
+
+    def define_input(self):
+        self.define_base_args()
+        self.add_argument("sample_name",    is_required=True)
+        self.add_argument("bam",            is_required=True)
+        self.add_argument("bam_idx",        is_required=True)
+        self.add_argument("ref",            is_required=True, is_resource=True)
+        self.add_argument("nr_cpus",        is_required=True, default_value=4)
+        self.add_argument("mem",            is_required=True, default_value=16)
+
+    def define_output(self):
+        # Get the sample name to use it in file name creation
+        sample_name = self.get_argument("sample_name")
+
+        # Declare unique file name for a single output file
+        gc_bias_matrics = self.generate_unique_file_name(extension="{0}.gc.bias.matrics.txt".format(sample_name))
+        gc_bias_plot    = self.generate_unique_file_name(extension="{0}.gc.bias.matrics.pdf".format(sample_name))
+        summary_matrics = self.generate_unique_file_name(extension="{0}.summary.matrics.txt".format(sample_name))
+
+        self.add_output("gc_bias_matrics", gc_bias_matrics)
+        self.add_output("gc_bias_plot", gc_bias_plot)
+        self.add_output("summary_matrics", summary_matrics)
+
+    def define_command(self):
+
+        # Get input arguments
+        bam = self.get_argument("bam")
+        ref = self.get_argument("ref")
+
+        # Get the output file names
+        gc_bias_matrics = self.get_output("gc_bias_matrics")
+        gc_bias_plot    = self.get_output("gc_bias_plot")
+        summary_matrics = self.get_output("summary_matrics")
+
+        # Get GATK base command
+        gatk_cmd = self.get_gatk_command()
+
+        # Get the output file flag depends on GATK version
+        output_file_flag = self.get_output_file_flag()
+
+        # Generate the command line for DenoiseReadCounts
+        cmd = "{0} CollectGcBiasMetrics".format(gatk_cmd)
+
+        # Add the rest of the arguments to command
+        cmd = "{0} -I {1} -R {2} {3} {4} -CHART {5} -S {6}".format(cmd, bam, ref, output_file_flag, gc_bias_matrics,
+                                                                   gc_bias_plot, summary_matrics)
+
+        return "{0} !LOG3!".format(cmd)
+
+
+class FilterSamReads(_GATKBase):
+
+    def __init__(self, module_id, is_docker=False):
+        super(FilterSamReads, self).__init__(module_id, is_docker)
+        self.output_keys = ["bam"]
+
+    def define_input(self):
+        self.define_base_args()
+        self.add_argument("sample_name",    is_required=True)
+        self.add_argument("bam",            is_required=True)
+        self.add_argument("read_names",     is_required=False)
+        self.add_argument("interval_list",  is_required=False)
+        self.add_argument("include_reads",  is_required=False, default_value=True)
+        self.add_argument("exclude_reads",  is_required=False, default_value=False)
+        self.add_argument("nr_cpus",        is_required=True, default_value=4)
+        self.add_argument("mem",            is_required=True, default_value=16)
+
+    def define_output(self):
+        # Get the sample name to use it in file name creation
+        sample_name = self.get_argument("sample_name")
+
+        # Declare unique file name for a single output file
+        bam     = self.generate_unique_file_name(extension="{0}.bam".format(sample_name))
+
+        self.add_output("bam", bam)
+
+    def define_command(self):
+
+        # Get input arguments
+        bam                 = self.get_argument("bam")
+        read_names_file     = self.get_argument("read_names")
+        interval_list       = self.get_argument("interval_list")
+        include_reads       = self.get_argument("include_reads")
+        exclude_reads       = self.get_argument("exclude_reads")
+
+        if exclude_reads:
+            include_reads = False
+
+        if read_names_file is None and interval_list is None:
+            raise Exception("Neither read names file nor interval list are provided. Please provide either of them.")
+
+        if read_names_file is not None and interval_list is not None:
+            raise Exception("Both read names file and interval list are provided. Please provide either of them.")
+
+        # Get the output file names
+        bam_out = self.get_output("bam")
+
+        # Get GATK base command
+        gatk_cmd = self.get_gatk_command()
+
+        # Get the output file flag depends on GATK version
+        output_file_flag = self.get_output_file_flag()
+
+        # Generate the command line for DenoiseReadCounts
+        cmd = "{0} FilterSamReads".format(gatk_cmd)
+
+        # Add the rest of the arguments to command
+        cmd = "{0} -I {1} {2} {3}".format(cmd, bam, output_file_flag, bam_out)
+
+        # Add read list file if read list is provided
+        if read_names_file:
+            if include_reads:
+                cmd = "{0} --READ_LIST_FILE {1} --FILTER includeReadList".format(cmd, read_names_file)
+            elif exclude_reads:
+                cmd = "{0} --READ_LIST_FILE {1} --FILTER excludeReadList".format(cmd, read_names_file)
+
+        # Add interval list file if interval list is provided
+        if interval_list:
+            cmd = "{0} --INTERVAL_LIST {1} --FILTER includePairedIntervals".format(cmd, interval_list)
 
         return "{0} !LOG3!".format(cmd)

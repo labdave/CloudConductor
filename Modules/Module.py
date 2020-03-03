@@ -4,11 +4,15 @@ import os
 
 from System.Datastore import GAPFile
 
+
 class Module(object, metaclass=abc.ABCMeta):
-    def __init__(self, module_id, is_docker=False, is_resumable=False):
+    def __init__(self, module_id, is_docker=False, is_resumable=False, module_args=None):
 
         # Initialize the module ID, defined in the config
         self.module_id = module_id
+
+        # Args from graph config
+        self.module_args = module_args
 
         # Flag specifying whether module is being run in a docker or locally
         # Can be used to set different dependencies based on runtime environment
