@@ -62,7 +62,7 @@ class AmazonInstance(CloudInstance):
                 else:
                     high_perf = type_network_perf == 'High'
                 # make sure instance type has more resources than our minimum requirement
-                if type_cpus >= self.nr_cpus and type_mem >= self.mem * 1024 and high_perf and 'm5a' in instance_type['InstanceType']:
+                if type_cpus >= self.nr_cpus and type_mem >= self.mem * 1024 and high_perf and 'm5a.' in instance_type['InstanceType']:
                     if not selected_instance_type:
                         selected_instance_type = instance_type
                         if self.is_preemptible:
