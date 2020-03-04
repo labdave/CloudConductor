@@ -122,15 +122,12 @@ class AmazonPlatform(CloudPlatform):
         # Transfer report file to bucket
         cmd = "aws s3 cp $( [ -d %s ] && echo --recursive ) %s %s" % \
                (report_path, report_path, dest_path)
-        logging.info("Publish report command: %s" % cmd)
         err_msg = "Could not transfer final report to the final output directory!"
         env_var = {
             "AWS_ACCESS_KEY_ID": self.identity,
             "AWS_SECRET_ACCESS_KEY": self.secret
         }
         Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var)
-        
-        logging.info("File published to bucket")
 
     def clean_up(self):
 

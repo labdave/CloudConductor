@@ -35,7 +35,10 @@ ENV PATH /root/google-cloud-sdk/bin:$PATH
 # Install gcloud beta components for pubsub
 RUN /bin/bash -c "gcloud components install beta --quiet"
 
-# Install gcloud
+# Install aws cli
+RUN python3.6 -m pip install awscli --upgrade
+
+# clone the repository
 RUN git clone https://github.com/labdave/CloudConductor.git
 
 ENV PATH /CloudConductor:$PATH
