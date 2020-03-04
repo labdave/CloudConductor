@@ -20,7 +20,7 @@ RUN apt-get update -y &&\
     apt-get install -y build-essential python2.7-dev python3.6-dev python3-pip && \
     apt-get install -y curl git netcat
 
-# Install gcloud
+# Clone the repository
 RUN git clone https://github.com/labdave/CloudConductor.git
 
 # upgrade pip, setuptools, and wheel Python modules
@@ -37,6 +37,9 @@ ENV PATH /root/google-cloud-sdk/bin:$PATH
 
 # Install gcloud beta components for pubsub
 RUN /bin/bash -c "gcloud components install beta --quiet"
+
+# Install aws cli
+RUN python3 -m pip install awscli --upgrade
 
 ENV PATH /CloudConductor:$PATH
 
