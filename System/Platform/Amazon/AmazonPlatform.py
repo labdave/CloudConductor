@@ -126,7 +126,8 @@ class AmazonPlatform(CloudPlatform):
             "AWS_ACCESS_KEY_ID": self.identity,
             "AWS_SECRET_ACCESS_KEY": self.secret
         }
-        Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var)
+        out = Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var)
+        logging.info("Output for final report copy: %s" % out)
         logging.info("File published to bucket")
 
     def clean_up(self):

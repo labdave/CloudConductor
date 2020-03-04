@@ -245,4 +245,3 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
     @staticmethod
     def rm(path):
         return "aws s3 rm --recursive %s" % path
-
