@@ -30,8 +30,7 @@ class DockerHelper(object):
         # Wait for cmd to finish and get output
         try:
             result = self.get_docker_image_info(image_name)
-            logging.info("Docker Image Info for %s:\n%s" % (job_name, result))
-            if 'id' in result:
+            if result and 'id' in result:
                 return True
 
             # this should handle everything that doesn't exist on docker hub ( way less efficient )
@@ -50,8 +49,7 @@ class DockerHelper(object):
         # Return file size in gigabytes
         try:
             result = self.get_docker_image_info(image_name)
-            logging.info("Docker Image Info for %s:\n%s" % (job_name, result))
-            if 'full_size' in result:
+            if result and 'full_size' in result:
                 # return the bytes converted to GB
                 return int(result['full_size'])/(1024**3.0)
 
@@ -92,7 +90,7 @@ class DockerHelper(object):
         # Throw error if anything happened
         if len(err) != 0:
             logging.error("Unable to determine if docker image exists! Received error:\n{0}".format(err))
-            raise RuntimeError("Unable to determine if docker image exists!")
+            return None
 
         # Return image info json
         return json.loads(out)
