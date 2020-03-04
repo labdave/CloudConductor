@@ -18,7 +18,7 @@ RUN apt-get update && \
 
 RUN apt-get update -y &&\
     apt-get install -y build-essential python2.7-dev python3.6-dev python3-pip && \
-    apt-get install -y curl git netcat
+    apt-get install -y curl git netcat jq
 
 # Clone the repository
 RUN git clone https://github.com/labdave/CloudConductor.git
