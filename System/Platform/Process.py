@@ -68,7 +68,7 @@ class Process(sp.Popen):
         return self.to_rerun
 
     @staticmethod
-    def run_local_cmd(cmd, err_msg=None, num_retries=5, env_var=None):
+    def run_local_cmd(cmd, err_msg=None, num_retries=5, env_var=None, print_logs=False):
 
         # Running and waiting for the command
         proc = sp.Popen(cmd, shell=True, stdout=sp.PIPE, stderr=sp.PIPE, env=env_var)
@@ -91,5 +91,9 @@ class Process(sp.Popen):
                 logging.error(f"{err_msg}.\nThe following error appeared:\n    {err}")
 
             raise RuntimeError(err_msg)
+
+        if print_logs:
+            logging.info(f"OUTPUT FOR CMD:\n\n {cmd} \n\n {out}")
+            logging.info(f"ERROR FOR CMD:\n\n {cmd} \n\n {err}")
 
         return out
