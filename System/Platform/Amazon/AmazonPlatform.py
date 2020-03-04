@@ -117,6 +117,7 @@ class AmazonPlatform(CloudPlatform):
 
         # Generate destination file path
         dest_path = os.path.join(self.final_output_dir, os.path.basename(report_path))
+        logging.info("Destinatinon path for report: %s" % dest_path)
 
         # Transfer report file to bucket
         cmd = "aws s3 cp -r '%s' '%s' 1>/dev/null 2>&1 " % (report_path, dest_path)
@@ -126,6 +127,7 @@ class AmazonPlatform(CloudPlatform):
             "AWS_SECRET_ACCESS_KEY": self.secret
         }
         Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var)
+        logging.info("File published to bucket")
 
     def clean_up(self):
 
