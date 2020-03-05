@@ -93,7 +93,7 @@ class Process(sp.Popen):
             raise RuntimeError(err_msg)
 
         if print_logs:
-            logging.info(f"OUTPUT FOR CMD:\n\n {cmd} \n\n {out}")
-            logging.info(f"ERROR FOR CMD:\n\n {cmd} \n\n {err}")
+            logging.info(f"OUTPUT FOR CMD:\n {cmd} \n {out}")
+            logging.info(f"ERROR FOR CMD:\n {cmd} \n {err}")
 
         return out
