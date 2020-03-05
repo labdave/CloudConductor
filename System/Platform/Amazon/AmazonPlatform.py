@@ -28,15 +28,6 @@ class AmazonPlatform(CloudPlatform):
         self.ssh_key_pair = None
         self.security_group = self.extra.get("security_group", None)
 
-        # Transfer report file to bucket
-        cmd = "whoami && find / -name aws && which aws && aws --version"
-        err_msg = "Could not transfer final report to the final output directory!"
-        env_var = {
-            "AWS_ACCESS_KEY_ID": self.identity,
-            "AWS_SECRET_ACCESS_KEY": self.secret
-        }
-        Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var, print_logs=True)
-
     def parse_identity_file_csv(self):
 
         # Parse service account file
