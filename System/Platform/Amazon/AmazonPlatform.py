@@ -127,7 +127,7 @@ class AmazonPlatform(CloudPlatform):
             "AWS_ACCESS_KEY_ID": self.identity,
             "AWS_SECRET_ACCESS_KEY": self.secret
         }
-        Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var, print_logs=True)
+        Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var)
 
     def clean_up(self):
 
