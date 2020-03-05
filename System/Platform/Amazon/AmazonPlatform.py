@@ -29,7 +29,7 @@ class AmazonPlatform(CloudPlatform):
         self.security_group = self.extra.get("security_group", None)
 
         # Transfer report file to bucket
-        cmd = "whoami && find / -name aws"
+        cmd = "whoami && find / -name aws && which aws && aws --version"
         err_msg = "Could not transfer final report to the final output directory!"
         env_var = {
             "AWS_ACCESS_KEY_ID": self.identity,
