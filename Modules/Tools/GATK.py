@@ -1420,3 +1420,51 @@ class FilterSamReads(_GATKBase):
             cmd = "{0} --INTERVAL_LIST {1} --FILTER includePairedIntervals".format(cmd, interval_list)
 
         return "{0} !LOG3!".format(cmd)
+
+
+class CollectOxoGMetrics(_GATKBase):
+
+    def __init__(self, module_id, is_docker=False):
+        super(CollectOxoGMetrics, self).__init__(module_id, is_docker)
+        self.output_keys = ["oxog_bias_matrics"]
+
+    def define_input(self):
+        self.define_base_args()
+        self.add_argument("sample_name",    is_required=True)
+        self.add_argument("bam",            is_required=True)
+        self.add_argument("bam_idx",        is_required=True)
+        self.add_argument("ref",            is_required=True, is_resource=True)
+        self.add_argument("nr_cpus",        is_required=True, default_value=4)
+        self.add_argument("mem",            is_required=True, default_value=16)
+
+    def define_output(self):
+        # Get the sample name to use it in file name creation
+        sample_name = self.get_argument("sample_name")
+
+        # Declare unique file name for a single output file
+        oxog_bias_matrics = self.generate_unique_file_name(extension="{0}.oxog.bias.matrics.txt".format(sample_name))
+
+        self.add_output("oxog_bias_matrics", oxog_bias_matrics)
+
+    def define_command(self):
+
+        # Get input arguments
+        bam = self.get_argument("bam")
+        ref = self.get_argument("ref")
+
+        # Get the output file names
+        oxog_bias_matrics = self.get_output("oxog_bias_matrics")
+
+        # Get GATK base command
+        gatk_cmd = self.get_gatk_command()
+
+        # Get the output file flag depends on GATK version
+        output_file_flag = self.get_output_file_flag()
+
+        # Generate the command line for CollectOxoGMetrics
+        cmd = "{0} CollectOxoGMetrics".format(gatk_cmd)
+
+        # Add the rest of the arguments to command
+        cmd = "{0} -I {1} -R {2} {3} {4}".format(cmd, bam, ref, output_file_flag, oxog_bias_matrics)
+
+        return "{0} !LOG3!".format(cmd)
