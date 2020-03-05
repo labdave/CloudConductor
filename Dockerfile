@@ -39,9 +39,7 @@ ENV PATH /root/google-cloud-sdk/bin:$PATH
 RUN /bin/bash -c "gcloud components install beta --quiet"
 
 # Install aws cli
-RUN python3 -m pip install awscli --upgrade --user
-
-ENV PATH /root/.local/bin:$PATH
+RUN python3 -m pip install awscli --upgrade
 
 ENV PATH /CloudConductor:$PATH
 
