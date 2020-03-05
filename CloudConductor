@@ -263,6 +263,8 @@ def main():
         logging.info("Publishing report.")
         pipeline.publish_report(err=err, err_msg=err_msg, git_version=git_version)
 
+        sys.exit()
+
 
 if __name__ == "__main__":
     main()

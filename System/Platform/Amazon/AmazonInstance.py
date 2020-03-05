@@ -5,6 +5,7 @@ import boto3
 import json
 import statistics
 import time
+from datetime import datetime, timedelta
 
 from pkg_resources import resource_filename
 
@@ -45,47 +46,45 @@ class AmazonInstance(CloudInstance):
                             {'Name': 'vcpu-info.default-vcpus', 'Values': [str(self.nr_cpus)]},
                             {'Name': 'current-generation', 'Values': ['true']}
                         ]}
-        selected_instance_type = {}
+        selected_instance_type = None
+        instance_types = []
+        # get all instance types
         while True:
             describe_result = ec2.describe_instance_types(**describe_args)
             for instance_type in describe_result['InstanceTypes']:
-                # get number of cpus in instance type
-                type_cpus = instance_type['VCpuInfo']['DefaultVCpus']
-                # get amount of mem in instance type in MiB
-                type_mem = instance_type['MemoryInfo']['SizeInMiB']
-                # get network performance
-                type_network_perf = instance_type['NetworkInfo']['NetworkPerformance']
-                perf_number = ''.join([s for s in type_network_perf.split() if s.isdigit()])
-                high_perf = False
-                if perf_number:
-                    high_perf = int(perf_number) >= 10
-                else:
-                    high_perf = type_network_perf == 'High'
-                # make sure instance type has more resources than our minimum requirement
-                if type_cpus >= self.nr_cpus and type_mem >= self.mem * 1024:
-                    if not selected_instance_type:
-                        selected_instance_type = instance_type
-                        if self.is_preemptible:
-                            selected_instance_type['price'] = self.get_spot_price(self.zone, selected_instance_type['InstanceType'])
-                        else:
-                            selected_instance_type['price'] = self.get_price(region_name, selected_instance_type['InstanceType'])
-                    else:
-                        # select the cheaper of the two instance types
-                        if self.is_preemptible:
-                            type_price = self.get_spot_price(self.zone, instance_type['InstanceType'])
-                        else:
-                            type_price = self.get_price(region_name, instance_type['InstanceType'])
-                        if type_price < selected_instance_type['price']:
-                            selected_instance_type = instance_type
-                            selected_instance_type['price'] = type_price
+                instance_types.append(instance_type)
             if 'NextToken' not in describe_result:
                 break
             describe_args['NextToken'] = describe_result['NextToken']
-        if selected_instance_type:
-            selected_instance_type['storage_price'] = self.get_ebs_price(region_name)
-            return selected_instance_type
-        else:
-            return None
+
+        # get pricing for instance types
+        self.map_instance_type_pricing(region_name, self.zone, instance_types)
+
+        for instance_type in instance_types:
+            # get number of cpus in instance type
+            type_cpus = instance_type['VCpuInfo']['DefaultVCpus']
+            # get amount of mem in instance type in MiB
+            type_mem = instance_type['MemoryInfo']['SizeInMiB']
+            # get network performance
+            type_network_perf = instance_type['NetworkInfo']['NetworkPerformance']
+            perf_number = ''.join([s for s in type_network_perf.split() if s.isdigit()])
+            high_perf = False
+            if perf_number:
+                high_perf = int(perf_number) >= 10
+            else:
+                high_perf = type_network_perf == 'High'
+            # make sure instance type has more resources than our minimum requirement
+            if type_cpus >= self.nr_cpus and type_mem >= self.mem * 1024:
+                if not selected_instance_type:
+                    selected_instance_type = instance_type
+                else:
+                    # select the cheaper of the two instance types
+                    if self.is_preemptible and instance_type['spotPrice'] < selected_instance_type['spotPrice']:
+                        selected_instance_type = instance_type
+                    elif instance_type['price'] < selected_instance_type['price']:
+                        selected_instance_type = instance_type
+
+        return selected_instance_type
 
     def create_instance(self):
 
@@ -295,13 +294,16 @@ class AmazonInstance(CloudInstance):
         return status_map[self.node.extra["status"]]
 
     def get_compute_price(self):
-        if self.instance_type and self.instance_type["price"]:
-            return self.instance_type["price"]
+        if self.instance_type:
+            if self.is_preemptible and self.instance_type["spotPrice"]:
+                return self.instance_type["spotPrice"]
+            elif self.instance_type["price"]:
+                return self.instance_type["price"]
         return 0
 
     def get_storage_price(self):
-        if self.instance_type and self.instance_type["storage_price"]:
-            return self.instance_type["storage_price"]
+        if self.instance_type and self.instance_type["storagePrice"]:
+            return self.instance_type["storagePrice"]
         return 0
 
     def __get_region_name(self):
@@ -314,22 +316,64 @@ class AmazonInstance(CloudInstance):
         except IOError:
             return default_region
 
-    def get_price(self, region, instance_type):
+    def map_instance_type_pricing(self, region, zone, instance_types):
+        # construct list of instance type names
+        inst_type_list = [x['InstanceType'] for x in instance_types]
         # Search product filter
-        FLT = '[{{"Field": "tenancy", "Value": "shared", "Type": "TERM_MATCH"}},'\
-            '{{"Field": "operatingSystem", "Value": "Linux", "Type": "TERM_MATCH"}},'\
-            '{{"Field": "preInstalledSw", "Value": "NA", "Type": "TERM_MATCH"}},'\
-            '{{"Field": "instanceType", "Value": "{t}", "Type": "TERM_MATCH"}},'\
-            '{{"Field": "location", "Value": "{r}", "Type": "TERM_MATCH"}},'\
-            '{{"Field": "capacitystatus", "Value": "Used", "Type": "TERM_MATCH"}}]'
+        pricing_args = {'ServiceCode': 'AmazonEC2',
+                        'Filters': [
+                            {"Field": "tenancy", "Value": "shared", "Type": "TERM_MATCH"},
+                            {"Field": "operatingSystem", "Value": "Linux", "Type": "TERM_MATCH"},
+                            {"Field": "preInstalledSw", "Value": "NA", "Type": "TERM_MATCH"},
+                            {"Field": "location", "Value": region, "Type": "TERM_MATCH"},
+                            {"Field": "capacitystatus", "Value": "Used", "Type": "TERM_MATCH"}
+                        ],
+                        'MaxResults': 100}
 
+        # get standard pricing for products
         client = boto3.client('pricing', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1')
-        f = FLT.format(r=region, t=instance_type)
-        data = client.get_products(ServiceCode='AmazonEC2', Filters=json.loads(f))
-        od = json.loads(data['PriceList'][0])['terms']['OnDemand']
-        id1 = list(od)[0]
-        id2 = list(od[id1]['priceDimensions'])[0]
-        return float(od[id1]['priceDimensions'][id2]['pricePerUnit']['USD'])
+        pricing_data = {}
+        while True:
+            pricing_result = client.get_products(**pricing_args)
+            # build pricing dictionary
+            for prod in pricing_result['PriceList']:
+                prod_data = json.loads(prod)
+                inst_type = prod_data['product']['attributes']['instanceType']
+                if inst_type in inst_type_list:
+                    od = prod_data['terms']['OnDemand']
+                    id1 = list(od)[0]
+                    id2 = list(od[id1]['priceDimensions'])[0]
+                    price = float(od[id1]['priceDimensions'][id2]['pricePerUnit']['USD'])
+                    pricing_data[inst_type] = price
+            if 'NextToken' not in pricing_result or pricing_result['NextToken'] == '':
+                break
+            pricing_args['NextToken'] = pricing_result['NextToken']
+
+        client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1')
+        spot_pricing_data = {}
+        start_time = datetime.today() - timedelta(days=2)
+        next_token = ''
+
+        while True:
+            spot_pricing_result = client.describe_spot_price_history(StartTime=start_time, InstanceTypes=inst_type_list, MaxResults=1000, ProductDescriptions=['Linux/UNIX (Amazon VPC)'], AvailabilityZone=zone, NextToken=next_token)
+            # build pricing dictionary
+            for price in spot_pricing_result['SpotPriceHistory']:
+                if price['InstanceType'] not in spot_pricing_data:
+                    spot_pricing_data[price['InstanceType']] = []
+
+                spot_pricing_data[price['InstanceType']].append(price['SpotPrice'])
+            if 'NextToken' not in spot_pricing_result or spot_pricing_result['NextToken'] == '':
+                break
+            next_token = spot_pricing_result['NextToken']
+
+        for key in spot_pricing_data:
+            spot_pricing_data[key] = statistics.mean([float(x) for x in spot_pricing_data[key]]) * 1.10
+        storage_price = self.get_ebs_price(region)
+
+        for inst_type in instance_types:
+            inst_type['price'] = pricing_data[inst_type['InstanceType']]
+            inst_type['spotPrice'] = spot_pricing_data[inst_type['InstanceType']]
+            inst_type['storagePrice'] = storage_price
 
     def get_ebs_price(self, region, storage_type="standard"):
         ebs_name_map = {
@@ -352,12 +396,6 @@ class AmazonInstance(CloudInstance):
         id2 = list(od[id1]['priceDimensions'])[0]
         return float(od[id1]['priceDimensions'][id2]['pricePerUnit']['USD'])
 
-    def get_spot_price(self, zone, instance_type):
-        client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1')
-        prices = client.describe_spot_price_history(InstanceTypes=[instance_type], MaxResults=100, ProductDescriptions=['Linux/UNIX (Amazon VPC)'], AvailabilityZone=zone)
-        # return the average of the most recent prices multiplied by 10%
-        return statistics.mean([float(x['SpotPrice']) for x in prices['SpotPriceHistory']]) * 1.10
-
     def cancel_spot_instance_request(self):
         client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1')
         describe_args = {'Filters': [
@@ -369,5 +407,5 @@ class AmazonInstance(CloudInstance):
         if spot_requests and spot_requests['SpotInstanceRequests']:
             request_id = spot_requests['SpotInstanceRequests'][0]['SpotInstanceRequestId']
             response = client.cancel_spot_instance_requests(SpotInstanceRequestIds=[request_id])
-            if response and response['CancelledSpotInstanceRequests']: 
+            if response and response['CancelledSpotInstanceRequests']:
                 return response['CancelledSpotInstanceRequests'][0]['SpotInstanceRequestId'] == request_id
