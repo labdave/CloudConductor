@@ -1,4 +1,5 @@
 import logging
+import os
 
 from Modules import Module
 from System.Platform import Platform
@@ -1466,5 +1467,73 @@ class CollectOxoGMetrics(_GATKBase):
 
         # Add the rest of the arguments to command
         cmd = "{0} -I {1} -R {2} {3} {4}".format(cmd, bam, ref, output_file_flag, oxog_bias_matrics)
+
+        return "{0} !LOG3!".format(cmd)
+
+class CollectSequencingArtifactMetrics(_GATKBase):
+
+    def __init__(self, module_id, is_docker=False):
+        super(CollectSequencingArtifactMetrics, self).__init__(module_id, is_docker)
+        self.output_keys = ["pre_adapter_detail_metrics","pre_adapter_summary_metrics","bait_bias_detail_metrics",
+                            "bait_bias_summary_metrics", "error_summary_metrics"]
+
+    def define_input(self):
+        self.define_base_args()
+        self.add_argument("sample_name",    is_required=True)
+        self.add_argument("bam",            is_required=True)
+        self.add_argument("bam_idx",        is_required=True)
+        self.add_argument("ref",            is_required=True, is_resource=True)
+        self.add_argument("nr_cpus",        is_required=True, default_value=4)
+        self.add_argument("mem",            is_required=True, default_value=16)
+
+    def define_output(self):
+        # Get the sample name to use it in file name creation
+        sample_name = self.get_argument("sample_name")
+
+        # Declare unique file name for a single output file
+        pre_adapter_detail_metrics = self.generate_unique_file_name(extension="{0}.pre_adapter_detail_metrics".format(
+            sample_name))
+        pre_adapter_summary_metrics = self.generate_unique_file_name(extension="{0}.pre_adapter_summary_metrics".format(
+            sample_name))
+        bait_bias_detail_metrics = self.generate_unique_file_name(extension="{0}.bait_bias_detail_metrics".format(
+            sample_name))
+        bait_bias_summary_metrics = self.generate_unique_file_name(extension="{0}.bait_bias_summary_metrics".format(
+            sample_name))
+        error_summary_metrics = self.generate_unique_file_name(extension="{0}.error_summary_metrics".format(
+            sample_name))
+
+        self.add_output("pre_adapter_detail_metrics", pre_adapter_detail_metrics)
+        self.add_output("pre_adapter_summary_metrics", pre_adapter_summary_metrics)
+        self.add_output("bait_bias_detail_metrics", bait_bias_detail_metrics)
+        self.add_output("bait_bias_summary_metrics", bait_bias_summary_metrics)
+        self.add_output("error_summary_metrics", error_summary_metrics)
+
+    def define_command(self):
+
+        # Get input arguments
+        bam = self.get_argument("bam")
+        ref = self.get_argument("ref")
+
+        # Get the output file names
+        artifact_bias_matrics = self.get_output("pre_adapter_detail_metrics")
+        artifact_bias_matrics = os.path.basename(artifact_bias_matrics.get_path())
+        artifact_bias_matrics = os.path.splitext(artifact_bias_matrics)[0]
+
+        output_dir = self.get_output_dir()
+
+        artifact_bias_matrics = "{0}/{1}".format(output_dir, artifact_bias_matrics)
+
+
+        # Get GATK base command
+        gatk_cmd = self.get_gatk_command()
+
+        # Get the output file flag depends on GATK version
+        output_file_flag = self.get_output_file_flag()
+
+        # Generate the command line for CollectOxoGMetrics
+        cmd = "{0} CollectSequencingArtifactMetrics".format(gatk_cmd)
+
+        # Add the rest of the arguments to command
+        cmd = "{0} -I {1} -R {2} {3} {4}".format(cmd, bam, ref, output_file_flag, artifact_bias_matrics)
 
         return "{0} !LOG3!".format(cmd)
