@@ -5,12 +5,17 @@ import boto3
 import json
 import statistics
 import time
+import inspect
+
+from requests.exceptions import BaseHTTPError, HTTPError
+from botocore.config import Config
 from datetime import datetime, timedelta
 
 from pkg_resources import resource_filename
 
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
+from libcloud.common.exceptions import RateLimitReachedError
 
 from System.Platform import CloudInstance
 from System.Platform import Process
@@ -38,9 +43,16 @@ class AmazonInstance(CloudInstance):
         # Initialize the node variable
         self.node = None
 
+        self.boto_config = Config(
+            retries = dict(
+                max_attempts = 10,
+                mode = 'adaptive'
+            )
+        )
+
     def get_instance_size(self):
         '''Select optimal instance type for provided region, number of cpus, and memory allocation'''
-        ec2 = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name=self.region)
+        ec2 = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name=self.region, config=self.boto_config)
         region_name = self.__get_region_name()
         describe_args = {'Filters': [
                             {'Name': 'vcpu-info.default-vcpus', 'Values': [str(self.nr_cpus)]},
@@ -58,7 +70,7 @@ class AmazonInstance(CloudInstance):
             describe_args['NextToken'] = describe_result['NextToken']
 
         # get pricing for instance types
-        self.map_instance_type_pricing(region_name, self.zone, instance_types)
+        self.__map_instance_type_pricing(region_name, self.zone, instance_types)
 
         for instance_type in instance_types:
             # get number of cpus in instance type
@@ -110,7 +122,7 @@ class AmazonInstance(CloudInstance):
             self.is_preemptible = False
 
         if self.is_preemptible:
-            node = self.driver.create_node(name=self.name,
+            node = self.__aws_request(self.driver.create_node, name=self.name,
                                             image=self.disk_image,
                                             size=node_size,
                                             ex_keyname=self.platform.get_ssh_key_pair(),
@@ -121,7 +133,7 @@ class AmazonInstance(CloudInstance):
                                             interruption_behavior='stop',
                                             ex_terminate_on_shutdown=False)
         else:
-            node = self.driver.create_node(name=self.name,
+            node = self.__aws_request(self.driver.create_node, name=self.name,
                                             image=self.disk_image,
                                             size=node_size,
                                             ex_keyname=self.platform.get_ssh_key_pair(),
@@ -130,7 +142,7 @@ class AmazonInstance(CloudInstance):
                                             ex_terminate_on_shutdown=False)
 
         # Get list of running nodes
-        running_nodes = self.driver.wait_until_running([node], wait_period=15)
+        running_nodes = self.__aws_request(self.driver.wait_until_running, [node], wait_period=20)
 
         # Obtain our node
         self.node, external_IP = [(n, ext_IP[0]) for n, ext_IP in running_nodes if n.uuid == node.uuid][0]
@@ -159,10 +171,10 @@ class AmazonInstance(CloudInstance):
 
     def destroy_instance(self):
         if self.is_preemptible:
-            self.cancel_spot_instance_request()
-            self.driver.destroy_node(self.node)
+            self.__cancel_spot_instance_request()
+            self.__aws_request(self.driver.destroy_node, self.node)
         else:
-            self.driver.destroy_node(self.node)
+            self.__aws_request(self.driver.destroy_node, self.node)
 
     def start_instance(self):
         instance_started = False
@@ -170,7 +182,7 @@ class AmazonInstance(CloudInstance):
         counter = 10
         while not instance_started and counter > 0:
             try:
-                instance_started = self.driver.ex_start_node(self.node)
+                instance_started = self.__aws_request(self.driver.ex_start_node, self.node)
             except:
                 # we don't care if it fails, we'll retry the attempt
                 pass
@@ -205,7 +217,7 @@ class AmazonInstance(CloudInstance):
         return self.node.public_ips[0]
 
     def stop_instance(self):
-        self.driver.stop_node(self.node)
+        self.__aws_request(self.driver.stop_node, self.node)
 
     def run(self, job_name, cmd, num_retries=None, docker_image=None):
         # Checking if logging is required
@@ -279,7 +291,7 @@ class AmazonInstance(CloudInstance):
         if self.node is None:
             return CloudInstance.OFF
 
-        self.node = self.driver.list_nodes(ex_node_ids=[self.node.id])[0]
+        self.node = self.__aws_request(self.driver.list_nodes, ex_node_ids=[self.node.id])[0]
 
         # Define mapping between the cloud status and the current class status
         status_map = {
@@ -306,6 +318,25 @@ class AmazonInstance(CloudInstance):
             return self.instance_type["storagePrice"]
         return 0
 
+    def __aws_request(self, method, *args, **kwargs):
+        """ Function for handling AWS requests and rate limit issues """
+        # retry command up to 20 times
+        for i in range(20):
+            try:
+                return method(*args, **kwargs)
+            except (BaseHTTPError, RateLimitReachedError) as e:
+                if 'RequestLimitExceeded: Request limit exceeded.' in e.message or '429 Rate limit exceeded' in e.message:
+                    logging.warning(f"Rate Limit Exceeded during request {method.__name__}")
+                    time.sleep(5)
+                    continue
+                else:
+                    logging.error(type(e).__name__)
+                    logging.error(f"Error when making AWS request {method.__name__}\nError message received {e.message}")
+            except Exception as e:
+                logging.error(type(e).__name__)
+                logging.error(f"Error when making AWS request {method.__name__}\nError message received {e}")
+        raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
+
     def __get_region_name(self):
         default_region = 'EU (Ireland)'
         endpoint_file = resource_filename('botocore', 'data/endpoints.json')
@@ -316,7 +347,7 @@ class AmazonInstance(CloudInstance):
         except IOError:
             return default_region
 
-    def map_instance_type_pricing(self, region, zone, instance_types):
+    def __map_instance_type_pricing(self, region, zone, instance_types):
         # construct list of instance type names
         inst_type_list = [x['InstanceType'] for x in instance_types]
         # Search product filter
@@ -349,7 +380,7 @@ class AmazonInstance(CloudInstance):
                 break
             pricing_args['NextToken'] = pricing_result['NextToken']
 
-        client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1')
+        client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1', config=self.boto_config)
         spot_pricing_data = {}
         start_time = datetime.today() - timedelta(days=2)
         next_token = ''
@@ -368,7 +399,7 @@ class AmazonInstance(CloudInstance):
 
         for key in spot_pricing_data:
             spot_pricing_data[key] = statistics.mean([float(x) for x in spot_pricing_data[key]]) * 1.10
-        storage_price = self.get_ebs_price(region)
+        storage_price = self.__get_ebs_price(region)
 
         for inst_type in instance_types:
             if inst_type['InstanceType'] in pricing_data:
@@ -377,7 +408,7 @@ class AmazonInstance(CloudInstance):
                 inst_type['spotPrice'] = spot_pricing_data[inst_type['InstanceType']]
             inst_type['storagePrice'] = storage_price
 
-    def get_ebs_price(self, region, storage_type="standard"):
+    def __get_ebs_price(self, region, storage_type="standard"):
         ebs_name_map = {
             'standard': 'Magnetic',
             'gp2': 'General Purpose',
@@ -390,7 +421,7 @@ class AmazonInstance(CloudInstance):
         FLT = '[{{"Field": "volumeType", "Value": "{t}", "Type": "TERM_MATCH"}},'\
             '{{"Field": "location", "Value": "{r}", "Type": "TERM_MATCH"}}]'
 
-        client = boto3.client('pricing', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1')
+        client = boto3.client('pricing', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1', config=self.boto_config)
         f = FLT.format(r=region, t=ebs_name_map[storage_type])
         data = client.get_products(ServiceCode='AmazonEC2', Filters=json.loads(f))
         od = json.loads(data['PriceList'][0])['terms']['OnDemand']
@@ -398,8 +429,8 @@ class AmazonInstance(CloudInstance):
         id2 = list(od[id1]['priceDimensions'])[0]
         return float(od[id1]['priceDimensions'][id2]['pricePerUnit']['USD'])
 
-    def cancel_spot_instance_request(self):
-        client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1')
+    def __cancel_spot_instance_request(self):
+        client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1', config=self.boto_config)
         describe_args = {'Filters': [
                             {'Name': 'instance-id', 'Values': [self.node.id]}
                         ],

@@ -2,14 +2,18 @@ import os
 import logging
 import random
 import csv
+import inspect
+import time
 
 from threading import Thread
 
 from System.Platform import Process, CloudPlatform
 from System.Platform.Amazon import AmazonInstance, AmazonSpotInstance
+from requests.exceptions import BaseHTTPError
 
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
+from libcloud.common.exceptions import RateLimitReachedError
 
 
 class AmazonPlatform(CloudPlatform):
@@ -93,7 +97,7 @@ class AmazonPlatform(CloudPlatform):
             raise IOError("Platform config is missing the 'security_group' field!")
         else:
             try:
-                self.driver.ex_get_security_groups(group_names=[self.security_group])
+                self.__aws_request(self.driver.ex_get_security_groups, group_names=[self.security_group])
             except:
                 logging.error(f"Security group '{self.security_group}' could not be retrieved!")
                 raise
@@ -148,4 +152,24 @@ class AmazonPlatform(CloudPlatform):
             _thread.join()
 
         # Destroy SSH key pair
-        self.driver.delete_key_pair(self.driver.get_key_pair(self.ssh_key_pair))
+        key_pair = self.__aws_request(self.driver.get_key_pair, self.ssh_key_pair)
+        self.__aws_request(self.driver.delete_key_pair, key_pair)
+
+    def __aws_request(self, method, *args, **kwargs):
+        """ Function for handling AWS requests and rate limit issues """
+        # retry command up to 20 times
+        for i in range(20):
+            try:
+                return method(*args, **kwargs)
+            except (BaseHTTPError, RateLimitReachedError) as e:
+                if 'RequestLimitExceeded: Request limit exceeded.' in e.message or '429 Rate limit exceeded' in e.message:
+                    logging.warning(f"Rate Limit Exceeded during request {method.__name__}")
+                    time.sleep(5)
+                    continue
+                else:
+                    logging.error(type(e).__name__)
+                    logging.error(f"Error when making AWS request {method.__name__}\nError message received {e.message}")
+            except Exception as e:
+                logging.error(type(e).__name__)
+                logging.error(f"Error when making AWS request {method.__name__}\nError message received {e}")
+        raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
