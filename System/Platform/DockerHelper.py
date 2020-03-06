@@ -34,7 +34,7 @@ class DockerHelper(object):
                 return True
 
             # this should handle everything that doesn't exist on docker hub ( way less efficient )
-            self.pull(image_name, job_name, log=False, quiet_failure=False, **kwargs)
+            self.pull(image_name, job_name, log=False, **kwargs)
             self.proc.wait_process(job_name)
             return True
         except RuntimeError as e:
