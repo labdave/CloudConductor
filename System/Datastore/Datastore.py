@@ -286,10 +286,11 @@ class Datastore(object):
                 # If nr_cpus is a str of input argument
                 # Set nr_cpus to be the number of elements in the inputs
                 inputs = task_module.get_argument(nr_cpus)
+                # Set a minimum of 2 CPUs in this case to handle the possible overhead.
                 if isinstance(inputs, list):
-                    nr_cpus = len(inputs)
+                    nr_cpus = max(len(inputs), 2)
                 else:
-                    nr_cpus = 1
+                    nr_cpus = 2
             else:
                 raise IOError("Number of CPUs defined incorrectly: %s" % nr_cpus)
 
