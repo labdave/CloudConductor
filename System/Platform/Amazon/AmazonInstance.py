@@ -130,7 +130,7 @@ class AmazonInstance(CloudInstance):
                                             ex_terminate_on_shutdown=False)
 
         # Get list of running nodes
-        running_nodes = self.driver.wait_until_running([node], wait_period=10)
+        running_nodes = self.driver.wait_until_running([node], wait_period=15)
 
         # Obtain our node
         self.node, external_IP = [(n, ext_IP[0]) for n, ext_IP in running_nodes if n.uuid == node.uuid][0]
