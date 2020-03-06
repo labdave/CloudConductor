@@ -371,8 +371,10 @@ class AmazonInstance(CloudInstance):
         storage_price = self.get_ebs_price(region)
 
         for inst_type in instance_types:
-            inst_type['price'] = pricing_data[inst_type['InstanceType']]
-            inst_type['spotPrice'] = spot_pricing_data[inst_type['InstanceType']]
+            if inst_type['InstanceType'] in pricing_data:
+                inst_type['price'] = pricing_data[inst_type['InstanceType']]
+            if inst_type['InstanceType'] in spot_pricing_data:
+                inst_type['spotPrice'] = spot_pricing_data[inst_type['InstanceType']]
             inst_type['storagePrice'] = storage_price
 
     def get_ebs_price(self, region, storage_type="standard"):
