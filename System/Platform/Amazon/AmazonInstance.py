@@ -136,7 +136,7 @@ class AmazonInstance(CloudInstance):
                                                 ex_terminate_on_shutdown=False)
             except BaseHTTPError as e:
                 logging.warning("Handling issues with spot instance count limit")
-                if 'MaxSpotInstanceCountExceeded' in e:
+                if 'MaxSpotInstanceCountExceeded' in str(e):
                     self.is_preemptible = False
                     node = self.__aws_request(self.driver.create_node, name=self.name,
                                                 image=self.disk_image,
@@ -341,11 +341,11 @@ class AmazonInstance(CloudInstance):
             except BaseHTTPError as e:
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise e
+                raise
             except RateLimitReachedError as e:
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise e
+                raise
             except ClientError as e:
                 if e.response['Error']['Code'] == 'ThrottlingException':
                     logging.warning("Throttling Exception Occured for Describe Instance Type.")
@@ -353,18 +353,17 @@ class AmazonInstance(CloudInstance):
             except Exception as e:
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise e
+                raise
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
     def __handle_rate_limit_error(self, e, method):
         logging.error(type(e).__name__)
         logging.error(f"Print out of error: {e}")
         logging.error(f"Error when making AWS request {method.__name__}\nError message received {e}")
-        if hasattr(e, 'message'):
-            if 'RequestLimitExceeded: Request limit exceeded.' in e.message or '429 Rate limit exceeded' in e.message:
-                logging.warning(f"Rate Limit Exceeded during request {method.__name__}")
-                time.sleep(5)
-                return True
+        if 'message' in e and ('RequestLimitExceeded: Request limit exceeded.' in e.message or '429 Rate limit exceeded' in e.message):
+            logging.warning(f"Rate Limit Exceeded during request {method.__name__}")
+            time.sleep(5)
+            return True
         return False
 
     def __get_region_name(self):
