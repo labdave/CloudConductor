@@ -123,16 +123,29 @@ class AmazonInstance(CloudInstance):
             self.is_preemptible = False
 
         if self.is_preemptible:
-            node = self.__aws_request(self.driver.create_node, name=self.name,
-                                            image=self.disk_image,
-                                            size=node_size,
-                                            ex_keyname=self.platform.get_ssh_key_pair(),
-                                            ex_security_groups=[self.platform.get_security_group()],
-                                            ex_blockdevicemappings=device_mappings,
-                                            ex_spot_market=True,
-                                            ex_spot_price=self.instance_type['price'],
-                                            interruption_behavior='stop',
-                                            ex_terminate_on_shutdown=False)
+            try:
+                node = self.__aws_request(self.driver.create_node, name=self.name,
+                                                image=self.disk_image,
+                                                size=node_size,
+                                                ex_keyname=self.platform.get_ssh_key_pair(),
+                                                ex_security_groups=[self.platform.get_security_group()],
+                                                ex_blockdevicemappings=device_mappings,
+                                                ex_spot_market=True,
+                                                ex_spot_price=self.instance_type['price'],
+                                                interruption_behavior='stop',
+                                                ex_terminate_on_shutdown=False)
+            except BaseHTTPError as e:
+                logging.warning("Handling issues with spot instance count limit")
+                if 'MaxSpotInstanceCountExceeded' in e:
+                    self.is_preemptible = False
+                    node = self.__aws_request(self.driver.create_node, name=self.name,
+                                                image=self.disk_image,
+                                                size=node_size,
+                                                ex_keyname=self.platform.get_ssh_key_pair(),
+                                                ex_security_groups=[self.platform.get_security_group()],
+                                                ex_blockdevicemappings=device_mappings,
+                                                ex_terminate_on_shutdown=False)
+
         else:
             node = self.__aws_request(self.driver.create_node, name=self.name,
                                             image=self.disk_image,
@@ -328,11 +341,11 @@ class AmazonInstance(CloudInstance):
             except BaseHTTPError as e:
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise RuntimeError("Error with AWS request")
+                raise
             except RateLimitReachedError as e:
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise RuntimeError("Error with AWS request")
+                raise
             except ClientError as e:
                 if e.response['Error']['Code'] == 'ThrottlingException':
                     logging.warning("Throttling Exception Occured for Describe Instance Type.")
@@ -340,7 +353,7 @@ class AmazonInstance(CloudInstance):
             except Exception as e:
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise RuntimeError("Error with AWS request")
+                raise
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
     def __handle_rate_limit_error(self, e, method):
