@@ -51,6 +51,46 @@ class AmazonInstance(CloudInstance):
             )
         )
 
+        device_mappings = [
+            {
+                'DeviceName': '/dev/sda1',
+                'Ebs': {
+                    'VolumeSize': self.disk_space,
+                    'VolumeType': 'standard'
+                }
+            }
+        ]
+
+        self.instance_type = self.get_instance_size()
+        size_name = self.instance_type['InstanceType']
+        logging.info(f"SELECTED AWS INSTANCE TYPE: {self.instance_type}")
+        node_size = [size for size in self.driver.list_sizes() if size.id == size_name][0]
+
+
+        for i in range(50):
+            try:
+                node = self.__aws_request(self.driver.create_node, name=self.name,
+                                                image=self.disk_image,
+                                                size=node_size,
+                                                ex_keyname=self.platform.get_ssh_key_pair(),
+                                                ex_security_groups=[self.platform.get_security_group()],
+                                                ex_blockdevicemappings=device_mappings,
+                                                ex_spot_market=True,
+                                                ex_spot_price=.5,
+                                                interruption_behavior='stop',
+                                                ex_terminate_on_shutdown=False)
+            except Exception as e:
+                logging.warning("Handling issues with spot instance count limit")
+                if 'MaxSpotInstanceCountExceeded' in str(e):
+                    self.is_preemptible = False
+                    node = self.__aws_request(self.driver.create_node, name=self.name,
+                                                image=self.disk_image,
+                                                size=node_size,
+                                                ex_keyname=self.platform.get_ssh_key_pair(),
+                                                ex_security_groups=[self.platform.get_security_group()],
+                                                ex_blockdevicemappings=device_mappings,
+                                                ex_terminate_on_shutdown=False)
+
     def get_instance_size(self):
         '''Select optimal instance type for provided region, number of cpus, and memory allocation'''
         ec2 = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name=self.region, config=self.boto_config)
