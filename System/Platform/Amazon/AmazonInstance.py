@@ -9,6 +9,7 @@ import inspect
 
 from requests.exceptions import BaseHTTPError, HTTPError
 from botocore.config import Config
+from botocore.exceptions import ClientError
 from datetime import datetime, timedelta
 
 from pkg_resources import resource_filename
@@ -62,7 +63,7 @@ class AmazonInstance(CloudInstance):
         instance_types = []
         # get all instance types
         while True:
-            describe_result = ec2.describe_instance_types(**describe_args)
+            describe_result = self.__aws_request(ec2.describe_instance_types, **describe_args)
             for instance_type in describe_result['InstanceTypes']:
                 instance_types.append(instance_type)
             if 'NextToken' not in describe_result:
@@ -325,17 +326,18 @@ class AmazonInstance(CloudInstance):
             try:
                 return method(*args, **kwargs)
             except BaseHTTPError as e:
-                logging.info("BaseHTTPHandler")
                 if self.__handle_rate_limit_error(e, method):
                     continue
                 raise RuntimeError("Error with AWS request")
             except RateLimitReachedError as e:
-                logging.info("RateLimitReachedErrorHandler")
                 if self.__handle_rate_limit_error(e, method):
                     continue
                 raise RuntimeError("Error with AWS request")
+            except ClientError as e:
+                if e.response['Error']['Code'] == 'ThrottlingException':
+                    logging.warning("Throttling Exception Occured for Describe Instance Type.")
+                    time.sleep(5)
             except Exception as e:
-                logging.info("ExceptionHandler")
                 if self.__handle_rate_limit_error(e, method):
                     continue
                 raise RuntimeError("Error with AWS request")
@@ -379,7 +381,7 @@ class AmazonInstance(CloudInstance):
         client = boto3.client('pricing', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1')
         pricing_data = {}
         while True:
-            pricing_result = client.get_products(**pricing_args)
+            pricing_result = self.__aws_request(client.get_products, **pricing_args)
             # build pricing dictionary
             for prod in pricing_result['PriceList']:
                 prod_data = json.loads(prod)
@@ -400,7 +402,7 @@ class AmazonInstance(CloudInstance):
         next_token = ''
 
         while True:
-            spot_pricing_result = client.describe_spot_price_history(StartTime=start_time, InstanceTypes=inst_type_list, MaxResults=1000, ProductDescriptions=['Linux/UNIX (Amazon VPC)'], AvailabilityZone=zone, NextToken=next_token)
+            spot_pricing_result = self.__aws_request(client.describe_spot_price_history, StartTime=start_time, InstanceTypes=inst_type_list, MaxResults=1000, ProductDescriptions=['Linux/UNIX (Amazon VPC)'], AvailabilityZone=zone, NextToken=next_token)
             # build pricing dictionary
             for price in spot_pricing_result['SpotPriceHistory']:
                 if price['InstanceType'] not in spot_pricing_data:
@@ -437,7 +439,7 @@ class AmazonInstance(CloudInstance):
 
         client = boto3.client('pricing', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1', config=self.boto_config)
         f = FLT.format(r=region, t=ebs_name_map[storage_type])
-        data = client.get_products(ServiceCode='AmazonEC2', Filters=json.loads(f))
+        data = self.__aws_request(client.get_products, ServiceCode='AmazonEC2', Filters=json.loads(f))
         od = json.loads(data['PriceList'][0])['terms']['OnDemand']
         id1 = list(od)[0]
         id2 = list(od[id1]['priceDimensions'])[0]
@@ -449,7 +451,7 @@ class AmazonInstance(CloudInstance):
                             {'Name': 'instance-id', 'Values': [self.node.id]}
                         ],
                         'MaxResults': 5}
-        spot_requests = client.describe_spot_instance_requests(**describe_args)
+        spot_requests = self.__aws_request(client.describe_spot_instance_requests, **describe_args)
 
         if spot_requests and spot_requests['SpotInstanceRequests']:
             request_id = spot_requests['SpotInstanceRequests'][0]['SpotInstanceRequestId']
