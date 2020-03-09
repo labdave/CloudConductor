@@ -324,18 +324,32 @@ class AmazonInstance(CloudInstance):
         for i in range(20):
             try:
                 return method(*args, **kwargs)
-            except (BaseHTTPError, RateLimitReachedError) as e:
-                if 'RequestLimitExceeded: Request limit exceeded.' in e.message or '429 Rate limit exceeded' in e.message:
-                    logging.warning(f"Rate Limit Exceeded during request {method.__name__}")
-                    time.sleep(5)
+            except BaseHTTPError as e:
+                logging.info("BaseHTTPHandler")
+                if self.__handle_rate_limit_error(e, method):
                     continue
-                else:
-                    logging.error(type(e).__name__)
-                    logging.error(f"Error when making AWS request {method.__name__}\nError message received {e.message}")
+                raise RuntimeError("Error with AWS request")
+            except RateLimitReachedError as e:
+                logging.info("RateLimitReachedErrorHandler")
+                if self.__handle_rate_limit_error(e, method):
+                    continue
+                raise RuntimeError("Error with AWS request")
             except Exception as e:
-                logging.error(type(e).__name__)
-                logging.error(f"Error when making AWS request {method.__name__}\nError message received {e}")
+                logging.info("ExceptionHandler")
+                if self.__handle_rate_limit_error(e, method):
+                    continue
+                raise RuntimeError("Error with AWS request")
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
+
+    def __handle_rate_limit_error(self, e, method):
+        logging.error(type(e).__name__)
+        logging.error(f"Print out of error: {e}")
+        logging.error(f"Error when making AWS request {method.__name__}\nError message received {e}")
+        if 'message' in e and ('RequestLimitExceeded: Request limit exceeded.' in e.message or '429 Rate limit exceeded' in e.message):
+            logging.warning(f"Rate Limit Exceeded during request {method.__name__}")
+            time.sleep(5)
+            return True
+        return False
 
     def __get_region_name(self):
         default_region = 'EU (Ireland)'
