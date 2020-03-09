@@ -400,6 +400,7 @@ class AmazonInstance(CloudInstance):
         logging.error(type(e).__name__)
         logging.error(f"Print out of error: {e}")
         logging.error(f"Error when making AWS request {method.__name__}\nError message received {e}")
+        logging.error(self.__class__.__name__)
         if 'MaxSpotInstanceCountExceeded' in str(e):
             return False
         if 'message' in e and ('RequestLimitExceeded: Request limit exceeded.' in e['message'] or '429 Rate limit exceeded' in e['message']):

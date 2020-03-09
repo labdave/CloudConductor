@@ -182,7 +182,9 @@ class AmazonPlatform(CloudPlatform):
         logging.error(type(e).__name__)
         logging.error(f"Print out of error: {e}")
         logging.error(f"Error when making AWS request {method.__name__}\nError message received {e}")
-        if 'RequestLimitExceeded: Request limit exceeded.' in str(e) or '429 Rate limit exceeded' in str(e):
+        logging.error(self.__class__.__name__)
+        logging.error(f"string of error {str(e)}")
+        if 'message' in e and ('RequestLimitExceeded: Request limit exceeded.' in e.message or '429 Rate limit exceeded' in e.message):
             logging.warning(f"Rate Limit Exceeded during request {method.__name__}")
             time.sleep(5)
             return True
