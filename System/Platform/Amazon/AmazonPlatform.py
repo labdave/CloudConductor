@@ -165,17 +165,17 @@ class AmazonPlatform(CloudPlatform):
                 logging.info("BaseHTTPHandler")
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise RuntimeError("Error with AWS request")
+                raise e
             except RateLimitReachedError as e:
                 logging.info("RateLimitReachedErrorHandler")
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise RuntimeError("Error with AWS request")
+                raise e
             except Exception as e:
                 logging.info("ExceptionHandler")
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise RuntimeError("Error with AWS request")
+                raise e
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
     def __handle_rate_limit_error(self, e, method):

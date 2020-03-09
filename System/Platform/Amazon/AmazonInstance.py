@@ -341,11 +341,11 @@ class AmazonInstance(CloudInstance):
             except BaseHTTPError as e:
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise
+                raise e
             except RateLimitReachedError as e:
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise
+                raise e
             except ClientError as e:
                 if e.response['Error']['Code'] == 'ThrottlingException':
                     logging.warning("Throttling Exception Occured for Describe Instance Type.")
@@ -353,7 +353,7 @@ class AmazonInstance(CloudInstance):
             except Exception as e:
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise
+                raise e
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
     def __handle_rate_limit_error(self, e, method):
