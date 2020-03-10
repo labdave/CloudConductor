@@ -155,6 +155,9 @@ class AmazonInstance(CloudInstance):
                                             ex_blockdevicemappings=device_mappings,
                                             ex_terminate_on_shutdown=False)
 
+        if not node:
+            raise RuntimeError("There was an issue with creating the new instance.")
+
         # Get list of running nodes
         running_nodes = self.__aws_request(self.driver.wait_until_running, [node], wait_period=20)
 
