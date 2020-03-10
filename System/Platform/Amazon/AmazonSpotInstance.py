@@ -19,6 +19,10 @@ class AmazonSpotInstance(AmazonInstance):
         self.reset_count = 0
 
     def handle_failure(self, proc_name, proc_obj):
+        if not self.is_preemptible:
+            super(AmazonSpotInstance, self).handle_failure(proc_name, proc_obj)
+            return
+
         # Determine if command can be retried
         can_retry   = self.default_num_cmd_retries != 0 and proc_obj.get_num_retries() > 0
         needs_reset = False
