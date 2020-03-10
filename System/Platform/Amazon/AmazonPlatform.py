@@ -179,12 +179,9 @@ class AmazonPlatform(CloudPlatform):
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
     def __handle_rate_limit_error(self, e, method):
-        logging.error(type(e).__name__)
-        logging.error(f"Print out of error: {e}")
-        logging.error(f"Error when making AWS request {method.__name__}\nError message received {e}")
-        logging.error(self.__class__.__name__)
-        logging.error(f"string of error {str(e)}")
-        if 'message' in e and ('RequestLimitExceeded: Request limit exceeded.' in e.message or '429 Rate limit exceeded' in e.message):
+        if 'MaxSpotInstanceCountExceeded' in str(e) or 'InstanceLimitExceeded' in str(e):
+            return False
+        if 'message' in e and ('RequestLimitExceeded' in e.message or 'Rate limit exceeded' in e.message):
             logging.warning(f"Rate Limit Exceeded during request {method.__name__}")
             time.sleep(5)
             return True
