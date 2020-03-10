@@ -401,9 +401,9 @@ class AmazonInstance(CloudInstance):
         logging.error(f"Print out of error: {e}")
         logging.error(f"Error when making AWS request {method.__name__}\nError message received {e}")
         logging.error(self.__class__.__name__)
-        if 'MaxSpotInstanceCountExceeded' in str(e):
+        if 'MaxSpotInstanceCountExceeded' in str(e) or 'InstanceLimitExceeded' in str(e):
             return False
-        if 'message' in e and ('RequestLimitExceeded: Request limit exceeded.' in e['message'] or '429 Rate limit exceeded' in e['message']):
+        if 'message' in e and ('RequestLimitExceeded' in e['message'] or 'Rate limit exceeded' in e['message']):
             logging.warning(f"Rate Limit Exceeded during request {method.__name__}")
             time.sleep(5)
             return True
