@@ -186,6 +186,14 @@ class AmazonInstance(CloudInstance):
             logging.warning("(%s) Google JSON key not provided! "
                             "Instance will not be able to access GCP buckets!" % self.name)
 
+        # Authenticate AWS CLI
+        cmd = f'aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID \
+                && aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY \
+                && aws configure set default.region {self.region} \
+                && aws configure set default.output json'
+        self.run("aws_configure", cmd)
+        self.wait_process("aws_configure")
+
     def destroy_instance(self):
         if self.is_preemptible:
             self.__cancel_spot_instance_request()
@@ -360,10 +368,8 @@ class AmazonInstance(CloudInstance):
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
     def __handle_rate_limit_error(self, e, method):
-        logging.error(e.__class__.__module__)
-        logging.error(str(e))
         if 'MaxSpotInstanceCountExceeded' in str(e) or 'InstanceLimitExceeded' in str(e):
-            logging.error("Maximum number of spot instances exceeded.")
+            logging.warning("Maximum number of spot instances exceeded.")
             return False
         if 'message' in e and ('RequestLimitExceeded' in e.message or 'Rate limit exceeded' in e.message):
             logging.warning(f"Rate Limit Exceeded during request {method.__name__}")
