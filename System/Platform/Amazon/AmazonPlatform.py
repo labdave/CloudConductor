@@ -15,6 +15,8 @@ from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
 from libcloud.common.exceptions import RateLimitReachedError
 
+from botocore.exceptions import ClientError
+
 
 class AmazonPlatform(CloudPlatform):
 
@@ -162,23 +164,26 @@ class AmazonPlatform(CloudPlatform):
             try:
                 return method(*args, **kwargs)
             except BaseHTTPError as e:
-                logging.info("BaseHTTPHandler")
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise RuntimeError("Error with AWS request")
+                raise
             except RateLimitReachedError as e:
-                logging.info("RateLimitReachedErrorHandler")
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise RuntimeError("Error with AWS request")
+                raise
+            except ClientError as e:
+                if e.response['Error']['Code'] == 'ThrottlingException':
+                    logging.warning("Throttling Exception Occured for Describe Instance Type.")
+                    time.sleep(5)
             except Exception as e:
-                logging.info("ExceptionHandler")
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise RuntimeError("Error with AWS request")
+                raise
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
     def __handle_rate_limit_error(self, e, method):
+        logging.error(e.__class__.__module__)
+        logging.error(str(e))
         if 'MaxSpotInstanceCountExceeded' in str(e) or 'InstanceLimitExceeded' in str(e):
             return False
         if 'message' in e and ('RequestLimitExceeded' in e.message or 'Rate limit exceeded' in e.message):
