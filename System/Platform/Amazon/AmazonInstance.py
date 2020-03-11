@@ -136,6 +136,8 @@ class AmazonInstance(CloudInstance):
                                                 ex_terminate_on_shutdown=False)
             except Exception as e:
                 logging.warning("Handling issues with spot instance count limit")
+                logging.error(f"Exception is of type {e.__class__.__name__}")
+                logging.error(f"Print out of exception {str(e)}")
                 if 'MaxSpotInstanceCountExceeded' in str(e):
                     self.is_preemptible = False
                     node = self.__aws_request(self.driver.create_node, name=self.name,
