@@ -135,10 +135,11 @@ class AmazonInstance(CloudInstance):
                                                 interruption_behavior='stop',
                                                 ex_terminate_on_shutdown=False)
             except Exception as e:
+                exception_string = str(e)
                 logging.warning("Handling issues with spot instance count limit")
                 logging.error(f"Exception is of type {e.__class__.__name__}")
-                logging.error(f"Print out of exception {str(e)}")
-                if 'MaxSpotInstanceCountExceeded' in str(e):
+                logging.error(f"Print out of exception {exception_string}")
+                if 'MaxSpotInstanceCountExceeded' in exception_string:
                     self.is_preemptible = False
                     node = self.__aws_request(self.driver.create_node, name=self.name,
                                                 image=self.disk_image,
@@ -370,10 +371,14 @@ class AmazonInstance(CloudInstance):
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
     def __handle_rate_limit_error(self, e, method):
-        if 'MaxSpotInstanceCountExceeded' in str(e) or 'InstanceLimitExceeded' in str(e):
+        exception_string = str(e)
+        logging.warning("Handling issues with spot instance count limit")
+        logging.error(f"Exception is of type {e.__class__.__name__}")
+        logging.error(f"Print out of exception {exception_string}")
+        if 'MaxSpotInstanceCountExceeded' in exception_string or 'InstanceLimitExceeded' in exception_string:
             logging.warning("Maximum number of spot instances exceeded.")
             return False
-        if 'message' in e and ('RequestLimitExceeded' in e.message or 'Rate limit exceeded' in e.message):
+        if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string:
             logging.warning(f"Rate Limit Exceeded during request {method.__name__}")
             time.sleep(5)
             return True
