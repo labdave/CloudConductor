@@ -222,11 +222,12 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
     def mv(src_path, dest_dir):
 
         # Reformat source path
+        recursive_flag = '--recursive' if "/*" in src_path else ''
         src_path = src_path.rstrip("/*")
         dest_dir = dest_dir.rstrip("/*")
 
-        return "aws s3 cp $( [ -d %s ] && echo --recursive ) %s %s/%s" % \
-               (src_path, src_path, dest_dir, os.path.basename(src_path))
+        return "aws s3 cp %s %s %s/%s" % \
+               (recursive_flag, src_path, dest_dir, os.path.basename(src_path))
 
     @staticmethod
     def mkdir(dir_path):

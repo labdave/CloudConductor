@@ -249,8 +249,15 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Retry process if it can be retried
         if self.handle_failure(proc_name, proc_obj):
             logging.warning(f"({self.name}) Process '{proc_name}' failed but we will retry it!")
+            cmd = proc_obj.get_command()
+            # alter aws s3 cmd to try recursive vs. non-recursive
+            if 'aws s3 cp' in cmd:
+                if '--recursive' in cmd:
+                    cmd = cmd.replace('--recursive', '')
+                else:
+                    cmd = cmd.replace('aws s3 cp', 'aws s3 cp --recursive')
             self.run(job_name=proc_name,
-                     cmd=proc_obj.get_command(),
+                     cmd=cmd,
                      num_retries=proc_obj.get_num_retries()-1,
                      docker_image=proc_obj.get_docker_image())
             return self.wait_process(proc_name)
