@@ -122,6 +122,7 @@ class AmazonInstance(CloudInstance):
             # don't want helper instances to be preemptible
             self.is_preemptible = False
 
+        node = None
         if self.is_preemptible:
             try:
                 node = self.__aws_request(self.driver.create_node, name=self.name,
