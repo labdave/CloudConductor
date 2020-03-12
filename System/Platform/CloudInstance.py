@@ -38,6 +38,9 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         self.identity = kwargs.pop("identity")
         self.secret = kwargs.pop("secret")
 
+        # Obtain instance type list
+        self.instance_type_list_filter = kwargs.pop("instance_type_list", [])
+
         # Obtain location specific information
         self.region = kwargs.pop("region")
         self.zone = kwargs.pop("zone")

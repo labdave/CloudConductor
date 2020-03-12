@@ -65,7 +65,10 @@ class AmazonInstance(CloudInstance):
         while True:
             describe_result = self.__aws_request(ec2.describe_instance_types, **describe_args)
             for instance_type in describe_result['InstanceTypes']:
-                instance_types.append(instance_type)
+                if self.instance_type_list_filter and instance_type['InstanceType'] in self.instance_type_list_filter:
+                    instance_types.append(instance_type)
+                elif not self.instance_type_list_filter:
+                    instance_types.append(instance_type)
             if 'NextToken' not in describe_result:
                 break
             describe_args['NextToken'] = describe_result['NextToken']
@@ -80,6 +83,8 @@ class AmazonInstance(CloudInstance):
             type_mem = instance_type['MemoryInfo']['SizeInMiB']
             # get network performance
             type_network_perf = instance_type['NetworkInfo']['NetworkPerformance']
+            supported_processor_archs = instance_type['ProcessorInfo']['SupportedArchitectures']
+            supported_processor = 'x86_64' in supported_processor_archs
             perf_number = ''.join([s for s in type_network_perf.split() if s.isdigit()])
             high_perf = False
             if perf_number:
@@ -87,7 +92,7 @@ class AmazonInstance(CloudInstance):
             else:
                 high_perf = type_network_perf == 'High'
             # make sure instance type has more resources than our minimum requirement
-            if type_cpus >= self.nr_cpus and type_mem >= self.mem * 1024:
+            if type_cpus >= self.nr_cpus and type_mem >= self.mem * 1024 and high_perf and supported_processor:
                 if not selected_instance_type:
                     selected_instance_type = instance_type
                 else:
