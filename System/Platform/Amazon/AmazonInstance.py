@@ -56,7 +56,6 @@ class AmazonInstance(CloudInstance):
         ec2 = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name=self.region, config=self.boto_config)
         region_name = self.__get_region_name()
         describe_args = {'Filters': [
-                            {'Name': 'vcpu-info.default-vcpus', 'Values': [str(self.nr_cpus)]},
                             {'Name': 'current-generation', 'Values': ['true']}
                         ]}
         selected_instance_type = None
@@ -92,12 +91,12 @@ class AmazonInstance(CloudInstance):
             else:
                 high_perf = type_network_perf == 'High'
             # make sure instance type has more resources than our minimum requirement
-            if type_cpus >= self.nr_cpus and type_mem >= self.mem * 1024 and high_perf and supported_processor:
+            if type_cpus >= self.nr_cpus and type_mem >= self.mem * 1024:
                 if not selected_instance_type:
                     selected_instance_type = instance_type
                 else:
                     # select the cheaper of the two instance types
-                    if self.is_preemptible and instance_type['spotPrice'] < selected_instance_type['spotPrice']:
+                    if self.is_preemptible and hasattr(instance_type, 'spotPrice') and instance_type['spotPrice'] < selected_instance_type['spotPrice']:
                         selected_instance_type = instance_type
                     elif instance_type['price'] < selected_instance_type['price']:
                         selected_instance_type = instance_type
