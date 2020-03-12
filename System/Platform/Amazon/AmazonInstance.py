@@ -203,11 +203,8 @@ class AmazonInstance(CloudInstance):
         self.wait_process("aws_configure")
 
     def destroy_instance(self):
-        if self.is_preemptible:
-            self.__cancel_spot_instance_request()
-            self.__aws_request(self.driver.destroy_node, self.node)
-        else:
-            self.__aws_request(self.driver.destroy_node, self.node)
+        self.__cancel_spot_instance_request()
+        self.__aws_request(self.driver.destroy_node, self.node)
 
     def start_instance(self):
         instance_started = False
