@@ -82,8 +82,6 @@ class AmazonInstance(CloudInstance):
             type_mem = instance_type['MemoryInfo']['SizeInMiB']
             # get network performance
             type_network_perf = instance_type['NetworkInfo']['NetworkPerformance']
-            supported_processor_archs = instance_type['ProcessorInfo']['SupportedArchitectures']
-            supported_processor = 'x86_64' in supported_processor_archs
             perf_number = ''.join([s for s in type_network_perf.split() if s.isdigit()])
             high_perf = False
             if perf_number:
