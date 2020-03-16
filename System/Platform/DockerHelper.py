@@ -1,6 +1,4 @@
 import logging
-import subprocess as sp
-import json
 
 class DockerHelper(object):
     # Class designed to facilitate remote file manipulations for a processor
@@ -29,11 +27,6 @@ class DockerHelper(object):
 
         # Wait for cmd to finish and get output
         try:
-            result = self.get_docker_image_info(image_name)
-            if result and 'id' in result:
-                return True
-
-            # this should handle everything that doesn't exist on docker hub ( way less efficient )
             self.pull(image_name, job_name, log=False, **kwargs)
             self.proc.wait_process(job_name)
             return True
@@ -47,20 +40,14 @@ class DockerHelper(object):
 
     def get_image_size(self, image_name, job_name=None, **kwargs):
         # Return file size in gigabytes
+        cmd = "sudo docker image inspect %s --format='{{.Size}}'" % image_name
+
+        # Run command and return job name
+        job_name = "get_size_%s" % image_name if job_name is None else job_name
+        self.proc.run(job_name, cmd, **kwargs)
+
+        # Wait for cmd to finish and get output
         try:
-            result = self.get_docker_image_info(image_name)
-            if result and 'full_size' in result:
-                # return the bytes converted to GB
-                return int(result['full_size'])/(1024**3.0)
-
-            # this should handle everything that doesn't exist on docker hub ( way less efficient )
-            # Return file size in gigabytes
-            cmd = "sudo docker image inspect %s --format='{{.Size}}'" % image_name
-
-            # Run command and return job name
-            job_name = "get_size_%s" % image_name if job_name is None else job_name
-            self.proc.run(job_name, cmd, **kwargs)
-
             # Try to return file size in gigabytes
             out, err = self.proc.wait_process(job_name)
             # Iterate over all files if multiple files (can happen if wildcard)
@@ -73,24 +60,3 @@ class DockerHelper(object):
             if str(e) != "":
                 logging.error("Received the following msg:\n%s" % e)
             raise
-
-    def get_docker_image_info(self, image_name):
-        docker_image_split = image_name.split(":")
-        image = docker_image_split[0]
-        tag = docker_image_split[1]
-        cmd = f'curl -s "https://hub.docker.com/v2/repositories/{image}/tags/{tag}" | jq .'
-
-        proc = sp.Popen(cmd, stderr=sp.PIPE, stdout=sp.PIPE, shell=True)
-        out, err = proc.communicate()
-
-        # Convert to string formats
-        out = out.decode("utf8")
-        err = err.decode("utf8")
-
-        # Throw error if anything happened
-        if len(err) != 0:
-            logging.error("Unable to determine if docker image exists! Received error:\n{0}".format(err))
-            return None
-
-        # Return image info json
-        return json.loads(out)

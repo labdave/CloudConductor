@@ -14,22 +14,19 @@ MAINTAINER davelab  <lab.dave@gmail.com>
 
 # update the OS related packages
 RUN apt-get update && \
-		apt-get install -y software-properties-common && \
-        add-apt-repository ppa:jonathonf/python-3.6
+		apt-get install -y software-properties-common
 
 RUN apt-get update -y &&\
     apt-get install -y build-essential python2.7-dev python3.6-dev python3-pip && \
     apt-get install -y curl git netcat jq
 
-<<<<<<< HEAD
-=======
 # Clone the repository
 RUN git clone https://github.com/labdave/CloudConductor.git
 
->>>>>>> develop
 # upgrade pip, setuptools, and wheel Python modules
-RUN python3.6 -m pip install pip --upgrade && \
-	python3.6 -m pip install setuptools wheel configobj jsonschema requests
+RUN python3 -m pip install pip --upgrade && \
+	python3 -m pip install setuptools wheel && \
+    python3 -m pip install -r /CloudConductor/requirements.txt
 
 # Install gcloud
 RUN curl -sSL https://sdk.cloud.google.com > /tmp/gcl &&\
@@ -42,14 +39,7 @@ ENV PATH /root/google-cloud-sdk/bin:$PATH
 RUN /bin/bash -c "gcloud components install beta --quiet"
 
 # Install aws cli
-<<<<<<< HEAD
-RUN python3.6 -m pip install awscli --upgrade
-
-# clone the repository
-RUN git clone https://github.com/labdave/CloudConductor.git
-=======
 RUN python3 -m pip install awscli --upgrade
->>>>>>> develop
 
 ENV PATH /CloudConductor:$PATH
 
