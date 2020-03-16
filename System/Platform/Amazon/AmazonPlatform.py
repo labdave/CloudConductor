@@ -39,6 +39,7 @@ class AmazonPlatform(CloudPlatform):
         # Parse service account file
         with open(self.identity) as csv_inp:
             aws_dict = csv.DictReader(csv_inp)
+            logging.info(f"AWS DICT: {aws_dict}")
 
             for row in aws_dict:
                 return row["Access key ID"], row["Secret access key"]
