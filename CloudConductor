@@ -257,7 +257,8 @@ def main():
 
     finally:
         # Clean up the pipeline. Only remove temporary output if pipeline completed successfully.
-        pipeline.clean_up()
+        if err_msg == "":
+            pipeline.clean_up()
 
         # Generate pipeline run report
         logging.info("Publishing report.")
