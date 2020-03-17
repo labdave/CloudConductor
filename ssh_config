@@ -1,0 +1,4 @@
+Host *
+  ServerAliveInterval 30
+  ServerAliveCountMax 5
+  TCPKeepAlive yes
