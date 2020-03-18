@@ -139,10 +139,10 @@ class AmazonInstance(CloudInstance):
                                                 ex_terminate_on_shutdown=False)
             except Exception as e:
                 exception_string = str(e)
-                logging.warning("Handling issues with spot instance count limit")
+                logging.warning("Handling issues with spot instance creation")
                 logging.error(f"Exception is of type {e.__class__.__name__}")
                 logging.error(f"Print out of exception {exception_string}")
-                if 'MaxSpotInstanceCountExceeded' in exception_string:
+                if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string:
                     self.is_preemptible = False
                     node = self.__aws_request(self.driver.create_node, name=self.name,
                                                 image=self.disk_image,
@@ -210,12 +210,13 @@ class AmazonInstance(CloudInstance):
         counter = 10
         while not instance_started and counter > 0:
             try:
+                logging.info(f"Attempting to restart instance {self.name}")
                 instance_started = self.__aws_request(self.driver.ex_start_node, self.node)
             except:
                 # we don't care if it fails, we'll retry the attempt
                 pass
             if not instance_started:
-                logging.debug("(%s) Failed to restart instance, waiting 30 seconds before retrying" % self.name)
+                logging.warning("(%s) Failed to restart instance, waiting 30 seconds before retrying" % self.name)
                 # wait 30 seconds before trying to restart again
                 time.sleep(30)
                 counter -= 1
@@ -319,7 +320,12 @@ class AmazonInstance(CloudInstance):
         if self.node is None:
             return CloudInstance.OFF
 
-        self.node = self.__aws_request(self.driver.list_nodes, ex_node_ids=[self.node.id])[0]
+        node_list = self.__aws_request(self.driver.list_nodes, ex_node_ids=[self.node.id])
+
+        if not node_list or len(node_list) == 0:
+            return CloudInstance.OFF
+
+        self.node = node_list[0]
 
         # Define mapping between the cloud status and the current class status
         status_map = {

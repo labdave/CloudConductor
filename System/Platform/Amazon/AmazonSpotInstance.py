@@ -83,8 +83,8 @@ class AmazonSpotInstance(AmazonInstance):
             if "destroy" not in self.processes and proc_name == "create" and proc_obj.get_num_retries() > 0:
                 return True
 
-            # Reset instance and re-run command if command failed and no sure why instance doesn't exist (e.g. preemption, gets manually deleted)
-            elif "destroy" not in self.processes:
+            # Reset instance and re-run command if command failed and not sure why instance doesn't exist (e.g. preemption, gets manually deleted)
+            elif "destroy" not in self.processes and curr_status == CloudInstance.OFF:
                 needs_reset = True
 
         logging.debug("(%s) Curr_status, can_retry, needs_reset are: %s, %s, %s" % (self.name, curr_status, can_retry, needs_reset))
