@@ -358,22 +358,10 @@ class AmazonInstance(CloudInstance):
         for i in range(20):
             try:
                 return method(*args, **kwargs)
-            except BaseHTTPError as e:
-                if self.__handle_rate_limit_error(e, method):
-                    continue
-                raise
-            except RateLimitReachedError as e:
-                if self.__handle_rate_limit_error(e, method):
-                    continue
-                raise
-            except ClientError as e:
-                if e.response['Error']['Code'] == 'ThrottlingException':
-                    logging.warning("Throttling Exception Occured for Describe Instance Type.")
-                    time.sleep(5)
             except Exception as e:
                 if self.__handle_rate_limit_error(e, method):
                     continue
-                raise
+                raise RuntimeError(str(e))
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
     def __handle_rate_limit_error(self, e, method):
@@ -384,9 +372,9 @@ class AmazonInstance(CloudInstance):
         if 'MaxSpotInstanceCountExceeded' in exception_string or 'InstanceLimitExceeded' in exception_string:
             logging.error("Maximum number of spot instances exceeded.")
             return False
-        if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string:
+        if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string:
             logging.error(f"Rate Limit Exceeded during request {method.__name__}")
-            time.sleep(5)
+            time.sleep(10)
             return True
         return False
 
