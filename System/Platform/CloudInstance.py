@@ -395,20 +395,19 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         if self.external_IP is None:
             return False
 
-        out = ''
+        # Generate the command to run
+        cmd = "nc -w 1 {0} 22".format(self.external_IP)
 
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((self.external_IP, 22))
-            s.sendall(''.encode())
-            s.shutdown(socket.SHUT_WR)
-            while True:
-                data = s.recv(4096)
-                if not data:
-                    break
-                out = repr(data)
-            s.close()
-        except Exception:
+        # Run the command
+        proc = sp.Popen(cmd, stderr=sp.PIPE, stdout=sp.PIPE, shell=True)
+        out, err = proc.communicate()
+
+        # Convert to string formats
+        out = out.decode("utf8")
+        err = err.decode("utf8")
+
+        # If any error occured, then the ssh is not ready
+        if err:
             return False
 
         # Otherwise, return only if there is ssh in the received header
