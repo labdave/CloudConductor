@@ -1,7 +1,8 @@
 import logging
 import os
 
-from System.Platform import StorageHelper, DockerHelper, Platform
+from System.Platform import CloudPlatform, StorageHelper, DockerHelper
+
 
 class ModuleExecutor(object):
 
@@ -65,7 +66,7 @@ class ModuleExecutor(object):
                     if task_input.sample_name is not None:
                         dest_filename = "{0}_{1}".format(task_input.sample_name, task_input.filename)
                     else:
-                        dest_filename = "{0}_{1}".format(Platform.generate_unique_id(), dest_filename)
+                        dest_filename = "{0}_{1}".format(CloudPlatform.generate_unique_id(), dest_filename)
                     logging.debug("Changing filename from '{0}' to '{1}'.".format(task_input.filename, dest_filename))
                     dest_path = os.path.join(dest_dir, dest_filename)
                 else:
@@ -80,12 +81,12 @@ class ModuleExecutor(object):
                                        dest_path=dest_path,
                                        job_name=job_name)
                 loading_counter += 1
-                
+
                 # Add transfer path to list of remote paths that have been transferred to local workspace
                 src_seen.append(src_path)
                 count += 1
                 job_names.append(job_name)
-                
+
                 # If loading_counter is batch_size, clear out queue
                 if loading_counter >= batch_size:
                     logging.debug("Batch size reached on task {0}".format(
@@ -178,26 +179,25 @@ class ModuleExecutor(object):
         for job_name in job_names:
             self.processor.wait_process(job_name)
 
-        # Wait for output files to finish transferring
-        self.processor.wait()
-
     def save_logs(self):
         # Move log files to final output log directory
         log_files = os.path.join(self.workspace.get_wrk_log_dir(), "*")
-        final_log_dir = self.workspace.get_final_log_dir()
+        final_log_dir = self.workspace.get_output_dir()
         self.storage_helper.mv(log_files, final_log_dir, job_name="return_logs", log=False, wait=True)
 
     def __create_workspace(self):
         # Create all directories specified in task workspace
 
         logging.info("(%s) Creating workspace for task '%s'..." % (self.processor.name, self.task_id))
-        for dir_type, dir_obj in  self.workspace.get_workspace().items():
+        for dir_type, dir_obj in self.workspace.get_workspace().items():
             self.storage_helper.mkdir(dir_obj, job_name="mkdir_%s" % dir_type, wait=True)
 
         # Set processor wrk, log directories
-        self.processor.set_wrk_dir(self.workspace.get_wrk_dir())
-        self.processor.set_wrk_out_dir(self.workspace.get_wrk_out_dir())
-        self.processor.set_log_dir(self.workspace.get_wrk_log_dir())
+        self.processor.set_workspace(
+            wrk_dir=self.workspace.get_wrk_dir(),
+            wrk_out_dir=self.workspace.get_wrk_out_dir(),
+            wrk_log_dir=self.workspace.get_wrk_log_dir()
+        )
 
         # Give everyone all the permissions on working directory
         logging.info("(%s) Updating workspace permissions..." % self.processor.name)

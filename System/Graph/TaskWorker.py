@@ -6,6 +6,7 @@ import logging
 from System.Workers import Thread
 from System.Graph import ModuleExecutor
 
+
 class TaskWorker(Thread):
 
     IDLE            = 0
@@ -112,9 +113,6 @@ class TaskWorker(Thread):
             disk_space      = self.__compute_disk_requirements(input_files, docker_image)
             logging.debug("(%s) CPU: %s, Mem: %s, Disk space: %s" % (self.task.get_ID(), cpus, mem, disk_space))
 
-            # Wait for platform to have enough resources to run task
-            while not self.platform.can_make_processor(cpus, mem, disk_space) and not self.is_cancelled():
-                time.sleep(5)
 
             # Quit if pipeline is cancelled
             self.__check_cancelled()
@@ -135,18 +133,12 @@ class TaskWorker(Thread):
             # Create the specific processor for the task
             if has_command:
                 # Get processor capable of running job
-                self.proc = self.platform.get_processor(self.task.get_ID(), cpus, mem, disk_space)
+                self.proc = self.platform.get_instance(cpus, mem, disk_space, task_id=self.task.get_ID())
                 logging.debug("(%s) Successfully acquired processor!" % self.task.get_ID())
             else:
                 # Get small processor
-                self.proc = self.platform.get_processor(self.task.get_ID(), 1, 1, disk_space)
+                self.proc = self.platform.get_instance(1, 1, disk_space, task_id=self.task.get_ID())
                 logging.debug("(%s) Successfully acquired processor!" % self.task.get_ID())
-
-            # Check to see if pipeline has been cancelled
-            self.__check_cancelled()
-
-            # Create the processor
-            self.proc.create()
 
             # Check to see if pipeline has been cancelled
             self.__check_cancelled()
@@ -295,11 +287,8 @@ class TaskWorker(Thread):
         try:
 
             # Destroy processor
-            self.proc.destroy(wait=False)
-            self.proc.wait_process("destroy")
+            self.proc.destroy()
 
-            # Deallocate
-            self.platform.deallocate_resources(self.proc)
         except BaseException as e:
             logging.error("Unable to destroy processor '%s' for task '%s'" % (self.proc.get_name(), self.task.get_ID()))
             if str(e) != "":
@@ -332,11 +321,17 @@ class TaskWorker(Thread):
         min_disk_size = self.platform.get_min_disk_space()
         max_disk_size = self.platform.get_max_disk_space()
 
-        # Must be at least as big as minimum disk size
-        disk_size = disk_size + min_disk_size
+        # Obtain platform disk image
+        disk_image_size = self.platform.get_disk_image_size()
+
+        # Must be at least as big as minimum disk size + disk image
+        disk_size = disk_size + disk_image_size + min_disk_size
 
         # And smaller than max disk size
-        disk_size = min(disk_size, max_disk_size)
+        if disk_size > max_disk_size:
+            logging.warning("(%s) Current task disk size (%s GB) exceeds the maximum disk size enforced "
+                            "by the platform (%s GB). Disk size will be set to the platform maximum!")
+            disk_size = max_disk_size
         return disk_size
 
     def __check_cancelled(self):
@@ -355,5 +350,5 @@ class GarbageCollector(threading.Thread):
 
     def run(self):
         logging.debug("GarbageCollector destroying processor: {0}".format(self.proc.get_name()))
-        self.proc.destroy(wait=True)
+        self.proc.destroy()
 

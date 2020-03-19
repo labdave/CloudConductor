@@ -27,7 +27,7 @@ class DockerHelper(object):
 
         # Wait for cmd to finish and get output
         try:
-            self.pull(image_name, job_name, log=False, quiet_failure=False, **kwargs)
+            self.pull(image_name, job_name, log=False, **kwargs)
             self.proc.wait_process(job_name)
             return True
         except RuntimeError as e:

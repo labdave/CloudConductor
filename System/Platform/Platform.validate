@@ -1,0 +1,26 @@
+[__many__]
+    PLAT_MAX_NR_CPUS        = integer(default=350)
+    INST_MAX_NR_CPUS        = integer(default=64)
+    INST_MIN_NR_CPUS        = integer(default=1)
+
+    PLAT_MAX_MEM            = integer(default=1000)
+    INST_MAX_MEM            = integer(default=300)
+    INST_MIN_MEM            = integer(default=1)
+
+    PLAT_MAX_DISK_SPACE     = integer(default=10000)
+    INST_MAX_DISK_SPACE     = integer(default=1000)
+    INST_MIN_DISK_SPACE     = integer(default=10)
+
+    identity                = string
+    secret                  = string(default=None)
+
+    region                  = string
+    zone                    = string(default=None)
+
+    cmd_retries             = integer(default=3)
+
+    ssh_connection_user     = string(default=ubuntu)
+
+    disk_image              = string
+
+    [[extra]]

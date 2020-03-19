@@ -2,7 +2,8 @@ import logging
 import os
 
 from Modules import Module
-from System.Platform import Platform
+from System.Platform import CloudPlatform
+
 
 class _GATKBase(Module):
 
@@ -87,7 +88,7 @@ class HaplotypeCaller(_GATKBase):
 
     def define_output(self):
         # Declare GVCF output filename
-        randomer = Platform.generate_unique_id()
+        randomer = CloudPlatform.generate_unique_id()
         # generate uniques file name based on the output mode set for the Haplotypecaller
         if self.get_argument("output_type") == "gvcf":
             gvcf = self.generate_unique_file_name(extension="{0}.g.vcf.gz".format(randomer))
