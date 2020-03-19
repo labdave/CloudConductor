@@ -3,13 +3,13 @@ from Modules import Merger
 class Dndscv(Merger):
         def __init__(self, module_id, is_docker=False):
                 super(Dndscv, self).__init__(module_id, is_docker)
-                self.output_keys = ["dndscv_in","dndscv_out"]
+                self.output_keys = ["dndscv_in","dndscv_out", "dndscv_rds"]
 
 
         def define_input(self):
                 self.add_argument("dndscv",     is_resource=True, is_required=True)
                 self.add_argument("ref",        is_resource=True, is_required=True)
-                self.add_argument("recoded_vcf",    is_required=True)
+                self.add_argument("vcf_txt",    is_required=True)
                 self.add_argument("out_file",   default_value="dndscv_file")
                 self.add_argument("nr_cpus",    default_value=4)
                 self.add_argument("mem",        default_value=26)
@@ -23,14 +23,16 @@ class Dndscv(Merger):
                 # generate output file names
                 name_in         = "{0}.input.tsv".format(output_path)
                 name_out        = "{0}.tsv".format(output_path)
+                name_rds        = "{0}.RDS".format(output_path)
 
                 self.add_output("dndscv_in",name_in)
                 self.add_output("dndscv_out",name_out)
+                self.add_output("dndscv_rds", name_rds)
 
         def define_command(self):
                 dndscv          = self.get_argument("dndscv")
                 ref             = self.get_argument("ref")
-                recoded_vcfs    = self.get_argument("recoded_vcf")
+                recoded_vcfs    = self.get_argument("vcf_txt")
                 out_file        = self.get_argument("out_file")
 
                 out_file = "{0}/{1}".format(self.output_dir,out_file)

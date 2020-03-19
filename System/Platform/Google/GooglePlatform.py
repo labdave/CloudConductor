@@ -1,189 +1,168 @@
+import math
 import os
 import logging
-import subprocess as sp
-import tempfile
+import base64
+import random
+import json
+from threading import Thread
 
-from System.Platform import Platform
-from System.Platform.Google import Instance, PreemptibleInstance, GoogleCloudHelper
+from System import CC_MAIN_DIR
+from System.Platform import Process, CloudPlatform
+from System.Platform.Google import GoogleInstance, GooglePreemptibleInstance
 
-class GooglePlatform(Platform):
+from google.cloud import pubsub_v1
+from libcloud.compute.types import Provider
+from libcloud.compute.providers import get_driver
+from libcloud.common.google import ResourceNotFoundError
 
-    CONFIG_SPEC = "System/Platform/Google/GooglePlatform.validate"
+
+class GooglePlatform(CloudPlatform):
 
     def __init__(self, name, platform_config_file, final_output_dir):
-        # Call super constructor from Platform
+
+        # Initialize the base class
         super(GooglePlatform, self).__init__(name, platform_config_file, final_output_dir)
 
-        # Get google access fields from JSON file
-        self.key_file       = self.config["service_account_key_file"]
-        self.service_acct   = GoogleCloudHelper.get_field_from_key_file(self.key_file, field_name="client_email")
-        self.google_project = GoogleCloudHelper.get_field_from_key_file(self.key_file, field_name="project_id")
+        # Obtain the service account and the project ID
+        self.service_account, self.project_id = self.parse_service_account_json()
 
-        # Get Google compute zone from config
-        self.zone = self.config["zone"]
+        self.extra = self.config.get("extra", {})
 
-        # Determine whether to distribute processors across zones randomly
-        self.randomize_zone = self.config["randomize_zone"]
+        # Initialize libcloud driver
+        self.driver = None
 
-        # Obtain the reporting topic
-        self.report_topic   = self.config["report_topic"]
-        self.report_topic_validated = False
+    def parse_service_account_json(self):
 
-        # Boolean for whether worker instance create by platform will be preemptible
-        self.is_preemptible = self.config["task_processor"]["is_preemptible"]
+        # Parse service account file
+        with open(self.identity) as json_inp:
+            service_account_data = json.load(json_inp)
 
-        # Use authentication key file to gain access to google cloud project using Oauth2 authentication
-        GoogleCloudHelper.authenticate(self.key_file)
+        # Save data locally
+        service_account = service_account_data["client_email"]
+        project_id = service_account_data["project_id"]
 
-        # Create local gcloud SSH key to be able to directly use SSH
-        GoogleCloudHelper.configure_gcloud_ssh()
+        return service_account, project_id
+
+    def get_random_zone(self):
+
+        # Get list of zones and filter them to start with the current region
+        zones_in_region = [
+            zone_obj.name for zone_obj in self.driver.ex_list_zones() if zone_obj.name.startswith(self.region)
+        ]
+
+        return random.choice(zones_in_region)
+
+    def get_disk_image_size(self):
+
+        # Obtain image information
+        if self.disk_image_obj is None:
+            self.disk_image_obj = self.driver.ex_get_image(self.disk_image)
+
+        return int(self.disk_image_obj.extra["diskSizeGb"])
+
+    def get_cloud_instance_class(self):
+        if "preemptible" in self.extra and self.extra["preemptible"]:
+            return GooglePreemptibleInstance
+        return GoogleInstance
+
+    def authenticate_platform(self):
+
+        # Retry all HTTP requests
+        os.environ['LIBCLOUD_RETRY_FAILED_HTTP_REQUESTS'] = "True"
+
+        # Export google cloud credential file
+        if os.path.isabs(self.identity):
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.identity
+        else:
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(CC_MAIN_DIR, self.identity)
+
+        # Initialize libcloud driver
+        driver_class = get_driver(Provider.GCE)
+        self.driver = driver_class(self.service_account, self.identity,
+                                   datacenter=self.zone,
+                                   project=self.project_id)
 
     def validate(self):
-        # Check that final output dir begins with gs://
-        if not self.final_output_dir.startswith("gs://"):
-            logging.error("Invalid final output directory: %s. Google bucket paths must begin with 'gs://'"
-                          % self.final_output_dir)
-            raise IOError("Invalid final output directory!")
 
-        # Make gs bucket if it doesn't exists already
-        gs_bucket = GoogleCloudHelper.get_bucket_from_path(self.final_output_dir)
-        if not GoogleCloudHelper.bucket_exists(gs_bucket):
-            logging.info("Bucket {0} does not exists. Creating it now!".format(gs_bucket))
-            region = GoogleCloudHelper.get_region(self.zone)
-            GoogleCloudHelper.mb(gs_bucket, project=self.google_project, region=region)
+        # Validate if image exists
+        try:
+            self.disk_image_obj = self.driver.ex_get_image(self.disk_image)
+        except ResourceNotFoundError:
+            logging.error(f"Disk image '{self.disk_image}' not found!")
+            raise
 
-        # Set the minimum disk size based on size of disk image
-        disk_image = self.config["task_processor"]["disk_image"]
-        disk_image_info = GoogleCloudHelper.get_disk_image_info(disk_image)
-        self.MIN_DISK_SPACE = int(disk_image_info["diskSizeGb"])
+    @staticmethod
+    def standardize_instance(inst_name, nr_cpus, mem, disk_space):
 
-        # Check to see if the reporting Pub/Sub topic exists
-        if not GoogleCloudHelper.pubsub_topic_exists(self.report_topic):
-            logging.error("Reporting topic '%s' was not found!" % self.report_topic)
-            raise IOError("Reporting topic '%s' not found!" % self.report_topic)
+        # Ensure instance name does not contain weird characters
+        inst_name = inst_name.replace("_", "-").lower()
 
-        # Indicate that report topic exists and has been validated
-        self.report_topic_validated = True
+        # Ensure the memory is withing GCP range:
+        if mem / nr_cpus < 0.9:
+            mem = nr_cpus * 0.9
+        elif mem / nr_cpus > 6.5:
+            nr_cpus = math.ceil(mem / 6.5)
 
-    def init_helper_processor(self, name, nr_cpus, mem, disk_space):
-        # Googlefy instance name
-        name = self.__format_instance_name(name)
-        # Return processor object that will be used
-        instance_config = self.__get_instance_config()
-        return Instance(name,
-                        nr_cpus,
-                        mem,
-                        disk_space,
-                        **instance_config)
+        # Ensure number of CPUs is an even number or 1
+        if nr_cpus != 1 and nr_cpus % 2 == 1:
+            nr_cpus += 1
 
-    def init_task_processor(self, name, nr_cpus, mem, disk_space):
-        # Googlefy instance name
-        name = self.__format_instance_name(name)
-        # Return a processor object with given resource requirements
-        instance_config = self.__get_instance_config()
-        # Create and return processor
-        if self.is_preemptible:
-            return PreemptibleInstance(name,
-                                       nr_cpus,
-                                       mem,
-                                       disk_space,
-                                       **instance_config)
-        else:
-            return Instance(name,
-                            nr_cpus,
-                            mem,
-                            disk_space,
-                            **instance_config)
+        return inst_name, nr_cpus, mem, disk_space
 
-    def publish_report(self, report=None):
-
-        # Exit as nothing to output
-        if report is None:
-            return
-
-        # Generate report file for transfer
-        with tempfile.NamedTemporaryFile(delete=False) as report_file:
-            report_file.write(str(report).encode("utf8"))
-            report_filepath = report_file.name
+    def publish_report(self, report_path):
 
         # Generate destination file path
-        dest_path = os.path.join(self.final_output_dir, "%s_final_report.json" % self.name)
+        dest_path = os.path.join(self.final_output_dir, os.path.basename(report_path))
+
+        # Authenticate for gsutil use
+        cmd = "gcloud auth activate-service-account --key-file %s" % self.identity
+        Process.run_local_cmd(cmd, err_msg="Authentication to Google Cloud failed!")
 
         # Transfer report file to bucket
         options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
-        cmd = "gsutil %s cp -r %s %s 1>/dev/null 2>&1 " % (options_fast, report_filepath, dest_path)
-        GoogleCloudHelper.run_cmd(cmd, err_msg="Could not transfer final report to the final output directory!")
+        cmd = "gsutil %s cp -r '%s' '%s' 1>/dev/null 2>&1 " % (options_fast, report_path, dest_path)
+        Process.run_local_cmd(cmd, err_msg="Could not transfer final report to the final output directory!")
+
+        # Check if the user has provided a Pub/Sub report topic
+        pubsub_topic = self.extra.get("report_topic", None)
+        pubsub_project = self.extra.get("pubsub_project", None)
 
         # Send report to the Pub/Sub report topic if it's known to exist
-        if self.report_topic_validated:
-            GoogleCloudHelper.send_pubsub_message(self.report_topic, message=dest_path, encode=True, compress=True)
+        if pubsub_topic and pubsub_project:
+            GooglePlatform.__send_pubsub_message(pubsub_topic, pubsub_project, dest_path)
 
     def clean_up(self):
 
-        logging.info("Cleaning up Google Cloud Platform.")
-        # Remove dummy files from output directory
-        try:
-            logging.debug("Looking for dummy files...")
-            dummy_search_string = os.path.join(self.final_output_dir,"**dummy.txt")
-            dummy_outputs = GoogleCloudHelper.ls(dummy_search_string)
-            if len(dummy_outputs) > 0:
-                cmd = "gsutil rm {0}".format(" ".join(dummy_outputs))
-                proc = sp.Popen(cmd, stderr=sp.PIPE, stdout=sp.PIPE, shell=True)
-                proc.communicate()
-            logging.debug("Done killing dummy files!")
-        except:
-            logging.warning("(%s) Could not remove dummy input files on google cloud!")
+        # Initialize the list of threads
+        destroy_threads = []
 
-        # Initiate destroy process on all the instances that haven't been destroyed
-        for instance_name, instance_obj in self.processors.items():
-            try:
-                if instance_name not in self.dealloc_procs:
-                    instance_obj.destroy(wait=False)
-            except RuntimeError:
-                logging.warning("(%s) Could not destroy instance!" % instance_name)
+        # Launch the destroy process for each instance
+        for name, instance_obj in self.instances.items():
+            if instance_obj is None:
+                continue
 
-        # Now wait for all destroy processes to finish
-        for instance_name, instance_obj in self.processors.items():
-            try:
-                #if instance_obj.get_status() != Processor.OFF:
-                if instance_name not in self.dealloc_procs:
-                    instance_obj.wait_process("destroy")
-            except RuntimeError:
-                logging.warning("(%s) Unable to destroy instance!" % instance_name)
+            thr = Thread(target=instance_obj.destroy, daemon=True)
+            thr.start()
+            destroy_threads.append(thr)
 
-        logging.info("Clean up complete!")
-
-    ####### PRIVATE UTILITY METHODS
-
-    def __get_instance_config(self):
-        # Returns complete config for a task processor
-        params = {}
-        inst_params = self.config["task_processor"]
-        for param, value in inst_params.items():
-            params[param] = value
-
-        # Add platform-specific options
-        params["zone"]                  = self.zone
-        params["service_acct"]          = self.service_acct
-
-        # Randomize the zone within the region if specified
-        if self.randomize_zone:
-            region          = GoogleCloudHelper.get_region(self.zone)
-            params["zone"]  = GoogleCloudHelper.select_random_zone(region)
-
-        # Get instance type
-        return params
+        # Wait for all threads to finish
+        for _thread in destroy_threads:
+            _thread.join()
 
     @staticmethod
-    def __format_instance_name(instance_name):
-        # Ensures that instance name conforms to google cloud formatting specs
-        old_instance_name = instance_name
-        instance_name = instance_name.replace("_", "-")
-        instance_name = instance_name.replace(".", "-")
-        instance_name = instance_name.lower()
+    def __send_pubsub_message(topic_name, project_id, message, encode=True):
 
-        # Declare if name of instance has changed
-        if old_instance_name != instance_name:
-            logging.warn("Modified instance name from %s to %s for compatibility!" % (old_instance_name, instance_name))
+        # Generate correct topic ID
+        topic_id = f"projects/{project_id}/topics/{topic_name}"
 
-        return instance_name
+        # Create a Pub/Sub publisher
+        pubsub = pubsub_v1.PublisherClient()
+
+        # Encode message is requested
+        if encode:
+            message = base64.b64encode(message.encode("utf8"))
+        else:
+            message = message.encode("utf8")
+
+        # Send message to platform Pub/Sub
+        pubsub.publish(topic_id, message)

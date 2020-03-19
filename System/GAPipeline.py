@@ -1,12 +1,15 @@
 import logging
 import importlib
 import json
+import os
 from collections import OrderedDict
 
 from System.Graph import Graph, Scheduler
 from System.Datastore import ResourceKit, SampleSet, Datastore
 from System.Validators import GraphValidator, InputValidator, SampleValidator
 from System.Platform import StorageHelper, DockerHelper
+from System import CC_MAIN_DIR
+
 
 class GAPipeline(object):
 
@@ -67,6 +70,9 @@ class GAPipeline(object):
         plat_class      = plat_module.__dict__[self.__plat_module]
         self.platform   = plat_class(self.pipeline_id, self.__platform_config, self.__final_output_dir)
 
+        # Initialize the platform
+        self.platform.init_platform()
+
         # Create datastore and scheduler
         self.datastore = Datastore(self.graph, self.resource_kit, self.sample_data, self.platform)
         self.scheduler = Scheduler(self.graph, self.datastore, self.platform)
@@ -97,8 +103,7 @@ class GAPipeline(object):
                               "See the above logs for more information")
 
         # Create helper processor and storage/docker helpers for checking input files
-        self.helper_processor   = self.platform.get_helper_processor()
-        self.helper_processor.create()
+        self.helper_processor   = self.platform.get_instance(2, 6, 200, is_helper=True)
 
         self.storage_helper     = StorageHelper(self.helper_processor)
         self.docker_helper      = DockerHelper(self.helper_processor)
@@ -116,6 +121,11 @@ class GAPipeline(object):
         workspace = self.datastore.get_task_workspace()
         for dir_type, dir_path in workspace.get_workspace().items():
             self.storage_helper.mkdir(dir_path=str(dir_path), job_name="mkdir_%s" % dir_type, wait=True)
+
+        # Validate granting of permission
+        self.helper_processor.run("grant_perm_helper", "sudo chmod -R 777 %s" % workspace.get_wrk_dir())
+        self.helper_processor.wait_process("grant_perm_helper")
+
         logging.info("CloudCounductor run validated! Beginning pipeline execution.")
 
     def run(self, rm_tmp_output_on_success=True):
@@ -139,8 +149,18 @@ class GAPipeline(object):
         # Create and publish GAP pipeline report
         try:
             report = self.__make_pipeline_report(err, err_msg, git_version)
+
+            # Generate report name and path
+            report_path = f"{CC_MAIN_DIR}/{self.pipeline_id}_final_report.json"
+
+            # Publish report locally
+            with open(report_path, "w") as out:
+                out.write(str(report))
+
+            # Publish report on the platform
             if self.platform is not None:
-                self.platform.publish_report(report)
+                self.platform.publish_report(report_path)
+
         except BaseException as e:
             logging.error("Unable to publish report!")
             if str(e) != "":
@@ -152,7 +172,7 @@ class GAPipeline(object):
         if self.helper_processor is not None:
             try:
                 logging.debug("Destroying helper processor...")
-                self.helper_processor.destroy(wait=False)
+                self.helper_processor.destroy()
             except BaseException as e:
                 logging.error("Unable to destroy helper processor '%s'!" % self.helper_processor.get_name())
                 if str(e) != "":
