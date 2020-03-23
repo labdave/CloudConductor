@@ -142,7 +142,7 @@ class AmazonInstance(CloudInstance):
                 logging.error("Handling issues with spot instance creation")
                 logging.error(f"Exception is of type {e.__class__.__name__}")
                 logging.error(f"Print out of exception {exception_string}")
-                if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string:
+                if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
                     self.is_preemptible = False
                     node = self.__aws_request(self.driver.create_node, name=self.name,
                                                 image=self.disk_image,
