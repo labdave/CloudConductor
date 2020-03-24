@@ -1,7 +1,6 @@
 Host *
-  ServerAliveInterval 60
-  ServerAliveCountMax 20
+  ServerAliveInterval 120
+  ServerAliveCountMax 10
   TCPKeepAlive yes
   MaxSessions 50
   MaxAuthTries 15
-  ClientAliveCountMax 0
