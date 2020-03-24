@@ -139,10 +139,8 @@ class AmazonInstance(CloudInstance):
                                                 ex_terminate_on_shutdown=False)
             except Exception as e:
                 exception_string = str(e)
-                logging.error("Handling issues with spot instance creation")
-                logging.error(f"Exception is of type {e.__class__.__name__}")
-                logging.error(f"Print out of exception {exception_string}")
                 if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
+                    logging.info("Changing from spot instance to on-demand because we hit our limit of spot instances!")
                     self.is_preemptible = False
                     node = self.__aws_request(self.driver.create_node, name=self.name,
                                                 image=self.disk_image,
@@ -212,7 +210,12 @@ class AmazonInstance(CloudInstance):
             try:
                 logging.info(f"Attempting to restart instance {self.name}")
                 instance_started = self.__aws_request(self.driver.ex_start_node, self.node)
-            except:
+            except Exception as e:
+                exception_string = str(e)
+                if 'IncorrectInstanceState' in exception_string:
+                    logging.info(f"Instance is in the incorrect state to be started.")
+                    status = self.get_status()
+                    logging.info(f"Instance state = {status.upper()}")
                 # we don't care if it fails, we'll retry the attempt
                 pass
             if not instance_started:
@@ -369,7 +372,7 @@ class AmazonInstance(CloudInstance):
         logging.warning("[AMAZONINSTANCE] Handling issues with rate limits")
         logging.error(f"Exception is of type {e.__class__.__name__}")
         logging.error(f"Print out of exception {exception_string}")
-        if 'MaxSpotInstanceCountExceeded' in exception_string or 'InstanceLimitExceeded' in exception_string:
+        if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
             logging.error("Maximum number of spot instances exceeded.")
             return False
         if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string:

@@ -11,12 +11,13 @@ from System.Platform import Process
 
 class CloudInstance(object, metaclass=abc.ABCMeta):
 
-    OFF         = 0  # Destroyed or not allocated on the cloud at all
+    OFF         = 0  # Stopped or not allocated on the cloud at all
     CREATING    = 1  # Instance is being created/provisioned/allocated
     DESTROYING  = 2  # Instance is being destroyed
     AVAILABLE   = 3  # Available for running processes
+    TERMINATED  = 4  # Destroyed instance
 
-    STATUSES    = ["OFF", "CREATING", "DESTROYING", "AVAILABLE"]
+    STATUSES    = ["OFF", "CREATING", "DESTROYING", "AVAILABLE", "TERMINATED"]
 
     def __init__(self, name, nr_cpus, mem, disk_space, disk_image, **kwargs):
 
