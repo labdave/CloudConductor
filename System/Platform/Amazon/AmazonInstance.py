@@ -336,7 +336,7 @@ class AmazonInstance(CloudInstance):
             'running':          CloudInstance.AVAILABLE,
             'shutting-down':    CloudInstance.DESTROYING,
             'stopping':         CloudInstance.DESTROYING,
-            'terminated':       CloudInstance.OFF,
+            'terminated':       CloudInstance.TERMINATED,
             'stopped':          CloudInstance.OFF
         }
 
