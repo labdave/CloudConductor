@@ -106,7 +106,7 @@ class AmazonInstance(CloudInstance):
         # Generate NodeSize for instance
         self.instance_type = self.get_instance_size()
         size_name = self.instance_type['InstanceType']
-        logging.info(f"SELECTED AWS INSTANCE TYPE: {self.instance_type}")
+        logging.info(f"({self.name}) SELECTED AWS INSTANCE TYPE: {self.instance_type}")
         node_size = [size for size in self.driver.list_sizes() if size.id == size_name][0]
 
         device_mappings = [
@@ -139,9 +139,9 @@ class AmazonInstance(CloudInstance):
                                                 ex_terminate_on_shutdown=False)
             except Exception as e:
                 exception_string = str(e)
-                logging.error(f"Exception while creating instance on AWS: {exception_string}")
+                logging.error(f"({self.name}) Exception while creating instance on AWS: {exception_string}")
                 if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
-                    logging.info("Changing from spot instance to on-demand because we hit our limit of spot instances!")
+                    logging.info(f"({self.name}) Changing from spot instance to on-demand because we hit our limit of spot instances!")
                     self.is_preemptible = False
                     node = self.__aws_request(self.driver.create_node, name=self.name,
                                                 image=self.disk_image,
@@ -161,7 +161,7 @@ class AmazonInstance(CloudInstance):
                                             ex_terminate_on_shutdown=False)
 
         if not node:
-            raise RuntimeError("There was an issue with creating the new instance.")
+            raise RuntimeError(f"({self.name}) There was an issue with creating the new instance.")
 
         # Get list of running nodes
         running_nodes = self.__aws_request(self.driver.wait_until_running, [node], wait_period=20)
@@ -365,19 +365,20 @@ class AmazonInstance(CloudInstance):
             except Exception as e:
                 if self.__handle_rate_limit_error(e, method):
                     continue
+                logging.error(f"({self.name}) Raising runtime error: {str(e)}")
                 raise RuntimeError(str(e))
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
     def __handle_rate_limit_error(self, e, method):
         exception_string = str(e)
-        logging.warning("[AMAZONINSTANCE] Handling issues with rate limits")
-        logging.error(f"Exception is of type {e.__class__.__name__}")
-        logging.error(f"Print out of exception {exception_string}")
+        logging.warning(f"({self.name}) [AMAZONINSTANCE] Handling issues with rate limits")
+        logging.error(f"({self.name}) Exception is of type {e.__class__.__name__}")
+        logging.error(f"({self.name}) Print out of exception {exception_string}")
         if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
-            logging.error("Maximum number of spot instances exceeded.")
+            logging.error(f"({self.name}) Maximum number of spot instances exceeded.")
             return False
         if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string:
-            logging.error(f"Rate Limit Exceeded during request {method.__name__}")
+            logging.error(f"({self.name}) Rate Limit Exceeded during request {method.__name__}")
             time.sleep(10)
             return True
         return False
