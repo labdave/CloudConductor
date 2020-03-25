@@ -54,13 +54,13 @@ class AmazonInstance(CloudInstance):
 
     def get_instance_size(self):
         '''Select optimal instance type for provided region, number of cpus, and memory allocation'''
+        selected_instance_type = None
         if not self.instance_type_list:
             ec2 = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name=self.region, config=self.boto_config)
             region_name = self.__get_region_name()
             describe_args = {'Filters': [
                                 {'Name': 'current-generation', 'Values': ['true']}
                             ]}
-            selected_instance_type = None
             self.instance_type_list = []
             # get all instance types
             while True:
