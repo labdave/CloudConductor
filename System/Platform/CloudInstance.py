@@ -102,7 +102,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             status = self.get_status()
 
             # If status is OFF then the instance was destroyed
-            if status == CloudInstance.OFF:
+            if status == CloudInstance.OFF or status == CloudInstance.TERMINATED:
                 self.__add_history_event("DESTROY")
                 break
 
