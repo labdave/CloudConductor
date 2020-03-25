@@ -361,16 +361,13 @@ class AmazonInstance(CloudInstance):
 
     def __create_on_demand_instance(self, node_size, device_mappings):
         try:
-            logging.info(f"({self.name}) Attempting to create a spot instance of type: {self.instance_type['InstanceType']}")
+            logging.info(f"({self.name}) Attempting to create an on demand instance of type: {self.instance_type['InstanceType']}")
             node = self.__aws_request(self.driver.create_node, name=self.name,
                                             image=self.disk_image,
                                             size=node_size,
                                             ex_keyname=self.platform.get_ssh_key_pair(),
                                             ex_security_groups=[self.platform.get_security_group()],
                                             ex_blockdevicemappings=device_mappings,
-                                            ex_spot_market=True,
-                                            ex_spot_price=self.instance_type['price'],
-                                            interruption_behavior='stop',
                                             ex_terminate_on_shutdown=False)
             return node
         except Exception as e:
