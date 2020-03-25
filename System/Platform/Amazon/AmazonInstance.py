@@ -139,6 +139,7 @@ class AmazonInstance(CloudInstance):
                                                 ex_terminate_on_shutdown=False)
             except Exception as e:
                 exception_string = str(e)
+                logging.error(f"Exception while creating instance on AWS: {exception_string}")
                 if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
                     logging.info("Changing from spot instance to on-demand because we hit our limit of spot instances!")
                     self.is_preemptible = False
