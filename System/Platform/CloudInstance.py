@@ -282,21 +282,17 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                 cmd = f"ssh -i {self.ssh_private_key} " \
                     f"-o CheckHostIP=no -o StrictHostKeyChecking=no " \
                     f"{self.ssh_connection_user}@{self.external_IP} -- '{auth_log_tail_cmd}'"
-                Process.run_local_cmd(cmd, err_msg="Could not pull auth.log")
+                Process.run_local_cmd(cmd, err_msg="Could not pull auth.log", print_logs=True)
                 # Transfer report file to bucket
                 auth_log_file = f"./{proc_name}-auth.log"
                 dest_path = os.path.join(self.platform.final_output_dir, os.path.basename(auth_log_file))
-                logging.info("Destinatinon path for report: %s" % dest_path)
+                logging.info("Destinatinon path for auth log: %s" % dest_path)
                 cmd = "aws s3 cp %s %s" % \
                     (auth_log_file, dest_path)
                 err_msg = "Could not transfer final report to the final output directory!"
-                env_var = {
-                    "AWS_ACCESS_KEY_ID": self.identity,
-                    "AWS_SECRET_ACCESS_KEY": self.secret
-                }
-                Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var)
+                Process.run_local_cmd(cmd, err_msg=err_msg, print_logs=True)
             except Exception as e:
-                logging.error(f"Failed to pull the auth.log for ssh on either client or host!\n Error received: {str(e)}")
+                logging.error(f"Failed to pull the auth.log for ssh!\n Error received: {str(e)}")
 
         # Raise an error
         raise RuntimeError(f"({self.name}) Instance failed at process '{proc_name}'!")
