@@ -72,7 +72,7 @@ class AmazonSpotInstance(AmazonInstance):
             elif "destroy" not in self.processes and proc_name not in ["create", "destroy"]:
                 needs_reset = True
 
-        elif curr_status == CloudInstance.OFF:
+        elif curr_status == CloudInstance.OFF or status == CloudInstance.TERMINATED:
             # Don't do anythying if destroy failed but instance doesn't actually exist anymore
             if proc_name == "destroy":
                 logging.debug("(%s) Instance already destroyed!" % self.name)
@@ -84,7 +84,7 @@ class AmazonSpotInstance(AmazonInstance):
                 return True
 
             # Reset instance and re-run command if command failed and not sure why instance doesn't exist (e.g. preemption, gets manually deleted)
-            elif "destroy" not in self.processes and curr_status == CloudInstance.OFF:
+            elif "destroy" not in self.processes and ( curr_status == CloudInstance.OFF or status == CloudInstance.TERMINATED ):
                 needs_reset = True
 
         logging.debug("(%s) Curr_status, can_retry, needs_reset are: %s, %s, %s" % (self.name, curr_status, can_retry, needs_reset))
@@ -121,11 +121,13 @@ class AmazonSpotInstance(AmazonInstance):
             # Switch to non-preemptible instance
             self.is_preemptible = False
 
+        status = self.get_status()
+
         # Restart the instance if it is preemptible and is not required to be destroyed
-        if self.is_preemptible and not force_destroy:
+        if self.is_preemptible and not force_destroy and status != CloudInstance.TERMINATED:
 
             # Restart the instance
-            stopped = self.get_status() == CloudInstance.OFF
+            stopped = status == CloudInstance.OFF
             while not stopped:
                 logging.warning("(%s) Waiting for 30 seconds for instance to stop" % self.name)
                 time.sleep(30)
@@ -136,6 +138,7 @@ class AmazonSpotInstance(AmazonInstance):
             logging.debug("(%s) Instance restarted, continue running processes!" % self.name)
 
         else:
+            logging.info(f"({self.name}) Recreating instance!!! ")
             self.destroy_instance()
             # Deallocate resources on the platform for current instance
             self.platform.deallocate_resources(self.nr_cpus, self.mem, self.disk_space)

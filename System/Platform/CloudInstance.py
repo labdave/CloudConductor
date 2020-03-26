@@ -11,12 +11,13 @@ from System.Platform import Process
 
 class CloudInstance(object, metaclass=abc.ABCMeta):
 
-    OFF         = 0  # Destroyed or not allocated on the cloud at all
+    OFF         = 0  # Stopped or not allocated on the cloud at all
     CREATING    = 1  # Instance is being created/provisioned/allocated
     DESTROYING  = 2  # Instance is being destroyed
     AVAILABLE   = 3  # Available for running processes
+    TERMINATED  = 4  # Destroyed instance
 
-    STATUSES    = ["OFF", "CREATING", "DESTROYING", "AVAILABLE"]
+    STATUSES    = ["OFF", "CREATING", "DESTROYING", "AVAILABLE", "TERMINATED"]
 
     def __init__(self, name, nr_cpus, mem, disk_space, disk_image, **kwargs):
 
@@ -101,7 +102,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             status = self.get_status()
 
             # If status is OFF then the instance was destroyed
-            if status == CloudInstance.OFF:
+            if status == CloudInstance.OFF or status == CloudInstance.TERMINATED:
                 self.__add_history_event("DESTROY")
                 break
 
@@ -251,7 +252,9 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
         # Retry process if it can be retried
         if self.handle_failure(proc_name, proc_obj):
+            stdout, stderr = proc_obj.get_output()
             logging.warning(f"({self.name}) Process '{proc_name}' failed but we will retry it!")
+            logging.warning(f"({self.name}) Process '{proc_name}' had the following error: {stderr}")
             cmd = proc_obj.get_command()
             # alter aws s3 cmd to try recursive vs. non-recursive
             if 'aws s3 cp' in cmd:

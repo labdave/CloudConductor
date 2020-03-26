@@ -37,6 +37,7 @@ class AmazonInstance(CloudInstance):
 
         self.instance_type = None
         self.is_preemptible = False
+        self.instance_type_list = None
 
         # Obtain the Google JSON path
         self.google_json = kwargs.get("google_json", None)
@@ -53,29 +54,30 @@ class AmazonInstance(CloudInstance):
 
     def get_instance_size(self):
         '''Select optimal instance type for provided region, number of cpus, and memory allocation'''
-        ec2 = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name=self.region, config=self.boto_config)
-        region_name = self.__get_region_name()
-        describe_args = {'Filters': [
-                            {'Name': 'current-generation', 'Values': ['true']}
-                        ]}
         selected_instance_type = None
-        instance_types = []
-        # get all instance types
-        while True:
-            describe_result = self.__aws_request(ec2.describe_instance_types, **describe_args)
-            for instance_type in describe_result['InstanceTypes']:
-                if self.instance_type_list_filter and instance_type['InstanceType'] in self.instance_type_list_filter:
-                    instance_types.append(instance_type)
-                elif not self.instance_type_list_filter:
-                    instance_types.append(instance_type)
-            if 'NextToken' not in describe_result:
-                break
-            describe_args['NextToken'] = describe_result['NextToken']
+        if not self.instance_type_list:
+            ec2 = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name=self.region, config=self.boto_config)
+            region_name = self.__get_region_name()
+            describe_args = {'Filters': [
+                                {'Name': 'current-generation', 'Values': ['true']}
+                            ]}
+            self.instance_type_list = []
+            # get all instance types
+            while True:
+                describe_result = self.__aws_request(ec2.describe_instance_types, **describe_args)
+                for instance_type in describe_result['InstanceTypes']:
+                    if self.instance_type_list_filter and instance_type['InstanceType'] in self.instance_type_list_filter:
+                        self.instance_type_list.append(instance_type)
+                    elif not self.instance_type_list_filter:
+                        self.instance_type_list.append(instance_type)
+                if 'NextToken' not in describe_result:
+                    break
+                describe_args['NextToken'] = describe_result['NextToken']
 
-        # get pricing for instance types
-        self.__map_instance_type_pricing(region_name, self.zone, instance_types)
+            # get pricing for instance types
+            self.__map_instance_type_pricing(region_name, self.zone, self.instance_type_list)
 
-        for instance_type in instance_types:
+        for instance_type in self.instance_type_list:
             # get number of cpus in instance type
             type_cpus = instance_type['VCpuInfo']['DefaultVCpus']
             # get amount of mem in instance type in MiB
@@ -106,7 +108,7 @@ class AmazonInstance(CloudInstance):
         # Generate NodeSize for instance
         self.instance_type = self.get_instance_size()
         size_name = self.instance_type['InstanceType']
-        logging.info(f"SELECTED AWS INSTANCE TYPE: {self.instance_type}")
+        logging.info(f"({self.name}) SELECTED AWS INSTANCE TYPE: {self.instance_type}")
         node_size = [size for size in self.driver.list_sizes() if size.id == size_name][0]
 
         device_mappings = [
@@ -126,43 +128,12 @@ class AmazonInstance(CloudInstance):
 
         node = None
         if self.is_preemptible:
-            try:
-                node = self.__aws_request(self.driver.create_node, name=self.name,
-                                                image=self.disk_image,
-                                                size=node_size,
-                                                ex_keyname=self.platform.get_ssh_key_pair(),
-                                                ex_security_groups=[self.platform.get_security_group()],
-                                                ex_blockdevicemappings=device_mappings,
-                                                ex_spot_market=True,
-                                                ex_spot_price=self.instance_type['price'],
-                                                interruption_behavior='stop',
-                                                ex_terminate_on_shutdown=False)
-            except Exception as e:
-                exception_string = str(e)
-                logging.error("Handling issues with spot instance creation")
-                logging.error(f"Exception is of type {e.__class__.__name__}")
-                logging.error(f"Print out of exception {exception_string}")
-                if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string:
-                    self.is_preemptible = False
-                    node = self.__aws_request(self.driver.create_node, name=self.name,
-                                                image=self.disk_image,
-                                                size=node_size,
-                                                ex_keyname=self.platform.get_ssh_key_pair(),
-                                                ex_security_groups=[self.platform.get_security_group()],
-                                                ex_blockdevicemappings=device_mappings,
-                                                ex_terminate_on_shutdown=False)
-
+            node = self.__create_spot_instance(node_size, device_mappings)
         else:
-            node = self.__aws_request(self.driver.create_node, name=self.name,
-                                            image=self.disk_image,
-                                            size=node_size,
-                                            ex_keyname=self.platform.get_ssh_key_pair(),
-                                            ex_security_groups=[self.platform.get_security_group()],
-                                            ex_blockdevicemappings=device_mappings,
-                                            ex_terminate_on_shutdown=False)
+            node = self.__create_on_demand_instance(node_size, device_mappings)
 
         if not node:
-            raise RuntimeError("There was an issue with creating the new instance.")
+            raise RuntimeError(f"({self.name}) There was an issue with creating the new instance.")
 
         # Get list of running nodes
         running_nodes = self.__aws_request(self.driver.wait_until_running, [node], wait_period=20)
@@ -212,7 +183,12 @@ class AmazonInstance(CloudInstance):
             try:
                 logging.info(f"Attempting to restart instance {self.name}")
                 instance_started = self.__aws_request(self.driver.ex_start_node, self.node)
-            except:
+            except Exception as e:
+                exception_string = str(e)
+                if 'IncorrectInstanceState' in exception_string:
+                    logging.info(f"Instance is in the incorrect state to be started.")
+                    status = self.get_status()
+                    logging.info(f"Instance state = {status.upper()}")
                 # we don't care if it fails, we'll retry the attempt
                 pass
             if not instance_started:
@@ -333,7 +309,7 @@ class AmazonInstance(CloudInstance):
             'running':          CloudInstance.AVAILABLE,
             'shutting-down':    CloudInstance.DESTROYING,
             'stopping':         CloudInstance.DESTROYING,
-            'terminated':       CloudInstance.OFF,
+            'terminated':       CloudInstance.TERMINATED,
             'stopped':          CloudInstance.OFF
         }
 
@@ -352,6 +328,64 @@ class AmazonInstance(CloudInstance):
             return self.instance_type["storagePrice"]
         return 0
 
+    def list_nodes(self, instance_type=None):
+        inst_type_filter = None if not instance_type else {'instance-type': instance_type}
+        node_list = self.__aws_request(self.driver.list_nodes, ex_filters=inst_type_filter)
+        return node_list
+
+    def __create_spot_instance(self, node_size, device_mappings):
+        try:
+            logging.info(f"({self.name}) Attempting to create a spot instance of type: {self.instance_type['InstanceType']}")
+            node = self.__aws_request(self.driver.create_node, name=self.name,
+                                            image=self.disk_image,
+                                            size=node_size,
+                                            ex_keyname=self.platform.get_ssh_key_pair(),
+                                            ex_security_groups=[self.platform.get_security_group()],
+                                            ex_blockdevicemappings=device_mappings,
+                                            ex_spot_market=True,
+                                            ex_spot_price=self.instance_type['price'],
+                                            interruption_behavior='stop',
+                                            ex_terminate_on_shutdown=False)
+            return node
+        except Exception as e:
+            exception_string = str(e)
+            logging.info(f"({self.name}) Failed to create a spot instance of type: {self.instance_type['InstanceType']}")
+            logging.error(f"({self.name}) Received error when creating a spot instance: {exception_string}")
+            if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
+                logging.info(f"({self.name}) Changing from spot instance to on-demand because we hit our limit of spot instances!")
+                self.is_preemptible = False
+                node = self.__create_on_demand_instance(node_size, device_mappings)
+                return node
+            else:
+                return None
+
+    def __create_on_demand_instance(self, node_size, device_mappings):
+        try:
+            logging.info(f"({self.name}) Attempting to create an on demand instance of type: {self.instance_type['InstanceType']}")
+            node = self.__aws_request(self.driver.create_node, name=self.name,
+                                            image=self.disk_image,
+                                            size=node_size,
+                                            ex_keyname=self.platform.get_ssh_key_pair(),
+                                            ex_security_groups=[self.platform.get_security_group()],
+                                            ex_blockdevicemappings=device_mappings,
+                                            ex_terminate_on_shutdown=False)
+            return node
+        except Exception as e:
+            exception_string = str(e)
+            logging.info(f"({self.name}) Failed to create an on demand instance of type: {self.instance_type['InstanceType']}")
+            logging.error(f"({self.name}) Received error when creating an on demand instance: {exception_string}")
+            if 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
+                instance_list = self.list_nodes(instance_type=self.instance_type['InstanceType'])
+                logging.info(f"There are currently {str(len(instance_list))} instances of type {self.instance_type['InstanceType']}. Changing instance type")
+                self.__filter_instance_type(self.instance_type['InstanceType'])
+                self.instance_type = self.get_instance_size()
+                size_name = self.instance_type['InstanceType']
+                logging.info(f"({self.name}) NEWLY SELECTED AWS INSTANCE TYPE: {self.instance_type}")
+                node_size = [size for size in self.driver.list_sizes() if size.id == size_name][0]
+                return self.__create_on_demand_instance(node_size, device_mappings)
+            else:
+                return None
+
     def __aws_request(self, method, *args, **kwargs):
         """ Function for handling AWS requests and rate limit issues """
         # retry command up to 20 times
@@ -361,22 +395,30 @@ class AmazonInstance(CloudInstance):
             except Exception as e:
                 if self.__handle_rate_limit_error(e, method):
                     continue
+                logging.error(f"({self.name}) Raising runtime error: {str(e)}")
                 raise RuntimeError(str(e))
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
     def __handle_rate_limit_error(self, e, method):
         exception_string = str(e)
-        logging.warning("[AMAZONINSTANCE] Handling issues with rate limits")
-        logging.error(f"Exception is of type {e.__class__.__name__}")
-        logging.error(f"Print out of exception {exception_string}")
-        if 'MaxSpotInstanceCountExceeded' in exception_string or 'InstanceLimitExceeded' in exception_string:
-            logging.error("Maximum number of spot instances exceeded.")
+        logging.warning(f"({self.name}) [AMAZONINSTANCE] Handling issues with rate limits")
+        logging.error(f"({self.name}) Exception is of type {e.__class__.__name__}")
+        logging.error(f"({self.name}) Print out of exception {exception_string}")
+        if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
+            logging.error(f"({self.name}) Maximum number of spot instances exceeded.")
             return False
         if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string:
-            logging.error(f"Rate Limit Exceeded during request {method.__name__}")
+            logging.error(f"({self.name}) Rate Limit Exceeded during request {method.__name__}")
             time.sleep(10)
             return True
         return False
+
+    def __filter_instance_type(self, instance_type):
+        if self.instance_type_list:
+            for inst_type in self.instance_type_list:
+                if inst_type['InstanceType'] == instance_type:
+                    self.instance_type_list.remove(inst_type)
+                    break
 
     def __get_region_name(self):
         default_region = 'EU (Ireland)'
@@ -480,6 +522,8 @@ class AmazonInstance(CloudInstance):
 
         if spot_requests and spot_requests['SpotInstanceRequests']:
             request_id = spot_requests['SpotInstanceRequests'][0]['SpotInstanceRequestId']
+            logging.info(f"({self.name} Attempting to cancel spot instance {request_id}")
             response = client.cancel_spot_instance_requests(SpotInstanceRequestIds=[request_id])
+            logging.info(f"({self.name} Cancel spot instance response {str(response)}")
             if response and response['CancelledSpotInstanceRequests']:
                 return response['CancelledSpotInstanceRequests'][0]['SpotInstanceRequestId'] == request_id
