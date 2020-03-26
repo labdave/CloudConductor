@@ -278,6 +278,10 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                       f"\n\nSTDERR:\n{stderr}")
         if 'ssh' in stderr:
             try:
+                cmd = f"ssh -i {self.ssh_private_key} " \
+                    f"-o CheckHostIP=no -o StrictHostKeyChecking=no " \
+                    f"{self.ssh_connection_user}@{self.external_IP} -- 'cat /root/.ssh/cloud_conductor'"
+                Process.run_local_cmd(cmd, err_msg="Could not display cc key", print_logs=True)
                 auth_log_tail_cmd = f"tail -n 1000 /var/log/auth.log >> ./{proc_name}-auth.log"
                 cmd = f"ssh -i {self.ssh_private_key} " \
                     f"-o CheckHostIP=no -o StrictHostKeyChecking=no " \
