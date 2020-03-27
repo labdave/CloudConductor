@@ -409,7 +409,7 @@ class AmazonInstance(CloudInstance):
             return False
         if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string:
             logging.error(f"({self.name}) Rate Limit Exceeded during request {method.__name__}")
-            time.sleep(4*count)
+            time.sleep(10*count)
             return True
         return False
 
