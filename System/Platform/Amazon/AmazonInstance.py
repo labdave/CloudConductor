@@ -393,13 +393,13 @@ class AmazonInstance(CloudInstance):
             try:
                 return method(*args, **kwargs)
             except Exception as e:
-                if self.__handle_rate_limit_error(e, method):
+                if self.__handle_rate_limit_error(e, method, i):
                     continue
                 logging.error(f"({self.name}) Raising runtime error: {str(e)}")
                 raise RuntimeError(str(e))
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
-    def __handle_rate_limit_error(self, e, method):
+    def __handle_rate_limit_error(self, e, method, count):
         exception_string = str(e)
         logging.warning(f"({self.name}) [AMAZONINSTANCE] Handling issues with rate limits")
         logging.error(f"({self.name}) Exception is of type {e.__class__.__name__}")
@@ -409,7 +409,7 @@ class AmazonInstance(CloudInstance):
             return False
         if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string:
             logging.error(f"({self.name}) Rate Limit Exceeded during request {method.__name__}")
-            time.sleep(10)
+            time.sleep(10*count)
             return True
         return False
 
