@@ -36,7 +36,7 @@ class GoogleInstance(CloudInstance):
     def create_instance(self):
 
         # Generate NodeSize for instance
-        size_name = f"custom-{self.nr_cpus}-{self.mem*1024}"
+        size_name = f"custom-{int(self.nr_cpus)}-{int(self.mem*1024)}"
         node_size = self.driver.ex_get_size(size_name)
 
         # Read the public key content

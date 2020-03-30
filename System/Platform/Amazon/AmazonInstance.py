@@ -408,7 +408,7 @@ class AmazonInstance(CloudInstance):
             logging.error(f"({self.name}) Maximum number of spot instances exceeded.")
             return False
         if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string:
-            logging.error(f"({self.name}) Rate Limit Exceeded during request {method.__name__}")
+            logging.error(f"({self.name}) Rate Limit Exceeded during request {method.__name__}. Sleeping for {10*count} seconds before retrying.")
             time.sleep(10*count)
             return True
         return False
