@@ -172,13 +172,13 @@ class AmazonPlatform(CloudPlatform):
     def __handle_rate_limit_error(self, e, method, count):
         exception_string = str(e)
         logging.warning("[AMAZONPLATFORM] Handling issues with rate limits")
-        logging.error(f"Exception is of type {e.__class__.__name__}")
-        logging.error(f"Print out of exception {exception_string}")
+        logging.warning(f"Exception is of type {e.__class__.__name__}")
+        logging.warning(f"Print out of exception {exception_string}")
         if 'MaxSpotInstanceCountExceeded' in exception_string or 'InstanceLimitExceeded' in exception_string:
             logging.error("Maximum number of spot instances exceeded.")
             return False
         if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string:
-            logging.error(f"Rate Limit Exceeded during request {method.__name__}")
+            logging.error(f"Rate Limit Exceeded during request {method.__name__}. Sleeping for {10*count} seconds before retrying.")
             time.sleep(10*count)
             return True
         return False

@@ -97,15 +97,15 @@ class GooglePlatform(CloudPlatform):
         # Ensure instance name does not contain weird characters
         inst_name = inst_name.replace("_", "-").lower()
 
-        # Ensure the memory is withing GCP range:
-        if mem / nr_cpus < 0.9:
-            mem = nr_cpus * 0.9
-        elif mem / nr_cpus > 6.5:
-            nr_cpus = math.ceil(mem / 6.5)
-
         # Ensure number of CPUs is an even number or 1
         if nr_cpus != 1 and nr_cpus % 2 == 1:
             nr_cpus += 1
+
+        # Ensure the memory is within GCP range:
+        if mem / nr_cpus < 0.9:
+            mem = math.ceil(nr_cpus * 0.9)
+        elif mem / nr_cpus > 6.5:
+            nr_cpus = math.ceil(mem / 6.5)
 
         return inst_name, nr_cpus, mem, disk_space
 
