@@ -95,7 +95,7 @@ class GooglePlatform(CloudPlatform):
     def standardize_instance(inst_name, nr_cpus, mem, disk_space):
 
         # Ensure instance name does not contain weird characters
-        inst_name = inst_name.replace("_", "-").lower()
+        inst_name = inst_name.replace("_", "-").replace(".","-").lower()
 
         # Ensure number of CPUs is an even number or 1
         if nr_cpus != 1 and nr_cpus % 2 == 1:
