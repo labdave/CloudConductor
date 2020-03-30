@@ -115,7 +115,7 @@ class AmazonPlatform(CloudPlatform):
     def standardize_instance(inst_name, nr_cpus, mem, disk_space):
 
         # Ensure instance name does not contain weird characters
-        inst_name = inst_name.replace("_", "-").lower()
+        inst_name = inst_name.replace("_", "-").replace(".", "-").lower()
 
         return inst_name, nr_cpus, mem, disk_space
 
