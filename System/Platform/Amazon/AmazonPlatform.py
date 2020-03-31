@@ -164,7 +164,7 @@ class AmazonPlatform(CloudPlatform):
             try:
                 return method(*args, **kwargs)
             except Exception as e:
-                if self.__handle_rate_limit_error(e, method, i):
+                if self.__handle_rate_limit_error(e, method, i+1):
                     continue
                 raise RuntimeError(str(e))
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
