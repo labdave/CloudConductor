@@ -262,6 +262,9 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                     cmd = cmd.replace('--recursive', '')
                 else:
                     cmd = cmd.replace('aws s3 cp', 'aws s3 cp --recursive')
+            if 'ssh' in stderr:
+                # issue with ssh connection, sleep for 10 seconds in case the server was having trouble with connections/commands
+                time.sleep(10)
             self.run(job_name=proc_name,
                      cmd=cmd,
                      num_retries=proc_obj.get_num_retries()-1,
