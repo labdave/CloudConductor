@@ -393,7 +393,7 @@ class AmazonInstance(CloudInstance):
             try:
                 return method(*args, **kwargs)
             except Exception as e:
-                if self.__handle_rate_limit_error(e, method, i):
+                if self.__handle_rate_limit_error(e, method, i+1):
                     continue
                 logging.error(f"({self.name}) Raising runtime error: {str(e)}")
                 raise RuntimeError(str(e))
