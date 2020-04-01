@@ -195,7 +195,6 @@ class AmazonPlatform(CloudPlatform):
     def __handle_rate_limit_error(self, e, method, count):
         exception_string = str(e)
         logging.debug("[AMAZONPLATFORM] Handling issues with rate limits")
-        logging.debug(f"Exception is of type {e.__class__.__name__}")
         logging.debug(f"Print out of exception {exception_string}")
         if 'MaxSpotInstanceCountExceeded' in exception_string or 'InstanceLimitExceeded' in exception_string:
             logging.info("Maximum number of spot instances exceeded.")
