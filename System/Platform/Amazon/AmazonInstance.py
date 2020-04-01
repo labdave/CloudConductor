@@ -47,50 +47,22 @@ class AmazonInstance(CloudInstance):
 
         self.boto_config = Config(
             retries = dict(
-                max_attempts = 10,
+                max_attempts = 20,
                 mode = 'adaptive'
             )
         )
 
+        self.instance_type_list = self.platform.get_instance_type_list()
+
     def get_instance_size(self):
         '''Select optimal instance type for provided region, number of cpus, and memory allocation'''
         selected_instance_type = None
-        if not self.instance_type_list:
-            ec2 = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name=self.region, config=self.boto_config)
-            region_name = self.__get_region_name()
-            describe_args = {'Filters': [
-                                {'Name': 'current-generation', 'Values': ['true']}
-                            ]}
-            self.instance_type_list = []
-            # get all instance types
-            while True:
-                describe_result = self.__aws_request(ec2.describe_instance_types, **describe_args)
-                for instance_type in describe_result['InstanceTypes']:
-                    if self.instance_type_list_filter and instance_type['InstanceType'] in self.instance_type_list_filter:
-                        self.instance_type_list.append(instance_type)
-                    elif not self.instance_type_list_filter:
-                        self.instance_type_list.append(instance_type)
-                if 'NextToken' not in describe_result:
-                    break
-                describe_args['NextToken'] = describe_result['NextToken']
-
-            # get pricing for instance types
-            self.__map_instance_type_pricing(region_name, self.zone, self.instance_type_list)
 
         for instance_type in self.instance_type_list:
             # get number of cpus in instance type
             type_cpus = instance_type['VCpuInfo']['DefaultVCpus']
             # get amount of mem in instance type in MiB
             type_mem = instance_type['MemoryInfo']['SizeInMiB']
-            # get network performance
-            type_network_perf = instance_type['NetworkInfo']['NetworkPerformance']
-            perf_number = ''.join([s for s in type_network_perf.split() if s.isdigit()])
-            high_perf = False
-            if perf_number:
-                high_perf = int(perf_number) >= 10
-            else:
-                high_perf = type_network_perf == 'High'
-            # make sure instance type has more resources than our minimum requirement
             if type_cpus >= self.nr_cpus and type_mem >= self.mem * 1024:
                 if not selected_instance_type:
                     selected_instance_type = instance_type
@@ -419,98 +391,6 @@ class AmazonInstance(CloudInstance):
                 if inst_type['InstanceType'] == instance_type:
                     self.instance_type_list.remove(inst_type)
                     break
-
-    def __get_region_name(self):
-        default_region = 'EU (Ireland)'
-        endpoint_file = resource_filename('botocore', 'data/endpoints.json')
-        try:
-            with open(endpoint_file, 'r') as f:
-                data = json.load(f)
-            return data['partitions'][0]['regions'][self.region]['description']
-        except IOError:
-            return default_region
-
-    def __map_instance_type_pricing(self, region, zone, instance_types):
-        # construct list of instance type names
-        inst_type_list = [x['InstanceType'] for x in instance_types]
-        # Search product filter
-        pricing_args = {'ServiceCode': 'AmazonEC2',
-                        'Filters': [
-                            {"Field": "tenancy", "Value": "shared", "Type": "TERM_MATCH"},
-                            {"Field": "operatingSystem", "Value": "Linux", "Type": "TERM_MATCH"},
-                            {"Field": "preInstalledSw", "Value": "NA", "Type": "TERM_MATCH"},
-                            {"Field": "location", "Value": region, "Type": "TERM_MATCH"},
-                            {"Field": "capacitystatus", "Value": "Used", "Type": "TERM_MATCH"}
-                        ],
-                        'MaxResults': 100}
-
-        # get standard pricing for products
-        client = boto3.client('pricing', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1')
-        pricing_data = {}
-        while True:
-            pricing_result = self.__aws_request(client.get_products, **pricing_args)
-            # build pricing dictionary
-            for prod in pricing_result['PriceList']:
-                prod_data = json.loads(prod)
-                inst_type = prod_data['product']['attributes']['instanceType']
-                if inst_type in inst_type_list:
-                    od = prod_data['terms']['OnDemand']
-                    id1 = list(od)[0]
-                    id2 = list(od[id1]['priceDimensions'])[0]
-                    price = float(od[id1]['priceDimensions'][id2]['pricePerUnit']['USD'])
-                    pricing_data[inst_type] = price
-            if 'NextToken' not in pricing_result or pricing_result['NextToken'] == '':
-                break
-            pricing_args['NextToken'] = pricing_result['NextToken']
-
-        client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1', config=self.boto_config)
-        spot_pricing_data = {}
-        start_time = datetime.today() - timedelta(days=2)
-        next_token = ''
-
-        while True:
-            spot_pricing_result = self.__aws_request(client.describe_spot_price_history, StartTime=start_time, InstanceTypes=inst_type_list, MaxResults=1000, ProductDescriptions=['Linux/UNIX (Amazon VPC)'], AvailabilityZone=zone, NextToken=next_token)
-            # build pricing dictionary
-            for price in spot_pricing_result['SpotPriceHistory']:
-                if price['InstanceType'] not in spot_pricing_data:
-                    spot_pricing_data[price['InstanceType']] = []
-
-                spot_pricing_data[price['InstanceType']].append(price['SpotPrice'])
-            if 'NextToken' not in spot_pricing_result or spot_pricing_result['NextToken'] == '':
-                break
-            next_token = spot_pricing_result['NextToken']
-
-        for key in spot_pricing_data:
-            spot_pricing_data[key] = statistics.mean([float(x) for x in spot_pricing_data[key]]) * 1.10
-        storage_price = self.__get_ebs_price(region)
-
-        for inst_type in instance_types:
-            if inst_type['InstanceType'] in pricing_data:
-                inst_type['price'] = pricing_data[inst_type['InstanceType']]
-            if inst_type['InstanceType'] in spot_pricing_data:
-                inst_type['spotPrice'] = spot_pricing_data[inst_type['InstanceType']]
-            inst_type['storagePrice'] = storage_price
-
-    def __get_ebs_price(self, region, storage_type="standard"):
-        ebs_name_map = {
-            'standard': 'Magnetic',
-            'gp2': 'General Purpose',
-            'io1': 'Provisioned IOPS',
-            'st1': 'Throughput Optimized HDD',
-            'sc1': 'Cold HDD'
-        }
-
-        # Search product filter
-        FLT = '[{{"Field": "volumeType", "Value": "{t}", "Type": "TERM_MATCH"}},'\
-            '{{"Field": "location", "Value": "{r}", "Type": "TERM_MATCH"}}]'
-
-        client = boto3.client('pricing', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1', config=self.boto_config)
-        f = FLT.format(r=region, t=ebs_name_map[storage_type])
-        data = self.__aws_request(client.get_products, ServiceCode='AmazonEC2', Filters=json.loads(f))
-        od = json.loads(data['PriceList'][0])['terms']['OnDemand']
-        id1 = list(od)[0]
-        id2 = list(od[id1]['priceDimensions'])[0]
-        return float(od[id1]['priceDimensions'][id2]['pricePerUnit']['USD'])
 
     def __cancel_spot_instance_request(self):
         client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1', config=self.boto_config)
