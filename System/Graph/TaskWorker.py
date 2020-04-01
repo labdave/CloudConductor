@@ -351,4 +351,3 @@ class GarbageCollector(threading.Thread):
     def run(self):
         logging.debug("GarbageCollector destroying processor: {0}".format(self.proc.get_name()))
         self.proc.destroy()
-
