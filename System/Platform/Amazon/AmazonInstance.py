@@ -349,8 +349,8 @@ class AmazonInstance(CloudInstance):
             return node
         except Exception as e:
             exception_string = str(e)
-            logging.info(f"({self.name}) Failed to create a spot instance of type: {self.instance_type['InstanceType']}")
-            logging.error(f"({self.name}) Received error when creating a spot instance: {exception_string}")
+            logging.debug(f"({self.name}) Failed to create a spot instance of type: {self.instance_type['InstanceType']}")
+            logging.debug(f"({self.name}) Received error when creating a spot instance: {exception_string}")
             if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
                 logging.info(f"({self.name}) Changing from spot instance to on-demand because we hit our limit of spot instances!")
                 self.is_preemptible = False
@@ -401,9 +401,9 @@ class AmazonInstance(CloudInstance):
 
     def __handle_rate_limit_error(self, e, method, count):
         exception_string = str(e)
-        logging.warning(f"({self.name}) [AMAZONINSTANCE] Handling issues with rate limits")
-        logging.error(f"({self.name}) Exception is of type {e.__class__.__name__}")
-        logging.error(f"({self.name}) Print out of exception {exception_string}")
+        logging.debug(f"({self.name}) [AMAZONINSTANCE] Handling issues with rate limits")
+        logging.debug(f"({self.name}) Exception is of type {e.__class__.__name__}")
+        logging.debug(f"({self.name}) Print out of exception {exception_string}")
         if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
             logging.error(f"({self.name}) Maximum number of spot instances exceeded.")
             return False
