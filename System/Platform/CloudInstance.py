@@ -209,7 +209,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
         # Wrap the command around ssh
         cmd = f"ssh -i {self.ssh_private_key} " \
-            f"-o CheckHostIP=no -o StrictHostKeyChecking=no " \
+            f"-o CheckHostIP=no -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o TCPKeepAlive=yes " \
             f"{self.ssh_connection_user}@{self.external_IP} -- '{cmd}'"
 
         # Run command using subprocess popen and add Popen object to self.processes
