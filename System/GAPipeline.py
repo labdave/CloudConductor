@@ -340,4 +340,3 @@ class GAPReport(object):
 
     def __str__(self):
         return json.dumps(self.to_dict(), indent=4)
-

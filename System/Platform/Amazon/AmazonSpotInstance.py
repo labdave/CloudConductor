@@ -72,7 +72,7 @@ class AmazonSpotInstance(AmazonInstance):
             elif "destroy" not in self.processes and proc_name not in ["create", "destroy"]:
                 needs_reset = True
 
-        elif curr_status == CloudInstance.OFF or status == CloudInstance.TERMINATED:
+        elif curr_status == CloudInstance.OFF or curr_status == CloudInstance.TERMINATED:
             # Don't do anythying if destroy failed but instance doesn't actually exist anymore
             if proc_name == "destroy":
                 logging.debug("(%s) Instance already destroyed!" % self.name)
@@ -84,7 +84,7 @@ class AmazonSpotInstance(AmazonInstance):
                 return True
 
             # Reset instance and re-run command if command failed and not sure why instance doesn't exist (e.g. preemption, gets manually deleted)
-            elif "destroy" not in self.processes and ( curr_status == CloudInstance.OFF or status == CloudInstance.TERMINATED ):
+            elif "destroy" not in self.processes and (curr_status == CloudInstance.OFF or curr_status == CloudInstance.TERMINATED):
                 needs_reset = True
 
         logging.debug("(%s) Curr_status, can_retry, needs_reset are: %s, %s, %s" % (self.name, curr_status, can_retry, needs_reset))

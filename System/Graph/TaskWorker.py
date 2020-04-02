@@ -113,7 +113,6 @@ class TaskWorker(Thread):
             disk_space      = self.__compute_disk_requirements(input_files, docker_image)
             logging.debug("(%s) CPU: %s, Mem: %s, Disk space: %s" % (self.task.get_ID(), cpus, mem, disk_space))
 
-
             # Quit if pipeline is cancelled
             self.__check_cancelled()
 
