@@ -81,6 +81,9 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
         # Boolean flag to lock instance creation upon cleanup
         self.__locked = False
 
+        # Platform resource used for marking cancellation/failure and the source task for failure
+        self.pipeline_failure_source = ""
+
         # Current resource levels
         self.cpu = 0
         self.mem = 0

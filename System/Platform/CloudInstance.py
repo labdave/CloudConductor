@@ -268,14 +268,19 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                      docker_image=proc_obj.get_docker_image())
             return self.wait_process(proc_name)
 
-        # Process still failing and cannot be retried anymore
-        logging.error(f"({self.name}) Process '{proc_name}' failed!")
+        if not self.platform.pipeline_failure_source:
+            self.platform.pipeline_failure_source = proc_name
 
-        # Log the output
-        stdout, stderr = proc_obj.get_output()
-        logging.debug(f"({self.name}) The following output/error was received:"
-                      f"\n\nSTDOUT:\n{stdout}"
-                      f"\n\nSTDERR:\n{stderr}")
+            # Process still failing and cannot be retried anymore
+            logging.error(f"({self.name}) Process '{proc_name}' failed!")
+
+            # Log the output
+            stdout, stderr = proc_obj.get_output()
+            logging.debug(f"({self.name}) The following output/error was received:"
+                            f"\n\nSTDOUT:\n{stdout}"
+                            f"\n\nSTDERR:\n{stderr}")
+        else:
+            logging.debug(f"({self.name}) Process '{proc_name}' was cancelled because process ({self.platform.pipeline_failure_source}) failed!")
 
         # Raise an error
         raise RuntimeError(f"({self.name}) Instance failed at process '{proc_name}'!")

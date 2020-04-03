@@ -322,7 +322,7 @@ class AmazonInstance(CloudInstance):
         except Exception as e:
             exception_string = str(e)
             logging.debug(f"({self.name}) Failed to create a spot instance of type: {self.instance_type['InstanceType']}")
-            logging.debug(f"({self.name}) Received error when creating a spot instance: {exception_string}")
+            logging.debug(f"({self.name}) There was an issue when creating a spot instance: {exception_string}")
             if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
                 logging.info(f"({self.name}) Changing from spot instance to on-demand because we hit our limit of spot instances!")
                 self.is_preemptible = False
@@ -345,7 +345,7 @@ class AmazonInstance(CloudInstance):
         except Exception as e:
             exception_string = str(e)
             logging.info(f"({self.name}) Failed to create an on demand instance of type: {self.instance_type['InstanceType']}")
-            logging.error(f"({self.name}) Received error when creating an on demand instance: {exception_string}")
+            logging.error(f"({self.name}) There was an issue when creating an on demand instance: {exception_string}")
             if 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
                 instance_list = self.list_nodes(instance_type=self.instance_type['InstanceType'])
                 logging.info(f"There are currently {str(len(instance_list))} instances of type {self.instance_type['InstanceType']}. Changing instance type")
@@ -367,7 +367,6 @@ class AmazonInstance(CloudInstance):
             except Exception as e:
                 if self.__handle_rate_limit_error(e, method, i+1):
                     continue
-                logging.error(f"({self.name}) Raising runtime error: {str(e)}")
                 raise RuntimeError(str(e))
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
