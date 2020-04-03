@@ -10,6 +10,7 @@ class Jacquard(Merger):
 
 
     def define_input(self):
+        self.add_argument("sample_id",      is_required=True)
         self.add_argument("vcf",            is_required=True)
         self.add_argument("jacquard",       is_required=True, is_resource=True)
 
@@ -27,6 +28,8 @@ class Jacquard(Merger):
     def define_command(self):
 
         # Get program options
+        sample_id           = self.get_argument("sample_id")
+        in_vcf              = self.get_argument("vcf")
         jacquard            = self.get_argument("jacquard")
         input_dir           = os.path.dirname(self.output_dir.rstrip("/"))
         output_file         = self.get_output("vcf")
