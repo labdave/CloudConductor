@@ -201,8 +201,8 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
         # Run in docker image if specified
         if docker_image is not None:
-            cmd = f"sudo docker run --rm --user root -v {self.wrk_dir}:{self.wrk_dir} {docker_image} " \
-                f"/bin/bash -c '{cmd}'"
+            cmd = f"sudo docker run --rm --user root -v {self.wrk_dir}:{self.wrk_dir} --entrypoint '/bin/bash' {docker_image} " \
+                f"-c '{cmd}'"
 
         # Modify quotation marks to be able to send through SSH
         cmd = cmd.replace("'", "'\"'\"'")
