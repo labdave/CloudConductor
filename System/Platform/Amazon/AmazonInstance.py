@@ -394,8 +394,7 @@ class AmazonInstance(CloudInstance):
         client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1', config=self.boto_config)
         describe_args = {'Filters': [
                             {'Name': 'instance-id', 'Values': [self.node.id]}
-                        ],
-                        'MaxResults': 5}
+                        ]}
         spot_requests = self.__aws_request(client.describe_spot_instance_requests, **describe_args)
 
         if spot_requests and spot_requests['SpotInstanceRequests']:
