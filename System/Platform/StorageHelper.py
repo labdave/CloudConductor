@@ -20,10 +20,10 @@ class StorageHelper(object):
         cmd_generator = StorageHelper.__get_storage_cmd_generator(src_path, dest_path)
         cmd = cmd_generator.mv(src_path, dest_path)
 
-        job_name = "mv_%s" % CloudPlatform.generate_unique_id() if job_name is None else job_name
+        job_name = f"mv_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
 
         # Optionally add logging
-        cmd = "%s !LOG3!" % cmd if log else cmd
+        cmd = f"{cmd} !LOG3!" if log else cmd
 
         # Run command and return job name
         self.proc.run(job_name, cmd, **kwargs)
@@ -36,12 +36,12 @@ class StorageHelper(object):
         cmd_generator = StorageHelper.__get_storage_cmd_generator(dir_path)
         cmd = cmd_generator.mkdir(dir_path)
 
-        job_name = "mkdir_%s" % CloudPlatform.generate_unique_id() if job_name is None else job_name
+        job_name = f"mkdir_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
 
         # Optionally add logging
-        cmd = "%s !LOG3!" % cmd if log else cmd
+        cmd = f"{cmd} !LOG3!" if log else cmd
 
-        # Run command and return job name
+        # Run command and return job namemk
         self.proc.run(job_name, cmd, **kwargs)
         if wait:
             self.proc.wait_process(job_name)
@@ -53,7 +53,7 @@ class StorageHelper(object):
         cmd = cmd_generator.ls(path)
 
         # Run command and return job name
-        job_name = "check_exists_%s" % CloudPlatform.generate_unique_id() if job_name is None else job_name
+        job_name = f"check_exists_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
         self.proc.run(job_name, cmd, **kwargs)
 
         # Wait for cmd to finish and get output
@@ -62,10 +62,10 @@ class StorageHelper(object):
             return True
         except RuntimeError as e:
             if str(e) != "":
-                logging.debug("StorageHelper error for %s:\n%s" % (job_name, e))
+                logging.debug(f"StorageHelper error for {job_name}:\n{e}")
             return False
         except:
-            logging.error("Unable to check path existence: %s" % path)
+            logging.error(f"Unable to check path existence: {path}")
             raise
 
     def get_file_size(self, path, job_name=None, **kwargs):
@@ -74,7 +74,7 @@ class StorageHelper(object):
         cmd = cmd_generator.get_file_size(path)
 
         # Run command and return job name
-        job_name = "get_size_%s" % CloudPlatform.generate_unique_id() if job_name is None else job_name
+        job_name = f"get_size_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
         self.proc.run(job_name, cmd, **kwargs)
 
         # Wait for cmd to finish and get output
@@ -87,9 +87,9 @@ class StorageHelper(object):
             return sum(bytes)/(1024**3.0)
 
         except BaseException as e:
-            logging.error("Unable to get file size: %s" % path)
+            logging.error(f"Unable to get file size: {path}")
             if str(e) != "":
-                logging.error("Received the following msg:\n%s" % e)
+                logging.error(f"Received the following msg:\n{e}")
             raise
 
     def rm(self, path, job_name=None, log=True, wait=False, **kwargs):
@@ -98,10 +98,10 @@ class StorageHelper(object):
         cmd_generator = StorageHelper.__get_storage_cmd_generator(path)
         cmd = cmd_generator.rm(path)
 
-        job_name = "rm_%s" % CloudPlatform.generate_unique_id() if job_name is None else job_name
+        job_name = f"rm_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
 
         # Optionally add logging
-        cmd = "%s !LOG3!" % cmd if log else cmd
+        cmd = f"{cmd} !LOG3!" if log else cmd
 
         # Run command and return job name
         self.proc.run(job_name, cmd, **kwargs)
@@ -136,9 +136,9 @@ class StorageHelper(object):
 
         # Raise error because we can't handle the type of file currently
         logging.error("StorageHelper cannot handle one or more input file storage types!")
-        logging.error("Path: %s" % src_path)
+        logging.error(f"Path: {src_path}")
         if dest_path is not None:
-            logging.error("Dest_path: %s" % dest_path)
+            logging.error(f"Dest_path: {dest_path}")
         raise InvalidStorageTypeError("Cannot handle input file storage type!")
 
     @staticmethod
@@ -163,26 +163,26 @@ class LocalStorageCmdGenerator(StorageCmdGenerator):
     @staticmethod
     def mv(src_path, dest_dir):
         # Move a file from one directory to another
-        return "sudo mv %s %s" % (src_path, dest_dir)
+        return f"sudo mv {src_path} {dest_dir}"
 
     @staticmethod
     def mkdir(dir_path):
         # Makes a directory if it doesn't already exists
-        return "sudo mkdir -p %s" % dir_path
+        return f"sudo mkdir -p {dir_path}"
 
     @staticmethod
     def get_file_size(path):
         # Return cmd for getting file size in bytes
-        return "sudo du -sh --apparent-size --bytes %s" % path
+        return f"sudo du -sh --apparent-size --bytes {path}"
 
     @staticmethod
     def ls(path):
-        return "sudo ls %s" % path
+        return f"sudo ls {path}"
 
     @staticmethod
     def rm(path):
         # Dear god do not give sudo privileges to this command
-        return "rm -rf %s" % path
+        return f"rm -rf {path}"
 
 
 class GoogleStorageCmdGenerator(StorageCmdGenerator):
@@ -193,25 +193,25 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
     def mv(src_path, dest_dir):
         # Move a file from one directory to another
         options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
-        return "sudo gsutil %s cp -r %s %s" % (options_fast, src_path, dest_dir)
+        return f"sudo gsutil {options_fast} cp -r {src_path} {dest_dir}"
 
     @staticmethod
     def mkdir(dir_path):
         # Makes a directory if it doesn't already exists
-        return "touch dummy.txt ; gsutil cp dummy.txt %s" % dir_path
+        return f"touch dummy.txt ; gsutil cp dummy.txt {dir_path}; gsutil rm {dir_path}dummy.txt"
 
     @staticmethod
     def get_file_size(path):
         # Return cmd for getting file size in bytes
-        return "gsutil du -s %s" % path
+        return f"gsutil du -s {path}"
 
     @staticmethod
     def ls(path):
-        return "gsutil ls %s" % path
+        return f"gsutil ls {path}"
 
     @staticmethod
     def rm(path):
-        return "gsutil rm -r %s" % path
+        return f"gsutil rm -r {path}"
 
 
 class AmazonStorageCmdGenerator(StorageCmdGenerator):
@@ -226,23 +226,22 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
         src_path = src_path.rstrip("/*")
         dest_dir = dest_dir.rstrip("/*")
 
-        return "aws s3 cp %s %s %s/%s" % \
-               (recursive_flag, src_path, dest_dir, os.path.basename(src_path))
+        return f"aws s3 cp {recursive_flag} {src_path} {dest_dir}/{os.path.basename(src_path)}"
 
     @staticmethod
     def mkdir(dir_path):
         # Makes a directory if it doesn't already exists
-        return "touch dummy.txt ; aws s3 cp dummy.txt %s" % dir_path
+        return f"touch dummy.txt ; aws s3 cp dummy.txt {dir_path}; aws s3 rm {dir_path}dummy.txt"
 
     @staticmethod
     def get_file_size(path):
         # Return cmd for getting file size in bytes
-        return "aws s3 ls %s --recursive --summarize | tail -n1 | cut -d' ' -f6" % path
+        return f"aws s3 ls {path} --recursive --summarize | tail -n1 | cut -d' ' -f6"
 
     @staticmethod
     def ls(path):
-        return "aws s3 ls %s" % path
+        return f"aws s3 ls {path}"
 
     @staticmethod
     def rm(path):
-        return "aws s3 rm --recursive %s" % path
+        return f"aws s3 rm --recursive {path}"
