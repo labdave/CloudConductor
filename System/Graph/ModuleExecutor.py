@@ -180,10 +180,6 @@ class ModuleExecutor(object):
             self.processor.wait_process(job_name)
 
     def save_logs(self):
-        # Check if there are logs to move
-        if not os.path.exists(self.workspace.get_wrk_log_dir()) or len(os.listdir(self.workspace.get_wrk_log_dir())) == 0:
-            logging.info(f"({self.processor.name}) No log files to push. Moving on.")
-            return
         # Move log files to final output log directory
         log_files = os.path.join(self.workspace.get_wrk_log_dir(), "*")
         final_log_dir = self.workspace.get_output_dir()

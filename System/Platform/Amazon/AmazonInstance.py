@@ -399,8 +399,8 @@ class AmazonInstance(CloudInstance):
 
         if spot_requests and spot_requests['SpotInstanceRequests']:
             request_id = spot_requests['SpotInstanceRequests'][0]['SpotInstanceRequestId']
-            logging.info(f"({self.name} Attempting to cancel spot instance {request_id}")
+            logging.debug(f"({self.name} Attempting to cancel spot instance {request_id}")
             response = client.cancel_spot_instance_requests(SpotInstanceRequestIds=[request_id])
-            logging.info(f"({self.name} Cancel spot instance response {str(response)}")
+            logging.debug(f"({self.name} Cancel spot instance response {str(response)}")
             if response and response['CancelledSpotInstanceRequests']:
                 return response['CancelledSpotInstanceRequests'][0]['SpotInstanceRequestId'] == request_id
