@@ -422,14 +422,25 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         return "ssh" in out.lower()
 
     def __add_history_event(self, _type, _timestamp=None):
-        self.history.append({
-            "type": _type,
-            "timestamp": time.time() if _timestamp is None else _timestamp,
-            "price": {
-                "compute": self.get_compute_price(),
-                "storage": self.get_storage_price()
-            }
-        })
+        # make sure not to add duplicate events
+        if len(self.history) == 0:
+            self.history.append({
+                "type": _type,
+                "timestamp": time.time() if _timestamp is None else _timestamp,
+                "price": {
+                    "compute": self.get_compute_price(),
+                    "storage": self.get_storage_price()
+                }
+            })
+        elif len(self.history) > 0 and self.history[len(self.history)-1]['type'] != _type:
+            self.history.append({
+                "type": _type,
+                "timestamp": time.time() if _timestamp is None else _timestamp,
+                "price": {
+                    "compute": self.get_compute_price(),
+                    "storage": self.get_storage_price()
+                }
+            })
 
     def get_name(self):
         return self.name
