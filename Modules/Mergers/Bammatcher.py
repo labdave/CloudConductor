@@ -83,4 +83,4 @@ class BammatcherReporter(Merger):
         reports                 = self.get_argument("bammatcher_report")
         output_report           = self.get_output("relatedness_report")
 
-        return "{-1} {1} > {2} !LOG2!".format(bammatcher_reporter, " ".join(reports), output_report)
+        return "{0} {1} > {2} !LOG2!".format(bammatcher_reporter, " ".join(reports), output_report)
