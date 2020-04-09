@@ -416,8 +416,6 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         if err:
             return False
 
-        logging.debug(f"SSH Message: {out.lower()}")
-
         # Otherwise, return only if there is ssh in the received header
         return "ssh" in out.lower()
 
