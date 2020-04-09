@@ -235,6 +235,7 @@ class AmazonInstance(CloudInstance):
               f"-o SendEnv=AWS_ACCESS_KEY_ID " \
               f"-o SendEnv=AWS_SECRET_ACCESS_KEY " \
               f"-o SendEnv=GOOGLE_APPLICATION_CREDENTIALS " \
+              f"-o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o TCPKeepAlive=yes "\
               f"{self.ssh_connection_user}@{self.external_IP} -- '{cmd}'"
 
         # Run command using subprocess popen and add Popen object to self.processes
