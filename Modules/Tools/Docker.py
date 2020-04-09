@@ -87,6 +87,9 @@ class Docker(Module):
         var_dict = self.get_var_dict()
         # Declare outputs
         outputs = self.module_args.get("outputs")
+        # Do nothing if there is no output.
+        if not outputs:
+            return
         for key, value in outputs.items():
             # is_path will be True by default
             is_path = True
