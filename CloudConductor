@@ -249,9 +249,11 @@ def main():
         err = False
 
     except BaseException as e:
+        import traceback
         logging.error("Pipeline failed!")
-        logging.error("Pipeline failure error:\n%s" % e)
-        err_msg = str(e)
+        err_msg = "%s\n%s" % (e, traceback.format_exc())
+        logging.error("Pipeline failure error:\n%s" % err_msg)
+        
         pipeline.save_progress()
         raise
 
