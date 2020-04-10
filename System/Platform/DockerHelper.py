@@ -38,7 +38,7 @@ class DockerHelper(object):
             # Try using the Registry API
             # This API is less efficient than the DockerHub API as it makes an additional authorization request
             # This API works for GCR, but it is not tested for other registry.
-            if DockerImage(image_name).accessible():
+            if DockerImage(image_name).is_accessible():
                 return True
 
             # this should handle everything that doesn't exist on docker hub ( way less efficient )
