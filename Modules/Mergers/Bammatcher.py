@@ -69,8 +69,8 @@ class BammatcherReporter(Merger):
     def define_input(self):
         self.add_argument("bammatcher_report",      is_required=True)
         self.add_argument("bammatcher_reporter",    is_resource=True, is_required=True)
-        self.add_argument("nr_cpus",                default_value=0)
-        self.add_argument("mem",                    default_value=0)
+        self.add_argument("nr_cpus",                default_value=2)
+        self.add_argument("mem",                    default_value=8)
 
     def define_output(self):
         # Generate output filename
