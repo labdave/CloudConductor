@@ -88,7 +88,7 @@ class DockerHelper(object):
             raise
 
     def get_docker_image_info(self, image_name):
-        docker_image_split = image_name.split(":")
+        docker_image_split = image_name.rsplit(":", 1)
         image = docker_image_split[0]
         # Use the latest image if tag is not given
         tag = docker_image_split[1] if len(docker_image_split) > 1 else "latest"
