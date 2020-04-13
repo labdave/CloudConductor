@@ -376,8 +376,11 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             # Wait for 15 seconds before checking the SSH server and status again
             time.sleep(30)
 
+            status = self.get_status()
+
             # If instance is not creating, it means it does not exist on the cloud or it's stopped
-            if self.get_status() not in [CloudInstance.CREATING, CloudInstance.AVAILABLE]:
+            if status not in [CloudInstance.CREATING, CloudInstance.AVAILABLE]:
+                logging.debug(f'({self.name}) Current instance status is: {status}.')
                 logging.debug(f'({self.name}) Instance has been shut down, removed, or preempted. Resetting instance!')
                 break
 
