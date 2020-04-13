@@ -1,6 +1,8 @@
 import logging
 import os
 
+from Aries.storage import StorageFile
+
 from System.Platform import CloudPlatform
 
 
@@ -48,18 +50,16 @@ class StorageHelper(object):
         return job_name
 
     def path_exists(self, path, job_name=None, **kwargs):
-        # Return true if file exists, false otherwise
-        cmd_generator = StorageHelper.__get_storage_cmd_generator(path)
-        cmd = cmd_generator.ls(path)
 
-        # Run command and return job name
-        job_name = f"check_exists_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
-        self.proc.run(job_name, cmd, **kwargs)
-
-        # Wait for cmd to finish and get output
-        try:
-            self.proc.wait_process(job_name)
+        # Ignore local paths
+        if self.__get_file_protocol(path) == "Local":
             return True
+
+        try:
+            # Create StorageFile object and return if file exists
+            _file = StorageFile(path)
+
+            return _file.exists()
         except RuntimeError as e:
             if str(e) != "":
                 logging.debug(f"StorageHelper error for {job_name}:\n{e}")
@@ -69,22 +69,20 @@ class StorageHelper(object):
             raise
 
     def get_file_size(self, path, job_name=None, **kwargs):
-        # Return file size in gigabytes
-        cmd_generator = StorageHelper.__get_storage_cmd_generator(path)
-        cmd = cmd_generator.get_file_size(path)
 
-        # Run command and return job name
-        job_name = f"get_size_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
-        self.proc.run(job_name, cmd, **kwargs)
+        # Ignore local paths
+        if self.__get_file_protocol(path) == "Local":
+            return True
 
-        # Wait for cmd to finish and get output
         try:
-            # Try to return file size in gigabytes
-            out, err = self.proc.wait_process(job_name)
-            # Iterate over all files if multiple files (can happen if wildcard)
-            bytes = [int(x.split()[0]) for x in out.split("\n") if x != ""]
-            # Add them up and divide by billion bytes
-            return sum(bytes)/(1024**3.0)
+            # Generate StorageFile object
+            _file = StorageFile(path)
+
+            # Obtain size in bytes
+            _size = _file.size
+
+            # Convert to GB
+            return float(_size)/2**30
 
         except BaseException as e:
             logging.error(f"Unable to get file size: {path}")
