@@ -1,6 +1,7 @@
 import logging
 import subprocess as sp
 import json
+from .DockerImage import DockerImage
 
 
 class DockerHelper(object):
@@ -34,6 +35,12 @@ class DockerHelper(object):
             if result and 'id' in result:
                 return True
 
+            # Try using the Registry API
+            # This API is less efficient than the DockerHub API as it makes an additional authorization request
+            # This API works for GCR, but it is not tested for other registry.
+            if DockerImage(image_name).is_accessible():
+                return True
+
             # this should handle everything that doesn't exist on docker hub ( way less efficient )
             self.pull(image_name, job_name, log=False, **kwargs)
             self.proc.wait_process(job_name)
@@ -53,6 +60,11 @@ class DockerHelper(object):
             if result and 'full_size' in result:
                 # return the bytes converted to GB
                 return int(result['full_size'])/(1024**3.0)
+
+            # Size will be None if get_size() cannot be determine the image size.
+            size = DockerImage(image_name).get_size()
+            if size:
+                return int(size)/(1024**3.0)
 
             # this should handle everything that doesn't exist on docker hub ( way less efficient )
             # Return file size in gigabytes
@@ -76,9 +88,10 @@ class DockerHelper(object):
             raise
 
     def get_docker_image_info(self, image_name):
-        docker_image_split = image_name.split(":")
+        docker_image_split = image_name.rsplit(":", 1)
         image = docker_image_split[0]
-        tag = docker_image_split[1]
+        # Use the latest image if tag is not given
+        tag = docker_image_split[1] if len(docker_image_split) > 1 else "latest"
         cmd = f'curl -s "https://hub.docker.com/v2/repositories/{image}/tags/{tag}" | jq .'
 
         proc = sp.Popen(cmd, stderr=sp.PIPE, stdout=sp.PIPE, shell=True)
