@@ -8,6 +8,7 @@ import logging
 import subprocess as sp
 
 from System import GAPipeline
+from Config import CustomFormatter
 
 # Define the available platform modules
 available_plat_modules = {
@@ -120,31 +121,18 @@ def configure_argparser(argparser_obj):
 
 
 def configure_logging(verbosity):
-    # Setting the format of the logs
-    FORMAT = "[%(asctime)s] %(levelname)s: %(message)s"
+    # configure log handlers
+    th = logging.StreamHandler()
+    if sys.stderr.isatty():
+        th.setFormatter(CustomFormatter())
+    else:
+        th.setFormatter(CustomFormatter(use_colors=False))
+
+    fh = logging.FileHandler("cc_log.txt", 'w+')
+    fh.setFormatter(CustomFormatter(use_colors=False))
 
     # Configuring the logging system to the lowest level
-    logging.basicConfig(level=logging.DEBUG, format=FORMAT, stream=sys.stderr)
-
-    # Defining the ANSI Escape characters
-    BOLD = '\033[1m'
-    DEBUG = '\033[92m'
-    INFO = '\033[94m'
-    WARNING = '\033[93m'
-    ERROR = '\033[91m'
-    END = '\033[0m'
-
-    # Coloring the log levels
-    if sys.stderr.isatty():
-        logging.addLevelName(logging.ERROR, "%s%s%s%s%s" % (BOLD, ERROR, "CC_ERROR", END, END))
-        logging.addLevelName(logging.WARNING, "%s%s%s%s%s" % (BOLD, WARNING, "CC_WARNING", END, END))
-        logging.addLevelName(logging.INFO, "%s%s%s%s%s" % (BOLD, INFO, "CC_INFO", END, END))
-        logging.addLevelName(logging.DEBUG, "%s%s%s%s%s" % (BOLD, DEBUG, "CC_DEBUG", END, END))
-    else:
-        logging.addLevelName(logging.ERROR, "CC_ERROR")
-        logging.addLevelName(logging.WARNING, "CC_WARNING")
-        logging.addLevelName(logging.INFO, "CC_INFO")
-        logging.addLevelName(logging.DEBUG, "CC_DEBUG")
+    logging.basicConfig(level=logging.DEBUG, handlers=[fh, th])
 
     # Setting the level of the logs
     level = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG][verbosity]

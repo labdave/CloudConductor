@@ -160,6 +160,7 @@ class GAPipeline(object):
             # Publish report on the platform
             if self.platform is not None:
                 self.platform.publish_report(report_path)
+                self.platform.push_log(f"{CC_MAIN_DIR}/cc_log.txt")
 
         except BaseException as e:
             logging.error("Unable to publish report!")

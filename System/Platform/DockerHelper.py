@@ -59,7 +59,8 @@ class DockerHelper(object):
             result = self.get_docker_image_info(image_name)
             if result and 'full_size' in result:
                 # return the bytes converted to GB
-                return int(result['full_size'])/(1024**3.0)
+                # the api returns the compressed size of the image so we'll multiply by 4 to be safe
+                return int(result['full_size'])*4/(1024**3.0)
 
             # Size will be None if get_size() cannot be determine the image size.
             size = DockerImage(image_name).get_size()
@@ -103,7 +104,6 @@ class DockerHelper(object):
 
         # Throw error if anything happened
         if len(err) != 0:
-            logging.warning(f"({image_name}) Unable to use docker api to determine if docker image exists! Received error:\n{err}")
             return None
 
         # Return image info json
