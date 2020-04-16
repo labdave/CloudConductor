@@ -131,6 +131,20 @@ class GooglePlatform(CloudPlatform):
         if pubsub_topic and pubsub_project:
             GooglePlatform.__send_pubsub_message(pubsub_topic, pubsub_project, dest_path)
 
+    def push_log(self, log_path):
+
+        # Generate destination file path
+        dest_path = os.path.join(self.final_output_dir, os.path.basename(log_path))
+
+        # Authenticate for gsutil use
+        cmd = "gcloud auth activate-service-account --key-file %s" % self.identity
+        Process.run_local_cmd(cmd, err_msg="Authentication to Google Cloud failed!")
+
+        # Transfer report file to bucket
+        options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
+        cmd = "gsutil %s cp -r '%s' '%s' 1>/dev/null 2>&1 " % (options_fast, log_path, dest_path)
+        Process.run_local_cmd(cmd, err_msg="Could not transfer final log to the final output directory!")
+
     def clean_up(self):
 
         # Initialize the list of threads

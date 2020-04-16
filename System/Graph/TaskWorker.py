@@ -337,6 +337,7 @@ class TaskWorker(Thread):
         if self.__cancelled:
             raise RuntimeError("(%s) Task failed due to cancellation!")
 
+
 class GarbageCollector(threading.Thread):
     def __init__(self, proc):
         super(GarbageCollector, self).__init__()

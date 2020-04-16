@@ -155,7 +155,7 @@ class AmazonInstance(CloudInstance):
         while not instance_started and counter > 0:
             try:
                 logging.info(f"Attempting to restart instance {self.name}")
-                instance_started = self.__aws_request(self.driver.ex_start_node, self.node)
+                instance_started = self.__aws_request(self.driver.start_node, self.node)
             except Exception as e:
                 exception_string = str(e)
                 if 'IncorrectInstanceState' in exception_string:
@@ -265,7 +265,7 @@ class AmazonInstance(CloudInstance):
         # Add process to list of processes
         self.processes[job_name] = Process(cmd, **kwargs)
 
-    def get_status(self):
+    def get_status(self, log_status=False):
 
         if self.node is None:
             return CloudInstance.OFF
@@ -286,6 +286,9 @@ class AmazonInstance(CloudInstance):
             'terminated':       CloudInstance.TERMINATED,
             'stopped':          CloudInstance.OFF
         }
+
+        if log_status:
+            logging.debug(f"({self.name}) Current status is: {self.node.extra['status']}")
 
         return status_map[self.node.extra["status"]]
 

@@ -84,10 +84,12 @@ class GoogleInstance(CloudInstance):
         return self.node.public_ips[0]
 
     def destroy_instance(self):
+        # for some reason destroying nodes can sometimes timeout. stopping the instance first is the suggested solution
+        self.driver.stop_node(self.node)
         self.driver.destroy_node(self.node)
 
     def start_instance(self):
-        self.driver.ex_start_node(self.node)
+        self.driver.start_node(self.node)
 
         # Initializing the cycle count
         cycle_count = 0
@@ -111,9 +113,9 @@ class GoogleInstance(CloudInstance):
         return self.node.public_ips[0]
 
     def stop_instance(self):
-        self.driver.ex_stop_node(self.node)
+        self.driver.stop_node(self.node)
 
-    def get_status(self):
+    def get_status(self, log_status=False):
 
         try:
             self.node = self.driver.ex_get_node(self.name)
@@ -130,6 +132,9 @@ class GoogleInstance(CloudInstance):
             "TERMINATED":   CloudInstance.OFF,
             "UNKNOWN":      CloudInstance.OFF
         }
+
+        if log_status:
+            logging.debug(f"({self.name}) Current status is: {self.node.extra['status']}")
 
         return status_map[self.node.extra["status"]]
 

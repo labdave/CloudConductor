@@ -24,7 +24,9 @@ class Docker(Module):
         Returns: A list of strings, each represents an input to the module.
 
         """
-        inputs = self.module_args.get("inputs", [])
+        # Use sample_id as input if there is no input.
+        # Otherwise CloudConductor will fail.
+        inputs = self.module_args.get("inputs", ["sample_id"])
         logger.debug("Inputs: %s" % inputs)
         if inputs and not isinstance(inputs, list):
             inputs = [inputs]
@@ -87,6 +89,9 @@ class Docker(Module):
         var_dict = self.get_var_dict()
         # Declare outputs
         outputs = self.module_args.get("outputs")
+        # Do nothing if there is no output.
+        if not outputs:
+            return
         for key, value in outputs.items():
             # is_path will be True by default
             is_path = True

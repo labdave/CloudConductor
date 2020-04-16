@@ -324,6 +324,10 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
+    def push_log(self, log_path):
+        pass
+
+    @abc.abstractmethod
     def clean_up(self):
         pass
 
