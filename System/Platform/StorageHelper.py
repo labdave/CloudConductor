@@ -53,6 +53,7 @@ class StorageHelper(object):
 
         # Ignore local paths
         if self.__get_file_protocol(path) == "Local":
+            logging.warning(f"Ignoring path '{path}' as it is local on the disk image. Assuming the path is present!")
             return True
 
         try:
@@ -72,6 +73,7 @@ class StorageHelper(object):
 
         # Ignore local paths
         if self.__get_file_protocol(path) == "Local":
+            logging.warning(f"Ignoring path '{path}' as it is local on the disk image. Assuming the path is present!")
             return True
 
         try:
