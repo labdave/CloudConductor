@@ -43,7 +43,7 @@ class Lumpy(Module):
 		cmd = lumpy
 
 		# add required non-positional arguments
-		cmd += " bam {}".format(bam)
+		cmd += " {}".format(bam)
 
 		# add optional arguments
 		cmd += " {0} {1} {2} {3} {4}".format(
