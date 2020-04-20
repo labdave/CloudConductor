@@ -1,0 +1,55 @@
+from Modules import Module
+
+# Module created using CC_module_helper.py
+class Lumpy(Module):
+	def __init__(self, module_id, is_docker=False):
+		super(Bammatcher, self).__init__(module_id, is_docker)
+		# Add output keys here if needed
+		self.output_keys = ["lumpy_vcf", "gt_vcf"]
+
+
+	def define_input(self):
+		# Module creator needs to define which arguments have is_resource=True
+		# Module creator needs to rename arguments as required by CC
+		self.add_argument("lumpy",						is_resource=True, is_required=True)
+		self.add_argument("bam",						is_required=True)
+		self.add_argument("nr_cpus",					default_value=2)
+		self.add_argument("mem",						default_value=10.0)
+		self.add_argument("read_length",				default_value=152)
+		self.add_argument("discordant_z",				default_value=5)
+		self.add_argument("back_distance",				default_value=10)
+		self.add_argument("weight",						default_value=1)
+		self.add_argument("min_mapping_threshold",		default_value=20)
+
+
+	def define_output(self):
+		# Module creator needs to define what the outputs are
+		# based on the output keys provided during module creation
+		self.add_output("lumpy_vcf",		lumpy.vcf)
+		self.add_output("gt_vcf",			gt.vcf)
+
+
+	def define_command(self):
+		# Module creator needs to use renamed arguments as required by CC
+		lumpy						= self.get_argument("lumpy")
+		bam							= self.get_argument("bam")
+		read_length					= self.get_argument("read_length")
+		discordant_z				= self.get_argument("discordant_z")
+		back_distance				= self.get_argument("back_distance")
+		weight						= self.get_argument("weight")
+		min_mapping_threshold		= self.get_argument("min_mapping_threshold")
+
+		# add module
+		cmd = lumpy
+
+		# add required non-positional arguments
+		cmd += " bam {}".format(bam)
+
+		# add optional arguments
+		cmd += " {0} {1} {2} {3} {4}".format(
+			read_length, discordant_z, back_distance, weight, min_mapping_threshold)
+
+		# add logging
+		cmd += " !LOG3!"
+
+		return cmd
