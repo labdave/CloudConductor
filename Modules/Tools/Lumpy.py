@@ -11,7 +11,6 @@ class Lumpy(Module):
 	def define_input(self):
 		# Module creator needs to define which arguments have is_resource=True
 		# Module creator needs to rename arguments as required by CC
-		self.add_argument("lumpy",						is_resource=True, is_required=True)
 		self.add_argument("bam",						is_required=True)
 		self.add_argument("nr_cpus",					default_value=2)
 		self.add_argument("mem",						default_value=10.0)
@@ -30,8 +29,7 @@ class Lumpy(Module):
 
 
 	def define_command(self):
-		# Module creator needs to use renamed arguments as required by CC
-		lumpy						= self.get_argument("lumpy")
+		# Module creator needs to use renamed arguments as required by C
 		bam							= self.get_argument("bam")
 		read_length					= self.get_argument("read_length")
 		discordant_z				= self.get_argument("discordant_z")
@@ -40,14 +38,11 @@ class Lumpy(Module):
 		min_mapping_threshold		= self.get_argument("min_mapping_threshold")
 
 		# add module
-		cmd = lumpy
+		cmd = "bash lumpy.sh"
 
-		# add required non-positional arguments
-		cmd += " {}".format(bam)
-
-		# add optional arguments
-		cmd += " {0} {1} {2} {3} {4}".format(
-			read_length, discordant_z, back_distance, weight, min_mapping_threshold)
+		# add arguments
+		cmd += " {0} {1} {2} {3} {4} {5}".format(
+			bam, read_length, discordant_z, back_distance, weight, min_mapping_threshold)
 
 		# add logging
 		cmd += " !LOG3!"
