@@ -38,6 +38,9 @@ class StorageHelper(object):
         cmd_generator = StorageHelper.__get_storage_cmd_generator(dir_path)
         cmd = cmd_generator.mkdir(dir_path)
 
+        if cmd is None:
+            return None
+
         job_name = f"mkdir_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
 
         # Optionally add logging
@@ -206,8 +209,8 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
 
     @staticmethod
     def mkdir(dir_path):
-        # Makes a directory if it doesn't already exists
-        return f"touch dummy.txt ; gsutil cp dummy.txt {dir_path}; gsutil rm {dir_path}dummy.txt"
+        # Skip making directory as Google Storage doesn't have concept of directories
+        return None
 
     @staticmethod
     def get_file_size(path):
@@ -235,8 +238,8 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
 
     @staticmethod
     def mkdir(dir_path):
-        # Makes a directory if it doesn't already exists
-        return f"touch dummy.txt ; aws s3 cp dummy.txt {dir_path}; aws s3 rm {dir_path}dummy.txt"
+        # Skip making directory as Amazon Storage doesn't have concept of directories
+        return None
 
     @staticmethod
     def get_file_size(path):
