@@ -25,7 +25,7 @@ class Lumpy(Module):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
 		lumpy_vcf		= self.generate_unique_file_name("lumpy.vcf")
-        gt_vcf 			= self.generate_unique_file_name("gt.vcf")
+		gt_vcf 			= self.generate_unique_file_name("gt.vcf")
 		self.add_output("lumpy_vcf",		lumpy_vcf)
 		self.add_output("gt_vcf",			gt_vcf)
 
