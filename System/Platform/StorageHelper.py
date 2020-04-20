@@ -109,19 +109,18 @@ class StorageHelper(object):
     def rm(self, path, job_name=None, log=True, wait=False, **kwargs):
         # Delete file from file system
         # Log the transfer unless otherwise specified
-        cmd_generator = StorageHelper.__get_storage_cmd_generator(path)
-        cmd = cmd_generator.rm(path)
 
-        job_name = f"rm_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
+        # Create prefix object
+        _prefix_path = StoragePrefix(path)
 
-        # Optionally add logging
-        cmd = f"{cmd} !LOG3!" if log else cmd
+        try:
 
-        # Run command and return job name
-        self.proc.run(job_name, cmd, **kwargs)
-        if wait:
-            self.proc.wait_process(job_name)
-        return job_name
+            if _prefix_path.exists():
+                _prefix_path.delete()
+
+        except:
+            logging.error(f"Unable to delete path: {path}")
+            raise
 
     @staticmethod
     def __get_storage_cmd_generator(src_path, dest_path=None):
