@@ -1,7 +1,7 @@
 import logging
 import os
 
-from Aries.storage import StorageFile
+from Aries.storage import StorageFile, StoragePrefix, StorageFolder
 
 from System.Platform import CloudPlatform
 
@@ -57,13 +57,17 @@ class StorageHelper(object):
             return True
 
         try:
-            # Create StorageFile object and return if file exists
-            _file = StorageFile(path)
 
-            return _file.exists()
+            # Check if path is prefix, and create StoragePrefix object and check if exists
+            if path.endswith("*"):
+                return StoragePrefix(path.rstrip("*")).exists()
+
+            # Check if it exists as a file or folder, by creating StorageFile and StorageFolder object
+            return StorageFile(path).exists() or StorageFolder(path).exists()
+
         except RuntimeError as e:
             if str(e) != "":
-                logging.debug(f"StorageHelper error for {job_name}:\n{e}")
+                logging.error(f"StorageHelper error for {job_name}:\n{e}")
             return False
         except:
             logging.error(f"Unable to check path existence: {path}")
