@@ -81,11 +81,21 @@ class StorageHelper(object):
             return True
 
         try:
-            # Generate StorageFile object
-            _file = StorageFile(path)
+            # Check if path is prefix, and create StoragePrefix object and get its size
+            if path.endswith("*"):
+                _size = StoragePrefix(path.rstrip("*")).size
 
-            # Obtain size in bytes
-            _size = _file.size
+            # Check if it path exists as a file or folder, by creating StorageFile and StorageFolder object
+            else:
+                _file = StorageFile(path)
+                _folder = StorageFolder(path)
+
+                if _file.exists():
+                    _size = _file.size
+                elif _folder.exists():
+                    _size = _folder.size
+                else:
+                    _size = 0
 
             # Convert to GB
             return float(_size)/2**30
