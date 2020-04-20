@@ -3,7 +3,7 @@ from Modules import Module
 # Module created using CC_module_helper.py
 class Lumpy(Module):
 	def __init__(self, module_id, is_docker=False):
-		super(Bammatcher, self).__init__(module_id, is_docker)
+		super(Lumpy, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
 		self.output_keys = ["lumpy_vcf", "gt_vcf"]
 
