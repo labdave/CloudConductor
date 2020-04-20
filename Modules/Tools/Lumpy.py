@@ -31,20 +31,25 @@ class Lumpy(Module):
 
 
 	def define_command(self):
-		# Module creator needs to use renamed arguments as required by C
-		bam							= self.get_argument("bam")
-		read_length					= self.get_argument("read_length")
-		discordant_z				= self.get_argument("discordant_z")
-		back_distance				= self.get_argument("back_distance")
-		weight						= self.get_argument("weight")
-		min_mapping_threshold		= self.get_argument("min_mapping_threshold")
+		# Module creator needs to use renamed arguments as required by CC
+		bam						= self.get_argument("bam")
+		read_length				= self.get_argument("read_length")
+		discordant_z			= self.get_argument("discordant_z")
+		back_distance			= self.get_argument("back_distance")
+		weight					= self.get_argument("weight")
+		min_mapping_threshold	= self.get_argument("min_mapping_threshold")
+
+		# get output
+		lumpy_vcf				= self.get_output("lumpy_vcf")
+		gt_vcf					= self.get_output("gt_vcf")
 
 		# add module
 		cmd = "bash lumpy.sh"
 
 		# add arguments
 		cmd += " {0} {1} {2} {3} {4} {5}".format(
-			bam, read_length, discordant_z, back_distance, weight, min_mapping_threshold)
+			bam, read_length, discordant_z, back_distance, weight,
+			min_mapping_threshold, lumpy_vcf, gt_vcf)
 
 		# add logging
 		cmd += " !LOG3!"
