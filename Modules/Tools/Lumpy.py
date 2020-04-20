@@ -24,8 +24,10 @@ class Lumpy(Module):
 	def define_output(self):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
-		self.add_output("lumpy_vcf",		"lumpy.vcf")
-		self.add_output("gt_vcf",			"gt.vcf")
+		lumpy_vcf		= self.generate_unique_file_name("lumpy.vcf")
+        gt_vcf 			= self.generate_unique_file_name("gt.vcf")
+		self.add_output("lumpy_vcf",		lumpy_vcf)
+		self.add_output("gt_vcf",			gt_vcf)
 
 
 	def define_command(self):
