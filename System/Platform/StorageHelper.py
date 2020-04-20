@@ -190,10 +190,6 @@ class LocalStorageCmdGenerator(StorageCmdGenerator):
         return f"sudo du -sh --apparent-size --bytes {path}"
 
     @staticmethod
-    def ls(path):
-        return f"sudo ls {path}"
-
-    @staticmethod
     def rm(path):
         # Dear god do not give sudo privileges to this command
         return f"rm -rf {path}"
@@ -218,10 +214,6 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
     def get_file_size(path):
         # Return cmd for getting file size in bytes
         return f"gsutil du -s {path}"
-
-    @staticmethod
-    def ls(path):
-        return f"gsutil ls {path}"
 
     @staticmethod
     def rm(path):
@@ -251,10 +243,6 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
     def get_file_size(path):
         # Return cmd for getting file size in bytes
         return f"aws s3 ls {path} --recursive --summarize | tail -n1 | cut -d' ' -f6"
-
-    @staticmethod
-    def ls(path):
-        return f"aws s3 ls {path}"
 
     @staticmethod
     def rm(path):
