@@ -49,8 +49,7 @@ class GAPipeline(object):
         # Task scheduler for running jobs
         self.scheduler = None
 
-        # Helper processor for handling platform operations
-        self.helper_processor   = None
+        # Helper classes for handling platform operations
         self.storage_helper     = None
         self.docker_helper      = None
 
@@ -102,11 +101,9 @@ class GAPipeline(object):
             raise SystemError("One or more errors have been encountered during validation. "
                               "See the above logs for more information")
 
-        # Create helper processor and storage/docker helpers for checking input files
-        self.helper_processor   = self.platform.get_instance(2, 6, 200, is_helper=True)
-
-        self.storage_helper     = StorageHelper(self.helper_processor)
-        self.docker_helper      = DockerHelper(self.helper_processor)
+        # Create storage/docker helpers for checking input files
+        self.storage_helper     = StorageHelper(None)
+        self.docker_helper      = DockerHelper(None)
 
         # Validate all pipeline inputs can be found on platform
         input_validator = InputValidator(self.resource_kit, self.sample_data, self.storage_helper, self.docker_helper)
@@ -117,15 +114,6 @@ class GAPipeline(object):
             raise SystemError("One or more errors have been encountered during validation. "
                               "See the above logs for more information")
 
-        # Validate that pipeline workspace can be created
-        workspace = self.datastore.get_task_workspace()
-        for dir_type, dir_path in workspace.get_workspace().items():
-            self.storage_helper.mkdir(dir_path=str(dir_path), job_name="mkdir_%s" % dir_type, wait=True)
-
-        # Validate granting of permission
-        self.helper_processor.run("grant_perm_helper", "sudo chmod -R 777 %s" % workspace.get_wrk_dir())
-        self.helper_processor.wait_process("grant_perm_helper")
-
         logging.info("CloudCounductor run validated! Beginning pipeline execution.")
 
     def run(self, rm_tmp_output_on_success=True):
@@ -135,12 +123,7 @@ class GAPipeline(object):
         # Remove temporary output on success
         if rm_tmp_output_on_success:
             workspace = self.datastore.get_task_workspace()
-            try:
-                self.storage_helper.rm(path=workspace.get_tmp_output_dir(), job_name="rm_tmp_output", wait=True)
-            except BaseException as e:
-                logging.error("Unable to remove tmp output directory: %s" % workspace.get_tmp_output_dir())
-                if str(e) != "":
-                    logging.error("Received the following err message:\n%s" % e)
+            self.storage_helper.rm(path=workspace.get_tmp_output_dir(), job_name="rm_tmp_output", wait=True)
 
     def save_progress(self):
         pass
@@ -168,16 +151,6 @@ class GAPipeline(object):
             raise
 
     def clean_up(self):
-        # Destroy the helper processor if it exists
-        if self.helper_processor is not None:
-            try:
-                logging.debug("Destroying helper processor...")
-                self.helper_processor.destroy()
-            except BaseException as e:
-                logging.error("Unable to destroy helper processor '%s'!" % self.helper_processor.get_name())
-                if str(e) != "":
-                    logging.error("Received the follwoing err message:\n%s" % e)
-
         # Cleaning up the platform (let the platform decide what that means)
         if self.platform is not None:
             self.platform.clean_up()
@@ -186,15 +159,6 @@ class GAPipeline(object):
 
         # Create a pipeline report that summarizes features of pipeline
         report = GAPReport(self.pipeline_id, err, err_msg, git_version)
-
-        # Register helper runtime data
-        if self.helper_processor is not None:
-            report.set_start_time(self.helper_processor.get_start_time())
-            report.set_total_runtime(self.helper_processor.get_runtime())
-            report.register_task(task_name="Helper",
-                                 start_time=self.helper_processor.get_start_time(),
-                                 run_time=self.helper_processor.get_runtime(),
-                                 cost=self.helper_processor.compute_cost())
 
         # Register runtime data for pipeline tasks
         if self.scheduler is not None:
