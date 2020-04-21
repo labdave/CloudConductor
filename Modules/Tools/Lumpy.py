@@ -44,7 +44,7 @@ class Lumpy(Module):
 		gt_vcf					= self.get_output("gt_vcf")
 
 		# add module
-		cmd = "bash lumpy.sh"
+		cmd = "bash /usr/local/bin/lumpy.sh"
 
 		# add arguments
 		cmd += " {0} {1} {2} {3} {4} {5}".format(
