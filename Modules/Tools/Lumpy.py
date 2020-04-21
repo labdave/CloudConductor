@@ -47,7 +47,7 @@ class Lumpy(Module):
 		cmd = "bash /usr/local/bin/lumpy.sh"
 
 		# add arguments
-		cmd += " {0} {1} {2} {3} {4} {5}".format(
+		cmd += " {0} {1} {2} {3} {4} {5} {6} {7}".format(
 			bam, read_length, discordant_z, back_distance, weight,
 			min_mapping_threshold, lumpy_vcf, gt_vcf)
 
