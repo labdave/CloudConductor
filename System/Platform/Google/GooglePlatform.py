@@ -7,7 +7,8 @@ import json
 from threading import Thread
 
 from System import CC_MAIN_DIR
-from System.Platform import Process, CloudPlatform
+from System.Platform import Process
+from System.Platform.Platform import CloudPlatform
 from System.Platform.Google import GoogleInstance, GooglePreemptibleInstance
 
 from google.cloud import pubsub_v1
@@ -60,7 +61,7 @@ class GooglePlatform(CloudPlatform):
 
         return int(self.disk_image_obj.extra["diskSizeGb"])
 
-    def get_cloud_instance_class(self):
+    def get_instance_class(self):
         if "preemptible" in self.extra and self.extra["preemptible"]:
             return GooglePreemptibleInstance
         return GoogleInstance
@@ -95,7 +96,7 @@ class GooglePlatform(CloudPlatform):
     def standardize_instance(inst_name, nr_cpus, mem, disk_space):
 
         # Ensure instance name does not contain weird characters
-        inst_name = inst_name.replace("_", "-").replace(".","-").lower()
+        inst_name = inst_name.replace("_", "-").replace(".", "-").lower()
 
         # Ensure number of CPUs is an even number or 1
         if nr_cpus != 1 and nr_cpus % 2 == 1:

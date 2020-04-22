@@ -65,7 +65,7 @@ class DockerHelper(object):
             # Size will be None if get_size() cannot be determine the image size.
             size = DockerImage(image_name).get_size()
             if size:
-                return int(size)/(1024**3.0)
+                return int(size)*4/(1024**3.0)
 
             # this should handle everything that doesn't exist on docker hub ( way less efficient )
             # Return file size in gigabytes

@@ -140,12 +140,12 @@ class InputWorker(PoolWorker):
         try:
             # Validate File object (Input type is meant to be ResourceKit, SampleSheet, etc.)
             if isinstance(input_obj, GAPFile):
-                #input_name = "%s file '%s' of type '%s' with path: %s" % (input_type, input_obj.get_file_id(), input_obj.get_type(), input_obj)
+                # input_name = "%s file '%s' of type '%s' with path: %s" % (input_type, input_obj.get_file_id(), input_obj.get_type(), input_obj)
                 self.validate_file(input_obj)
 
             # Validate DockerImage object
             else:
-                #input_name = "Docker image %s" % input_obj.get_image_name()
+                # input_name = "Docker image %s" % input_obj.get_image_name()
                 self.validate_docker_image(input_obj)
 
         except BaseException as e:

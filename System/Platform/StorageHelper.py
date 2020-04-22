@@ -1,7 +1,7 @@
 import logging
 import os
 
-from System.Platform import CloudPlatform
+from System.Platform import Platform
 
 
 class InvalidStorageTypeError(Exception):
@@ -20,7 +20,7 @@ class StorageHelper(object):
         cmd_generator = StorageHelper.__get_storage_cmd_generator(src_path, dest_path)
         cmd = cmd_generator.mv(src_path, dest_path)
 
-        job_name = f"mv_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
+        job_name = f"mv_{Platform.generate_unique_id()}" if job_name is None else job_name
 
         # Optionally add logging
         cmd = f"{cmd} !LOG3!" if log else cmd
@@ -36,7 +36,7 @@ class StorageHelper(object):
         cmd_generator = StorageHelper.__get_storage_cmd_generator(dir_path)
         cmd = cmd_generator.mkdir(dir_path)
 
-        job_name = f"mkdir_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
+        job_name = f"mkdir_{Platform.generate_unique_id()}" if job_name is None else job_name
 
         # Optionally add logging
         cmd = f"{cmd} !LOG3!" if log else cmd
@@ -53,7 +53,7 @@ class StorageHelper(object):
         cmd = cmd_generator.ls(path)
 
         # Run command and return job name
-        job_name = f"check_exists_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
+        job_name = f"check_exists_{Platform.generate_unique_id()}" if job_name is None else job_name
         self.proc.run(job_name, cmd, **kwargs)
 
         # Wait for cmd to finish and get output
@@ -74,7 +74,7 @@ class StorageHelper(object):
         cmd = cmd_generator.get_file_size(path)
 
         # Run command and return job name
-        job_name = f"get_size_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
+        job_name = f"get_size_{Platform.generate_unique_id()}" if job_name is None else job_name
         self.proc.run(job_name, cmd, **kwargs)
 
         # Wait for cmd to finish and get output
@@ -98,7 +98,7 @@ class StorageHelper(object):
         cmd_generator = StorageHelper.__get_storage_cmd_generator(path)
         cmd = cmd_generator.rm(path)
 
-        job_name = f"rm_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
+        job_name = f"rm_{Platform.generate_unique_id()}" if job_name is None else job_name
 
         # Optionally add logging
         cmd = f"{cmd} !LOG3!" if log else cmd

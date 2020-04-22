@@ -18,7 +18,7 @@ from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
 from libcloud.common.exceptions import RateLimitReachedError
 
-from System.Platform import CloudInstance
+from System.Platform.Instance import CloudInstance
 from System.Platform import Process
 
 from System.Platform.Amazon.EnhancedEC2NodeDriver import EnhancedEC2NodeDriver
@@ -26,9 +26,9 @@ from System.Platform.Amazon.EnhancedEC2NodeDriver import EnhancedEC2NodeDriver
 
 class AmazonInstance(CloudInstance):
 
-    def __init__(self, name, nr_cpus, mem, disk_space, disk_image, **kwargs):
+    def __init__(self, name, nr_cpus, mem, disk_space, **kwargs):
 
-        super(AmazonInstance, self).__init__(name, nr_cpus, mem, disk_space, disk_image, **kwargs)
+        super(AmazonInstance, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
 
         # Create libcloud driver
         # driver_class = get_driver(Provider.EC2)

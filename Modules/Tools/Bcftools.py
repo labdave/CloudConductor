@@ -1,5 +1,5 @@
 from Modules import Module
-from System.Platform import CloudPlatform
+from System.Platform import Platform
 
 
 class View(Module):
@@ -16,7 +16,7 @@ class View(Module):
 
     def define_output(self):
 
-        randomer = CloudPlatform.generate_unique_id()
+        randomer = Platform.generate_unique_id()
         vcf_gz = self.generate_unique_file_name(extension="{0}.vcf.gz".format(randomer))
         self.add_output("vcf_gz", vcf_gz)
 

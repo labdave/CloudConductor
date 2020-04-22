@@ -2,15 +2,16 @@ import logging
 import time
 import subprocess as sp
 
-from System.Platform import CloudInstance, Process
+from System.Platform import Process
+from System.Platform.Instance import CloudInstance
 from System.Platform.Google import GoogleInstance
 
 
 class GooglePreemptibleInstance(GoogleInstance):
 
-    def __init__(self, name, nr_cpus, mem, disk_space, disk_image, **kwargs):
+    def __init__(self, name, nr_cpus, mem, disk_space, **kwargs):
 
-        super(GooglePreemptibleInstance, self).__init__(name, nr_cpus, mem, disk_space, disk_image, **kwargs)
+        super(GooglePreemptibleInstance, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
 
         self.is_preemptible = True
 

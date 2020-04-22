@@ -6,7 +6,7 @@ from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
 from libcloud.common.google import ResourceNotFoundError
 
-from System.Platform import CloudInstance
+from System.Platform.Instance import CloudInstance
 
 
 class GoogleInstance(CloudInstance):
@@ -14,9 +14,9 @@ class GoogleInstance(CloudInstance):
     gcp_billing_api_url = "https://cloudbilling.googleapis.com/v1/services/"
     nanos_conversion_rate = .000000001  # 10^-9
 
-    def __init__(self, name, nr_cpus, mem, disk_space, disk_image, **kwargs):
+    def __init__(self, name, nr_cpus, mem, disk_space, **kwargs):
 
-        super(GoogleInstance, self).__init__(name, nr_cpus, mem, disk_space, disk_image, **kwargs)
+        super(GoogleInstance, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
 
         # Initialize the instance credentials
         self.service_account, self.project_id = self.platform.parse_service_account_json()

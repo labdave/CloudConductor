@@ -9,7 +9,7 @@ from collections import OrderedDict
 from System.Platform import Process
 
 
-class CloudInstance(object, metaclass=abc.ABCMeta):
+class Instance(object, metaclass=abc.ABCMeta):
 
     OFF         = 0  # Stopped or not allocated on the cloud at all
     CREATING    = 1  # Instance is being created/provisioned/allocated
@@ -19,21 +19,13 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
     STATUSES    = ["OFF", "CREATING", "DESTROYING", "AVAILABLE", "TERMINATED"]
 
-    def __init__(self, name, nr_cpus, mem, disk_space, disk_image, **kwargs):
+    def __init__(self, name, nr_cpus, mem, disk_space, **kwargs):
 
         # Initialize main instance information
         self.name       = name
         self.nr_cpus    = nr_cpus
         self.mem        = mem
         self.disk_space = disk_space
-        self.disk_image = disk_image
-
-        # Obtain the mother platform object
-        self.platform = kwargs.pop("platform")
-
-        # Obtain the CloudConductor SSH private key from platform
-        self.ssh_private_key = kwargs.pop("ssh_private_key")
-        self.ssh_connection_user = kwargs.pop("ssh_connection_user")
 
         # Obtain identify and secret from platform
         self.identity = kwargs.pop("identity")
@@ -59,11 +51,84 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Initialize the event history of the instance
         self.history = []
 
-        # Initialize external IP address
-        self.external_IP = None
-
         # Initialize the checkpoints of the instance
         self.checkpoints = []
+
+    def get_name(self):
+        return self.name
+
+    def get_runtime(self):
+        return self.get_stop_time() - self.get_start_time()
+
+    # ABSTRACT METHODS TO BE IMPLEMENTED BY INHERITING CLASSES
+
+    @abc.abstractmethod
+    def create(self):
+        pass
+
+    @abc.abstractmethod
+    def destroy(self):
+        pass
+
+    @abc.abstractmethod
+    def run(self):
+        pass
+
+    @abc.abstractmethod
+    def stop(self):
+        pass
+
+    @abc.abstractmethod
+    def wait_process(self, proc_name):
+        pass
+
+    @abc.abstractmethod
+    def handle_failure(self, proc_name, proc_obj):
+        pass
+
+    @abc.abstractmethod
+    def get_start_time(self):
+        pass
+
+    @abc.abstractmethod
+    def get_stop_time(self):
+        pass
+
+    @abc.abstractmethod
+    def set_workspace(self, wrk_dir, wrk_log_dir, wrk_out_dir):
+        pass
+
+    @abc.abstractmethod
+    def get_status(self, log_status=False):
+        pass
+
+    @abc.abstractmethod
+    def get_compute_price(self):
+        pass
+
+    @abc.abstractmethod
+    def get_storage_price(self):
+        pass
+
+
+class CloudInstance(Instance):
+
+    def __init__(self, name, nr_cpus, mem, disk_space, **kwargs):
+
+        super(CloudInstance, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
+
+        # Obtain the mother platform object
+        self.platform = kwargs.pop("platform")
+
+        # Obtain disk image
+        self.disk_image = kwargs.pop("disk_image")
+
+        # Obtain the CloudConductor SSH private key from platform
+        self.ssh_private_key = kwargs.pop("ssh_private_key")
+        self.ssh_connection_user = kwargs.pop("ssh_connection_user")
+
+        # Initialize external IP address
+        self.external_IP = None
 
     def create(self):
 
@@ -437,9 +502,6 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                 }
             })
 
-    def get_name(self):
-        return self.name
-
     def get_start_time(self):
 
         # Return the timestamp of the first CREATE event
@@ -457,9 +519,6 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                 return event["timestamp"]
 
         return time.time()
-
-    def get_runtime(self):
-        return self.get_stop_time() - self.get_start_time()
 
     def set_workspace(self, wrk_dir, wrk_log_dir, wrk_out_dir):
         self.wrk_dir = wrk_dir
@@ -491,16 +550,4 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def stop_instance(self):
-        pass
-
-    @abc.abstractmethod
-    def get_status(self, log_status=False):
-        pass
-
-    @abc.abstractmethod
-    def get_compute_price(self):
-        pass
-
-    @abc.abstractmethod
-    def get_storage_price(self):
         pass

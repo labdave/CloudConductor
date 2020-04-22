@@ -2,15 +2,16 @@ import logging
 import time
 import subprocess as sp
 
-from System.Platform import CloudInstance, Process
+from System.Platform import Process
+from System.Platform.Instance import CloudInstance
 from System.Platform.Amazon import AmazonInstance
 
 
 class AmazonSpotInstance(AmazonInstance):
 
-    def __init__(self, name, nr_cpus, mem, disk_space, disk_image, **kwargs):
+    def __init__(self, name, nr_cpus, mem, disk_space, **kwargs):
 
-        super(AmazonSpotInstance, self).__init__(name, nr_cpus, mem, disk_space, disk_image, **kwargs)
+        super(AmazonSpotInstance, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
 
         self.is_preemptible = True
 

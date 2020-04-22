@@ -158,8 +158,11 @@ class DockerImage:
         try:
             layers = self.get_manifest().json().get("layers")
             total_size = 0
-            for layer in layers:
-                total_size += layer.get("size", 0)
+            if layers:
+                for layer in layers:
+                    total_size += layer.get("size", 0)
+            else:
+                return None
         except Exception as ex:
             logger.error("Cannot determine image size for %s: %s" % (self.name, str(ex)))
             import traceback

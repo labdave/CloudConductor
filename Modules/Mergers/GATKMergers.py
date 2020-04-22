@@ -1,5 +1,5 @@
 from Modules import Merger, PseudoMerger
-from System.Platform import CloudPlatform
+from System.Platform import Platform
 
 
 class _GATKBase(Merger):
@@ -182,7 +182,7 @@ class CatVariants(_GATKBase):
 
     def define_output(self):
         # Declare GVCF output filename
-        randomer = CloudPlatform.generate_unique_id()
+        randomer = Platform.generate_unique_id()
 
         if self.get_argument("gvcf"):
             gvcf = self.generate_unique_file_name(extension="{0}.g.vcf".format(randomer))
@@ -260,7 +260,7 @@ class CombineGVCF(_GATKBase):
 
     def define_output(self):
         # Declare GVCF output filename
-        randomer = CloudPlatform.generate_unique_id()
+        randomer = Platform.generate_unique_id()
         gvcf = self.generate_unique_file_name(extension="{0}.g.vcf".format(randomer))
         self.add_output("gvcf", gvcf)
         # Declare GVCF index output filename

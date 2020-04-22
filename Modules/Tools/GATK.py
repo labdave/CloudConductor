@@ -2,7 +2,7 @@ import logging
 import os
 
 from Modules import Module
-from System.Platform import CloudPlatform
+from System.Platform import Platform
 
 
 class _GATKBase(Module):
@@ -69,6 +69,7 @@ class _GATKBase(Module):
 
         return "-O"
 
+
 class HaplotypeCaller(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
@@ -88,7 +89,7 @@ class HaplotypeCaller(_GATKBase):
 
     def define_output(self):
         # Declare GVCF output filename
-        randomer = CloudPlatform.generate_unique_id()
+        randomer = Platform.generate_unique_id()
         # generate uniques file name based on the output mode set for the Haplotypecaller
         if self.get_argument("output_type") == "gvcf":
             gvcf = self.generate_unique_file_name(extension="{0}.g.vcf.gz".format(randomer))
@@ -176,6 +177,7 @@ class HaplotypeCaller(_GATKBase):
         # Generating command for HaplotypeCaller
         return "{0} HaplotypeCaller {1} !LOG3!".format(gatk_cmd, " ".join(opts))
 
+
 class PrintReads(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
@@ -232,6 +234,7 @@ class PrintReads(_GATKBase):
 
         # Generating command for GATK PrintReads
         return "%s PrintReads %s !LOG3!" % (gatk_cmd, " ".join(opts))
+
 
 class ApplyBQSR(_GATKBase):
     # GATK 4 replacement for PrintReads
@@ -293,6 +296,7 @@ class ApplyBQSR(_GATKBase):
         bqsr_cmd = "%s ApplyBQSR %s !LOG3!" % (gatk_cmd, " ".join(opts))
         mv_cmd = "mv %s %s !LOG2!" % (tmp_bam_idx, output_bam_idx)
         return "%s ; %s" % (bqsr_cmd, mv_cmd)
+
 
 class BaseRecalibrator(_GATKBase):
 
@@ -360,6 +364,7 @@ class BaseRecalibrator(_GATKBase):
         # Generating command for base recalibration
         return "{0} BaseRecalibrator {1} !LOG3!".format(gatk_cmd, " ".join(opts))
 
+
 class IndexVCF(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
@@ -402,6 +407,7 @@ class IndexVCF(_GATKBase):
         # Generating the IndexVCF cmd
         return "%s %s !LOG3!" % (cmd, " ".join(opts))
 
+
 class FilterMutectCalls(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
@@ -438,6 +444,7 @@ class FilterMutectCalls(_GATKBase):
                                                                                        output_file_flag, ref,
                                                                                        stats_table)
 
+
 class CollectReadCounts(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
@@ -472,6 +479,7 @@ class CollectReadCounts(_GATKBase):
 
         return "{0} !LOG3!".format(cmd)
 
+
 class BedToIntervalList(_GATKBase):
     def __init__(self, module_id, is_docker=False):
         super(BedToIntervalList, self).__init__(module_id, is_docker)
@@ -500,6 +508,7 @@ class BedToIntervalList(_GATKBase):
 
         return "{0} BedToIntervalList -I {1} {4} {2} -SD {3} !LOG3!".format(gatk_cmd, bed, interval_list, dict_file,
                                                                             output_file_flag)
+
 
 class GenotypeGenomicsDB(_GATKBase):
 
@@ -559,6 +568,7 @@ class GenotypeGenomicsDB(_GATKBase):
         # Generating command for base recalibration
         return "{0} GenotypeGVCFs {1} !LOG3!".format(gatk_cmd, " ".join(opts))
 
+
 class SplitNCigarReads(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
@@ -602,6 +612,7 @@ class SplitNCigarReads(_GATKBase):
 
         # Generate command for splitting reads
         return "{0} SplitNCigarReads {1} !LOG3!".format(gatk_cmd, " ".join(opts))
+
 
 class Mutect2(_GATKBase):
 
@@ -768,6 +779,7 @@ class Mutect2(_GATKBase):
             tumor_status[_name] = _tumor
 
         return list(tumor_status.keys()), list(tumor_status.values())
+
 
 class DepthOfCoverage(_GATKBase):
 
@@ -1470,6 +1482,7 @@ class CollectOxoGMetrics(_GATKBase):
         cmd = "{0} -I {1} -R {2} {3} {4}".format(cmd, bam, ref, output_file_flag, oxog_bias_matrics)
 
         return "{0} !LOG3!".format(cmd)
+
 
 class CollectSequencingArtifactMetrics(_GATKBase):
 

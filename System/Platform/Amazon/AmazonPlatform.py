@@ -17,7 +17,8 @@ from pkg_resources import resource_filename
 
 from threading import Thread
 
-from System.Platform import Process, CloudPlatform
+from System.Platform import Process
+from System.Platform.Platform import CloudPlatform
 from System.Platform.Amazon import AmazonInstance, AmazonSpotInstance
 from requests.exceptions import BaseHTTPError
 
@@ -85,7 +86,7 @@ class AmazonPlatform(CloudPlatform):
         else:
             raise RuntimeError(f"Could not obtain disk size in GB for the image '{self.disk_image}'!")
 
-    def get_cloud_instance_class(self):
+    def get_instance_class(self):
         if "preemptible" in self.extra and self.extra["preemptible"]:
             return AmazonSpotInstance
         return AmazonInstance

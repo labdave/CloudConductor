@@ -166,7 +166,7 @@ class TaskWorker(Thread):
 
                 if not self.module.is_resumable:
                     logging.debug("Module (%s) is not resumable adding checkpoint(s)!" % self.module.get_ID())
-                    self.proc.add_checkpoint() # mark a checkpoint after all the input is done
+                    self.proc.add_checkpoint()  # mark a checkpoint after all the input is done
 
                 # Check if we received a list of commands or only one
                 if isinstance(self.cmd, list):
@@ -207,7 +207,7 @@ class TaskWorker(Thread):
                     self.module.process_cmd_output(out, err)
 
                     if not self.module.is_resumable:
-                        self.proc.add_checkpoint(False) # mark a checkpoint after the command has been run
+                        self.proc.add_checkpoint(False)  # mark a checkpoint after the command has been run
 
             # Set the status to finalized
             self.set_status(self.FINALIZING)

@@ -14,8 +14,7 @@ from Config import ConfigParser
 from System import CC_MAIN_DIR
 
 
-class CloudPlatform(object, metaclass=abc.ABCMeta):
-
+class Platform(object, metaclass=abc.ABCMeta):
     CONFIG_SPEC = f"{CC_MAIN_DIR}/System/Platform/Platform.validate"
 
     def __init__(self, name, platform_config_file, final_output_dir):
@@ -59,11 +58,6 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
 
         # Obtain remaining parameters from the configuration file
         self.cmd_retries = self.config["cmd_retries"]
-        self.ssh_connection_user = self.config["ssh_connection_user"]
-
-        # Obtain disk image name
-        self.disk_image = self.config["disk_image"]
-        self.disk_image_obj = None
 
         # TODO: I still have to add this, because Datastore required a work directory
         self.wrk_dir = "/data"
@@ -71,6 +65,9 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
 
         # Save extra variables
         self.extra = self.config.get("extra", {})
+
+        # Check if CloudInstance class is set by the user
+        self.InstanceClass = self.get_instance_class()
 
         # Dictionary to hold instances currently managed by the platform
         self.instances = {}
@@ -89,42 +86,9 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
         self.mem = 0
         self.disk_space = 0
 
-        # TODO: figure out the ssh_connection_user from platform_config
-
-        # Initialize the location of the CloudConductor ssh_key
-        self.ssh_private_key = None
-
-        # Check if CloudInstance class is set by the user
-        self.CloudInstanceClass = self.get_cloud_instance_class()
-
-    def init_platform(self):
-
-        # Authenticate CloudConductor locally
-        self.authenticate_cc()
-
-        # Authenticate the current platform
-        self.authenticate_platform()
-
-        # Validate the current platform
-        self.validate()
-
-    def authenticate_cc(self):
-
-        # Obtain the home directory of the current user
-        home_dir = str(Path.home())
-
-        # Ensure the .ssh directory is present in the home directory
-        if not os.path.exists(f'{home_dir}/.ssh'):
-            os.mkdir(f'{home_dir}/.ssh')
-
-        # Check if the cloud_conductor private/public key pair exists; if not, create one pair
-        private_key = f'{home_dir}/.ssh/cloud_conductor'
-        public_key = f'{private_key}.pub'
-        if os.path.exists(private_key) and os.path.exists(public_key):
-            self.ssh_private_key = private_key
-        else:
-            self.__create_ssh_key(private_key)
-            self.ssh_private_key = private_key
+        # TODO: I still have to add this, because Datastore required a work directory
+        self.wrk_dir = "/data"
+        self.final_output_dir = self.standardize_dir(final_output_dir)
 
     def get_instance(self, nr_cpus, mem, disk_space, **kwargs):
         """Initialize new instance and register with platform"""
@@ -201,9 +165,6 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
             "identity"              : self.identity,
             "secret"                : self.secret,
 
-            "ssh_connection_user"   : self.ssh_connection_user,
-            "ssh_private_key"       : self.ssh_private_key,
-
             "cmd_retries"           : self.cmd_retries,
 
             "region"                : self.region,
@@ -217,8 +178,7 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
 
         # Initialize new instance
         try:
-            self.instances[inst_name] = self.CloudInstanceClass(inst_name, nr_cpus, mem, disk_space,
-                                                                self.disk_image_obj, **kwargs)
+            self.instances[inst_name] = self.InstanceClass(inst_name, nr_cpus, mem, disk_space, **kwargs)
 
             # Create instance
             self.instances[inst_name].create()
@@ -295,6 +255,10 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
     # ABSTRACT METHODS TO BE IMPLEMENTED BY INHERITING CLASSES
 
     @abc.abstractmethod
+    def init_platform(self):
+        pass
+
+    @abc.abstractmethod
     def get_random_zone(self):
         pass
 
@@ -303,7 +267,7 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_cloud_instance_class(self):
+    def get_instance_class(self):
         pass
 
     @abc.abstractmethod
@@ -330,6 +294,67 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def clean_up(self):
         pass
+
+    @staticmethod
+    def generate_unique_id(id_len=6):
+        return str(uuid.uuid4())[0:id_len]
+
+    @staticmethod
+    def standardize_dir(dir_path):
+        # Makes directory names uniform to include a single '/' at the end
+        return dir_path.rstrip("/") + "/"
+
+
+class CloudPlatform(Platform):
+
+    def __init__(self, name, platform_config_file, final_output_dir):
+        super(CloudPlatform, self).__init__(name, platform_config_file, final_output_dir)
+
+        # Obtain disk image name
+        self.disk_image = self.config["disk_image"]
+        self.disk_image_obj = None
+
+        # Initialize the location of the CloudConductor ssh_key
+        self.ssh_private_key = None
+        self.ssh_connection_user = self.config["ssh_connection_user"]
+
+    def init_platform(self):
+
+        # Authenticate CloudConductor locally
+        self.authenticate_cc()
+
+        # Authenticate the current platform
+        self.authenticate_platform()
+
+        # Validate the current platform
+        self.validate()
+
+    def authenticate_cc(self):
+
+        # Obtain the home directory of the current user
+        home_dir = str(Path.home())
+
+        # Ensure the .ssh directory is present in the home directory
+        if not os.path.exists(f'{home_dir}/.ssh'):
+            os.mkdir(f'{home_dir}/.ssh')
+
+        # Check if the cloud_conductor private/public key pair exists; if not, create one pair
+        private_key = f'{home_dir}/.ssh/cloud_conductor'
+        public_key = f'{private_key}.pub'
+        if os.path.exists(private_key) and os.path.exists(public_key):
+            self.ssh_private_key = private_key
+        else:
+            self.__create_ssh_key(private_key)
+            self.ssh_private_key = private_key
+
+    def get_instance(self, nr_cpus, mem, disk_space, **kwargs):
+        kwargs.update({
+            "ssh_connection_user"   : self.ssh_connection_user,
+            "ssh_private_key"       : self.ssh_private_key,
+
+            "disk_image"        : self.disk_image_obj
+        })
+        return super(CloudPlatform, self).get_instance(nr_cpus, mem, disk_space, **kwargs)
 
     # PRIVATE UTILITY METHODS
 
@@ -365,11 +390,19 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
                 )
             )
 
-    @staticmethod
-    def generate_unique_id(id_len=6):
-        return str(uuid.uuid4())[0:id_len]
 
-    @staticmethod
-    def standardize_dir(dir_path):
-        # Makes directory names uniform to include a single '/' at the end
-        return dir_path.rstrip("/") + "/"
+class KubernetesPlatform(Platform):
+
+    def __init__(self, name, platform_config_file, final_output_dir):
+
+        # Initialize the base class
+        super(KubernetesPlatform, self).__init__(name, platform_config_file, final_output_dir)
+
+        self.extra = self.config.get("extra", {})
+
+    def init_platform(self):
+        # Authenticate the current platform
+        self.authenticate_platform()
+
+        # Validate the current platform
+        self.validate()

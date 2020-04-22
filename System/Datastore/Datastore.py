@@ -3,7 +3,7 @@ import os
 import logging
 
 from System.Datastore import GAPFile
-from System.Platform import CloudPlatform
+from System.Platform import Platform
 
 class PrematureTaskInputSetError(Exception):
     pass
@@ -339,7 +339,7 @@ class TaskWorkspace(object):
 
         # Standardize directory paths
         for dir_type, dir_path in self.workspace.items():
-            dir_path = CloudPlatform.standardize_dir(dir_path)
+            dir_path = Platform.standardize_dir(dir_path)
             self.workspace[dir_type] = dir_path
 
     def get_wrk_dir(self):
