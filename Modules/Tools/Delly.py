@@ -9,7 +9,6 @@ class Delly(Module):
     def define_input(self):
         self.add_argument("bam",            is_required=True)
         self.add_argument("delly",          is_required=True, is_resource=True)
-        self.add_argument("bcftools",       is_required=True, is_resource=True)
         self.add_argument("ref",            is_required=True, is_resource=True)
         self.add_argument("exclude_list",   is_resource=True)
         self.add_argument("nr_cpus",        is_required=True, default_value=2)
@@ -30,7 +29,6 @@ class Delly(Module):
         ref             = self.get_argument("ref")
         exclude_list    = self.get_argument("exclude_list")
         delly           = self.get_argument("delly")
-        bcftools        = self.get_argument("bcftools")
 
         # Get output paths
         vcf             = self.get_output("delly_vcf")
@@ -44,6 +42,6 @@ class Delly(Module):
         else:
             cmd = "{0} call -g {1} -o {2} {3};".format(delly, ref, bcf, bam)
 
-        cmd += "{0} view {1} > {2} !LOG3!".format(bcftools, bcf, vcf)
+        cmd += "bcftools view {0} > {1} !LOG3!".format(bcf, vcf)
 
         return cmd
