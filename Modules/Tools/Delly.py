@@ -38,9 +38,9 @@ class Delly(Module):
 
         # Generate command
         if exclude_list:
-            cmd = "{0} call -x {1} -g {2} -o {3} {4} {5};".format(delly, exclude_list, ref, bcf, bam)
+            cmd = "{0} call -x {1} -g {2} -o {3} {4};".format(delly, exclude_list, ref, bcf, bam)
         else:
-            cmd = "{0} call -g {1} -o {2} {3} {4};".format(delly, ref, bcf, bam)
+            cmd = "{0} call -g {1} -o {2} {3};".format(delly, ref, bcf, bam)
 
         cmd += "bcftools view {0} > {1} !LOG3!".format(bcf, vcf)
 
