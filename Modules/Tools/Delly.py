@@ -4,6 +4,7 @@ class Delly(Module):
     def __init__(self, module_id, is_docker = False):
         super(Delly, self).__init__(module_id, is_docker)
         # self.output_keys = ["delly_vcf"]
+        self.output_keys = []
 
 
     def define_input(self):
