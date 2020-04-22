@@ -18,7 +18,7 @@ class Delly(Module):
     def define_output(self):
 
         # Declare unique file name for bcf file
-        # vcf_file        = self.generate_unique_file_name("delly.vcf")
+        vcf_file        = self.generate_unique_file_name("delly.vcf")
         # self.add_output("delly_vcf", vcf_file)
 
 
