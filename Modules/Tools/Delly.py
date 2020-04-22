@@ -3,7 +3,7 @@ from Modules import Module
 class Delly(Module):
     def __init__(self, module_id, is_docker = False):
         super(Delly, self).__init__(module_id, is_docker)
-        self.output_keys = ["delly_vcf"]
+        # self.output_keys = ["delly_vcf"]
 
 
     def define_input(self):
@@ -18,8 +18,8 @@ class Delly(Module):
     def define_output(self):
 
         # Declare unique file name for bcf file
-        vcf_file        = self.generate_unique_file_name("delly.vcf")
-        self.add_output("delly_vcf", vcf_file)
+        # vcf_file        = self.generate_unique_file_name("delly.vcf")
+        # self.add_output("delly_vcf", vcf_file)
 
 
     def define_command(self):
@@ -31,7 +31,7 @@ class Delly(Module):
         delly           = self.get_argument("delly")
 
         # Get output paths
-        vcf             = self.get_output("delly_vcf")
+        # vcf             = self.get_output("delly_vcf")
 
         # Generate unique file name for intermediate bcf
         bcf             = self.generate_unique_file_name("delly.bcf")
