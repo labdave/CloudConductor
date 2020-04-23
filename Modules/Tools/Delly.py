@@ -8,6 +8,7 @@ class Delly(Module):
 
     def define_input(self):
         self.add_argument("bam",            is_required=True)
+        self.add_argument("bam_idx",            is_required=True)
         self.add_argument("delly",          is_required=True, is_resource=True)
         self.add_argument("ref",            is_required=True, is_resource=True)
         self.add_argument("exclude_list",   is_resource=True)
@@ -34,7 +35,7 @@ class Delly(Module):
         vcf             = self.get_output("delly_vcf")
 
         # Generate unique file name for intermediate bcf
-        bcf             = "/data/delly/temp.bcf"
+        bcf             = "/data/delly/output/temp.bcf"
 
         # Generate command
         # cmd = 'touch {0}; touch {1}; ls -l /usr/bin/ !LOG3!'.format(vcf, bcf)
