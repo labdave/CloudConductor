@@ -34,7 +34,7 @@ class Delly(Module):
         vcf             = self.get_output("delly_vcf")
 
         # Generate unique file name for intermediate bcf
-        bcf             = "/temp.bcf"
+        bcf             = "/data/delly/temp.bcf"
 
         # Generate command
         # cmd = 'touch {0}; touch {1}; ls -l /usr/bin/ !LOG3!'.format(vcf, bcf)
