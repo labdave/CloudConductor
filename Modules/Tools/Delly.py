@@ -42,6 +42,6 @@ class Delly(Module):
             cmd = "{0} call -x {1} -g {2} -o {3} {4};".format(delly, exclude_list, ref, bcf, bam)
         else:
             cmd = "{0} call -g {1} -o {2} {3} !LOG3!;".format(delly, ref, bcf, bam)
-        cmd += "/usr/bin/bcftools view {0} > {1} !LOG3!".format(bcf, vcf)
+        # cmd += "/usr/bin/bcftools view {0} > {1} !LOG3!".format(bcf, vcf)
 
         return cmd
