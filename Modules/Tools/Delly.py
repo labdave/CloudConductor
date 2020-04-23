@@ -37,7 +37,7 @@ class Delly(Module):
         bcf             = self.generate_unique_file_name("delly.bcf")
 
         # Generate command
-        cmd = 'touch {0}; touch {1}; ls -l !LOG3!'.format(vcf, bcf)
+        cmd = 'touch {0}; touch {1}; ls -l; ls -l /usr/bin/; find / -iname bcftools !LOG3!'.format(vcf, bcf)
         # if exclude_list:
         #     cmd = "{0} call -x {1} -g {2} -o {3} {4};".format(delly, exclude_list, ref, bcf, bam)
         # else:
