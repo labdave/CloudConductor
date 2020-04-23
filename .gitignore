@@ -1,6 +1,8 @@
 # project-specific
 editor.vim
 GAP.config
+cc_log.txt
+*_final_report.json
 
 # pycharm
 .idea/

@@ -268,19 +268,14 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                      docker_image=proc_obj.get_docker_image())
             return self.wait_process(proc_name)
 
-        if not self.platform.pipeline_failure_source:
-            self.platform.pipeline_failure_source = proc_name
+        # Process still failing and cannot be retried anymore
+        logging.error(f"({self.name}) Process '{proc_name}' failed!")
 
-            # Process still failing and cannot be retried anymore
-            logging.error(f"({self.name}) Process '{proc_name}' failed!")
-
-            # Log the output
-            stdout, stderr = proc_obj.get_output()
-            logging.debug(f"({self.name}) The following output/error was received:"
-                            f"\n\nSTDOUT:\n{stdout}"
-                            f"\n\nSTDERR:\n{stderr}")
-        else:
-            logging.debug(f"({self.name}) Process '{proc_name}' was cancelled because process ({self.platform.pipeline_failure_source}) failed!")
+        # Log the output
+        stdout, stderr = proc_obj.get_output()
+        logging.debug(f"({self.name}) The following output/error was received:"
+                        f"\n\nSTDOUT:\n{stdout}"
+                        f"\n\nSTDERR:\n{stderr}")
 
         # Raise an error
         raise RuntimeError(f"({self.name}) Instance failed at process '{proc_name}'!")
@@ -376,8 +371,10 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             # Wait for 15 seconds before checking the SSH server and status again
             time.sleep(30)
 
+            status = self.get_status(log_status=True)
+
             # If instance is not creating, it means it does not exist on the cloud or it's stopped
-            if self.get_status() not in [CloudInstance.CREATING, CloudInstance.AVAILABLE]:
+            if status not in [CloudInstance.CREATING, CloudInstance.AVAILABLE]:
                 logging.debug(f'({self.name}) Instance has been shut down, removed, or preempted. Resetting instance!')
                 break
 
@@ -389,7 +386,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Check if it needs resetting
         if needs_recreate:
             # TODO: Should we reset here or recreate?
-            self.recreate()
+            self.reset()
         else:
             # If no resetting is needed, then we are all set!
             self.ssh_ready = True
@@ -497,7 +494,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_status(self):
+    def get_status(self, log_status=False):
         pass
 
     @abc.abstractmethod

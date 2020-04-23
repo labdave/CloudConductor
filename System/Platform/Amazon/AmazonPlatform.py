@@ -158,6 +158,21 @@ class AmazonPlatform(CloudPlatform):
         }
         Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var)
 
+    def push_log(self, log_path):
+
+        # Generate destination file path
+        dest_path = os.path.join(self.final_output_dir,  os.path.basename(log_path))
+
+        # Transfer report file to bucket
+        cmd = "aws s3 cp $( [ -d %s ] && echo --recursive ) %s %s" % \
+               (log_path, log_path, dest_path)
+        err_msg = "Could not transfer final log to the final output directory!"
+        env_var = {
+            "AWS_ACCESS_KEY_ID": self.identity,
+            "AWS_SECRET_ACCESS_KEY": self.secret
+        }
+        Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var)
+
     def clean_up(self):
 
         # Initialize the list of threads

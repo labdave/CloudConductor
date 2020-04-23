@@ -156,7 +156,11 @@ class Datastore(object):
                 return avail_args[input_type]
             # Single value matching type
             if len(avail_args[input_type]) > 0:
-                return avail_args[input_type][0]
+                try:
+                    return avail_args[input_type][0]
+                except KeyError:
+                    logging.error("Input type %s has no available value." % input_type)
+                    return
         return None
 
     def __gather_args(self, task_id, arg_type):
