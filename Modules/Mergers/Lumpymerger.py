@@ -37,6 +37,8 @@ class Lumpymerger(Merger):
 		# add module
 		cmd = " python Merge_sample_level_Lumpy.py"
 
+		# edit sample_id list into one item
+		sample_id = '?'.join(sample_id)
 		# add arguments
 		cmd += " {0} {1} {2}".format(
 			lumpy_merged_vcf, sample_id, chr_switch)
