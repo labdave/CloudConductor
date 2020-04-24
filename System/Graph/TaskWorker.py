@@ -92,6 +92,13 @@ class TaskWorker(Thread):
         else:
             return self.proc.get_start_time()
 
+    def get_stop_time(self):
+        if self.proc is None:
+            return None
+        else:
+            return self.proc.get_stop_time()
+
+
     def get_cmd(self):
         return self.cmd
 

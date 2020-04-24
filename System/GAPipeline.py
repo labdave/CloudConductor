@@ -2,6 +2,7 @@ import logging
 import importlib
 import json
 import os
+import time
 from collections import OrderedDict
 
 from System.Graph import Graph, Scheduler
@@ -171,10 +172,12 @@ class GAPipeline(object):
                 run_time    = task_worker.get_runtime()
                 cost        = task_worker.get_cost()
                 start_time  = task_worker.get_start_time()
+                end_time    = task_worker.get_stop_time()
                 cmd         = task_worker.get_cmd()
                 task_data   = {"parent_task" : task_name.split(".")[0]}
                 report.register_task(task_name=task_name,
                                      start_time=start_time,
+                                     end_time=end_time,
                                      run_time=run_time,
                                      cost=cost,
                                      cmd=cmd,
@@ -237,10 +240,14 @@ class GAPReport(object):
 
     @property
     def total_runtime(self):
-        cost = 0
+        start_time = time.time()
+        end_time = time.time()
         for task in self.tasks:
-            cost += float(task["runtime(sec)"])
-        return cost
+            if task["start_time"] < start_time:
+                start_time = task["start_time"]
+            if task["end_time"] > end_time:
+                end_time = task["end_time"]
+        return end_time - start_time
 
     @property
     def total_output_size(self):
@@ -260,8 +267,7 @@ class GAPReport(object):
     def set_start_time(self, start_time):
         self.start_time = start_time
 
-
-    def register_task(self, task_name, start_time, run_time, cost, cmd=None, task_data=None):
+    def register_task(self, task_name, start_time, end_time, run_time, cost, cmd=None, task_data=None):
         # Register information about a specific processor in the report
 
         # Make start time relative to pipeline start time
@@ -271,6 +277,7 @@ class GAPReport(object):
         proc_data = {
             "name" : task_name,
             "start_time" : start_time,
+            "end_time": end_time,
             "runtime(sec)" : run_time,
             "cost" : cost,
             "cmd"   : cmd
