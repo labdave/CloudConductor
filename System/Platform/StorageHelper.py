@@ -1,6 +1,8 @@
 import logging
 import os
 
+from Aries.storage import StorageFile, StoragePrefix, StorageFolder
+
 from System.Platform import CloudPlatform
 
 
@@ -36,6 +38,9 @@ class StorageHelper(object):
         cmd_generator = StorageHelper.__get_storage_cmd_generator(dir_path)
         cmd = cmd_generator.mkdir(dir_path)
 
+        if cmd is None:
+            return None
+
         job_name = f"mkdir_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
 
         # Optionally add logging
@@ -48,43 +53,55 @@ class StorageHelper(object):
         return job_name
 
     def path_exists(self, path, job_name=None, **kwargs):
-        # Return true if file exists, false otherwise
-        cmd_generator = StorageHelper.__get_storage_cmd_generator(path)
-        cmd = cmd_generator.ls(path)
 
-        # Run command and return job name
-        job_name = f"check_exists_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
-        self.proc.run(job_name, cmd, **kwargs)
-
-        # Wait for cmd to finish and get output
-        try:
-            self.proc.wait_process(job_name)
+        # Ignore local paths
+        if self.__get_file_protocol(path) == "Local":
+            logging.warning(f"Ignoring path '{path}' as it is local on the disk image. Assuming the path is present!")
             return True
+
+        try:
+
+            # Check if path is prefix, and create StoragePrefix object and check if exists
+            if path.endswith("*"):
+                return StoragePrefix(path.rstrip("*")).exists()
+
+            # Check if it exists as a file or folder, by creating StorageFile and StorageFolder object
+            return StorageFile(path).exists() or StorageFolder(path).exists()
+
         except RuntimeError as e:
             if str(e) != "":
-                logging.debug(f"StorageHelper error for {job_name}:\n{e}")
+                logging.error(f"StorageHelper error for {job_name}:\n{e}")
             return False
         except:
             logging.error(f"Unable to check path existence: {path}")
             raise
 
     def get_file_size(self, path, job_name=None, **kwargs):
-        # Return file size in gigabytes
-        cmd_generator = StorageHelper.__get_storage_cmd_generator(path)
-        cmd = cmd_generator.get_file_size(path)
 
-        # Run command and return job name
-        job_name = f"get_size_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
-        self.proc.run(job_name, cmd, **kwargs)
+        # Ignore local paths
+        if self.__get_file_protocol(path) == "Local":
+            logging.warning(f"Ignoring path '{path}' as it is local on the disk image. Assuming the path is present!")
+            return True
 
-        # Wait for cmd to finish and get output
         try:
-            # Try to return file size in gigabytes
-            out, err = self.proc.wait_process(job_name)
-            # Iterate over all files if multiple files (can happen if wildcard)
-            bytes = [int(x.split()[0]) for x in out.split("\n") if x != ""]
-            # Add them up and divide by billion bytes
-            return sum(bytes)/(1024**3.0)
+            # Check if path is prefix, and create StoragePrefix object and get its size
+            if path.endswith("*"):
+                _size = StoragePrefix(path.rstrip("*")).size
+
+            # Check if it path exists as a file or folder, by creating StorageFile and StorageFolder object
+            else:
+                _file = StorageFile(path)
+                _folder = StorageFolder(path)
+
+                if _file.exists():
+                    _size = _file.size
+                elif _folder.exists():
+                    _size = _folder.size
+                else:
+                    _size = 0
+
+            # Convert to GB
+            return float(_size)/2**30
 
         except BaseException as e:
             logging.error(f"Unable to get file size: {path}")
@@ -95,19 +112,18 @@ class StorageHelper(object):
     def rm(self, path, job_name=None, log=True, wait=False, **kwargs):
         # Delete file from file system
         # Log the transfer unless otherwise specified
-        cmd_generator = StorageHelper.__get_storage_cmd_generator(path)
-        cmd = cmd_generator.rm(path)
 
-        job_name = f"rm_{CloudPlatform.generate_unique_id()}" if job_name is None else job_name
+        # Create prefix object
+        _prefix_path = StoragePrefix(path)
 
-        # Optionally add logging
-        cmd = f"{cmd} !LOG3!" if log else cmd
+        try:
 
-        # Run command and return job name
-        self.proc.run(job_name, cmd, **kwargs)
-        if wait:
-            self.proc.wait_process(job_name)
-        return job_name
+            if _prefix_path.exists():
+                _prefix_path.delete()
+
+        except:
+            logging.error(f"Unable to delete path: {path}")
+            raise
 
     @staticmethod
     def __get_storage_cmd_generator(src_path, dest_path=None):
@@ -176,10 +192,6 @@ class LocalStorageCmdGenerator(StorageCmdGenerator):
         return f"sudo du -sh --apparent-size --bytes {path}"
 
     @staticmethod
-    def ls(path):
-        return f"sudo ls {path}"
-
-    @staticmethod
     def rm(path):
         # Dear god do not give sudo privileges to this command
         return f"rm -rf {path}"
@@ -197,17 +209,13 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
 
     @staticmethod
     def mkdir(dir_path):
-        # Makes a directory if it doesn't already exists
-        return f"touch dummy.txt ; gsutil cp dummy.txt {dir_path}; gsutil rm {dir_path}dummy.txt"
+        # Skip making directory as Google Storage doesn't have concept of directories
+        return None
 
     @staticmethod
     def get_file_size(path):
         # Return cmd for getting file size in bytes
         return f"gsutil du -s {path}"
-
-    @staticmethod
-    def ls(path):
-        return f"gsutil ls {path}"
 
     @staticmethod
     def rm(path):
@@ -230,17 +238,13 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
 
     @staticmethod
     def mkdir(dir_path):
-        # Makes a directory if it doesn't already exists
-        return f"touch dummy.txt ; aws s3 cp dummy.txt {dir_path}; aws s3 rm {dir_path}dummy.txt"
+        # Skip making directory as Amazon Storage doesn't have concept of directories
+        return None
 
     @staticmethod
     def get_file_size(path):
         # Return cmd for getting file size in bytes
         return f"aws s3 ls {path} --recursive --summarize | tail -n1 | cut -d' ' -f6"
-
-    @staticmethod
-    def ls(path):
-        return f"aws s3 ls {path}"
 
     @staticmethod
     def rm(path):

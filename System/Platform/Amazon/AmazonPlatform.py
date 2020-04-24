@@ -304,7 +304,7 @@ class AmazonPlatform(CloudPlatform):
             next_token = spot_pricing_result['NextToken']
 
         for key in spot_pricing_data:
-            spot_pricing_data[key] = statistics.mean([float(x) for x in spot_pricing_data[key]]) * 1.10
+            spot_pricing_data[key] = statistics.mean([float(x) for x in spot_pricing_data[key]]) * 1.30
         storage_price = self.__get_ebs_price(region)
 
         for inst_type in instance_types:

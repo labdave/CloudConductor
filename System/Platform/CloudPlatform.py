@@ -132,17 +132,11 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
         # Obtain task_id that will be used
         task_id = kwargs.pop("task_id", "NONAME")
 
-        # Identify if the instance is a helper instance
-        is_helper = kwargs.pop("is_helper", False)
-
         # Generate a unique instance name and associate it to the current request
         while True:
 
             # Generate a (new) unique instance name
-            if is_helper:
-                inst_name = f'helper-{self.name[:20]}-{self.generate_unique_id()}'
-            else:
-                inst_name = f'inst-{self.name[:20]}-{task_id[:25]}-{self.generate_unique_id()}'
+            inst_name = f'inst-{self.name[:20]}-{task_id[:25]}-{self.generate_unique_id()}'
 
             # Standardize instance type
             inst_name, nr_cpus, mem, disk_space = self.standardize_instance(inst_name, nr_cpus, mem, disk_space)
@@ -181,9 +175,7 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
 
                     # Mark as allocated and start creating
                     allocated = True
-                    if is_helper:
-                        logging.debug(f'({inst_name}) Creating helper instance!')
-                    elif task_id is not None:
+                    if task_id is not None:
                         logging.debug(f'({inst_name}) Creating instance for task "{task_id}"!')
                     else:
                         logging.debug(f'({inst_name}) Creating instance!')
