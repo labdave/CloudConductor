@@ -212,9 +212,6 @@ class GAPReport(object):
         # Git commit version
         self.git_version = git_version
 
-        # Total runtime
-        self.total_runtime = 0
-
         # Time of pipeline start
         self.start_time = None
 
@@ -239,6 +236,13 @@ class GAPReport(object):
         return cost
 
     @property
+    def total_runtime(self):
+        cost = 0
+        for task in self.tasks:
+            cost += float(task["runtime(sec)"])
+        return cost
+
+    @property
     def total_output_size(self):
         size = 0
         for output_file in self.output_files:
@@ -256,8 +260,6 @@ class GAPReport(object):
     def set_start_time(self, start_time):
         self.start_time = start_time
 
-    def set_total_runtime(self, total_runtime):
-        self.total_runtime = total_runtime
 
     def register_task(self, task_name, start_time, run_time, cost, cmd=None, task_data=None):
         # Register information about a specific processor in the report
