@@ -16,6 +16,7 @@ class Lumpymerger(Merger):
 		self.add_argument("nr_cpus",				default_value=2)
 		self.add_argument("mem",					default_value=10.0)
 		self.add_argument("chr_switch",				default_value=False)
+		self.add_argument("chr_filter",				default_value=False)
 
 
 	def define_output(self):
@@ -30,6 +31,7 @@ class Lumpymerger(Merger):
 		vcf_list				= self.get_argument("gt_vcf")
 		sample_id				= self.get_argument("sample_id")
 		chr_switch				= self.get_argument("chr_switch")
+		chr_filter				= self.get_argument("chr_filter")
 
 		# get output
 		lumpy_merged_vcf		= self.get_output("lumpy_merged_vcf")
@@ -40,8 +42,8 @@ class Lumpymerger(Merger):
 		# edit sample_id list into one item
 		sample_id = '?'.join(sample_id)
 		# add arguments
-		cmd += " {0} {1} {2}".format(
-			lumpy_merged_vcf, sample_id, chr_switch)
+		cmd += " {0} {1} {2} {3}".format(
+			lumpy_merged_vcf, sample_id, chr_switch, chr_filter)
 
 		# add vcf files
 		for vcf in vcf_list:
