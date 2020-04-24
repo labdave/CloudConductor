@@ -8,7 +8,8 @@ class Delly(Module):
 
     def define_input(self):
         self.add_argument("bam",            is_required=True)
-        self.add_argument("bam_idx",            is_required=True)
+        self.add_argument("bam_idx",        is_required=True)
+        self.add_argument("sample_id",      is_required=True)
         self.add_argument("delly",          is_required=True, is_resource=True)
         self.add_argument("ref",            is_required=True, is_resource=True)
         self.add_argument("exclude_list",   is_resource=True)
@@ -19,7 +20,8 @@ class Delly(Module):
     def define_output(self):
 
         # Declare unique file name for bcf file
-        vcf_file        = self.generate_unique_file_name("delly.vcf")
+        sample_id       = self.get_argument("sample_id")
+        vcf_file        = self.generate_unique_file_name("{}.delly.vcf".format(sample_id))
         self.add_output("delly_vcf", vcf_file)
 
 

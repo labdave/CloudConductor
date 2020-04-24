@@ -12,6 +12,7 @@ class Lumpy(Module):
 		# Module creator needs to define which arguments have is_resource=True
 		# Module creator needs to rename arguments as required by CC
 		self.add_argument("bam",						is_required=True)
+		self.add_argument("sample_id",					is_required=True)
 		self.add_argument("nr_cpus",					default_value=2)
 		self.add_argument("mem",						default_value=10.0)
 		self.add_argument("read_length",				default_value=152)
@@ -24,8 +25,9 @@ class Lumpy(Module):
 	def define_output(self):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
-		lumpy_vcf		= self.generate_unique_file_name("lumpy.vcf")
-		gt_vcf 			= self.generate_unique_file_name("gt.vcf")
+		sample_id		= self.get_argument("sample_id")
+		lumpy_vcf		= self.generate_unique_file_name("{}.lumpy.vcf".format(sample_id))
+		gt_vcf 			= self.generate_unique_file_name("{}.gt.vcf".format(sample_id))
 		self.add_output("lumpy_vcf",		lumpy_vcf)
 		self.add_output("gt_vcf",			gt_vcf)
 
