@@ -59,4 +59,5 @@ class Thread(threading.Thread, metaclass=abc.ABCMeta):
 
             # Raise the received exception
             if exc_info is not None:
+                logging.debug(f"Finalizing task worker. Exec_info {exc_info}")
                 raise exc_info[0](exc_info[1]).with_traceback(exc_info[2])
