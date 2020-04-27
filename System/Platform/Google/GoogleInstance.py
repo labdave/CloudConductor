@@ -99,7 +99,13 @@ class GoogleInstance(CloudInstance):
         self.driver.destroy_node(self.node)
 
     def start_instance(self):
-        self.driver.start_node(self.node)
+        try:
+            self.driver.start_node(self.node)
+        except ResourceNotFoundError:
+            # instance not found, need to recreate it
+            self.recreate()
+
+        logging.info(f"({self.name}) Instance started. Waiting for it to become available")
 
         # Initializing the cycle count
         cycle_count = 0
@@ -124,6 +130,7 @@ class GoogleInstance(CloudInstance):
 
     def stop_instance(self):
         self.driver.stop_node(self.node)
+        logging.info(f"({self.name}) Instance stopped!")
 
     def get_status(self, log_status=False):
 
@@ -150,12 +157,10 @@ class GoogleInstance(CloudInstance):
 
     def get_compute_price(self):
         price = self.gcp_compute_price_old_json()
-        logging.info(f"Compute price/hour for {self.name} is {price}")
         return price
 
     def get_storage_price(self):
         price = self.gcp_storage_price_old_json()
-        logging.info(f"Storage price for {self.name} is {price}")
         return price
 
     def gcp_compute_price_new_api(self):
