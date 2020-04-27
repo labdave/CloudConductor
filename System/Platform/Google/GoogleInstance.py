@@ -85,6 +85,7 @@ class GoogleInstance(CloudInstance):
                                                     ex_preemptible=self.is_preemptible,
                                                     ex_metadata=metadata)
             except Exception as e:
+                time.sleep(10)
                 logging.warning(f"({self.name}) Failed to create instance due to: {str(e)}")
 
         if not self.node:
