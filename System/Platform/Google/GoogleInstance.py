@@ -72,14 +72,24 @@ class GoogleInstance(CloudInstance):
         if self.name.startswith("helper-"):
             # don't want helper instances to be preemptible
             self.is_preemptible = False
-        self.node = self.driver.create_node(name=self.name,
-                                            image=self.disk_image,
-                                            size=node_size,
-                                            ex_disks_gce_struct=disks,
-                                            ex_service_accounts=sa_scope,
-                                            ex_preemptible=self.is_preemptible,
-                                            ex_metadata=metadata)
 
+        creation_attempts = 1
+        while not self.node and creation_attempts < 4:
+            try:
+                creation_attempts += 1
+                self.node = self.driver.create_node(name=self.name,
+                                                    image=self.disk_image,
+                                                    size=node_size,
+                                                    ex_disks_gce_struct=disks,
+                                                    ex_service_accounts=sa_scope,
+                                                    ex_preemptible=self.is_preemptible,
+                                                    ex_metadata=metadata)
+            except Exception as e:
+                if 'Instance failed to start due to preemption' in str(e):
+                    logging.warning(f"({self.name}) Failed to create instance due to preemption. Starting creation attempt #{creation_attempts}/3")
+
+        if not self.node:
+            logging.error(f"({self.name}) Failed to create instance!")
         # Return the external IP from node
         return self.node.public_ips[0]
 
