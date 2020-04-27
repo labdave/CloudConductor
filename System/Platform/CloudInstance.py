@@ -252,7 +252,6 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         if self.handle_failure(proc_name, proc_obj):
             stdout, stderr = proc_obj.get_output()
             logging.warning(f"({self.name}) Process '{proc_name}' failed but we will retry it!")
-            logging.warning(f"({self.name}) Process '{proc_name}' had the following issue: {stderr}")
             cmd = proc_obj.get_command()
             # alter aws s3 cmd to try recursive vs. non-recursive
             if 'aws s3 cp' in cmd:
