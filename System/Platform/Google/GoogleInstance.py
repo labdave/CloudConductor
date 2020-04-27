@@ -85,11 +85,10 @@ class GoogleInstance(CloudInstance):
                                                     ex_preemptible=self.is_preemptible,
                                                     ex_metadata=metadata)
             except Exception as e:
-                if 'Instance failed to start due to preemption' in str(e):
-                    logging.warning(f"({self.name}) Failed to create instance due to preemption. Starting creation attempt #{creation_attempts}/3")
+                logging.warning(f"({self.name}) Failed to create instance due to: {str(e)}")
 
         if not self.node:
-            logging.error(f"({self.name}) Failed to create instance!")
+            raise RuntimeError("({self.name}) Failed to create instance!")
         # Return the external IP from node
         return self.node.public_ips[0]
 
