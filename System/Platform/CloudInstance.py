@@ -251,6 +251,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Retry process if it can be retried
         if self.handle_failure(proc_name, proc_obj):
             stdout, stderr = proc_obj.get_output()
+            re.sub(r'@(.|\n)*attacks.', '', stderr)  # remove man-in-middle err
             logging.warning(f"({self.name}) Process '{proc_name}' failed but we will retry it!")
             cmd = proc_obj.get_command()
             # alter aws s3 cmd to try recursive vs. non-recursive
