@@ -5,6 +5,7 @@ import time
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
 from libcloud.common.google import ResourceNotFoundError
+from libcloud.common.types import LibcloudError
 
 from System.Platform import CloudInstance
 
@@ -102,8 +103,12 @@ class GoogleInstance(CloudInstance):
         try:
             self.driver.start_node(self.node)
         except ResourceNotFoundError:
-            # instance not found, need to recreate it
+            logging.info(f"({self.name}) Instance not found. Recreating a new instance.")
             self.recreate()
+        except LibcloudError:
+            logging.debug(f"({self.name}) Libcloud issue while starting the instance waiting for 10 seconds before retrying.")
+            time.sleep(10)
+            return True
 
         logging.info(f"({self.name}) Instance started. Waiting for it to become available")
 

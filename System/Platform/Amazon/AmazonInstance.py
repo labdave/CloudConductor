@@ -386,6 +386,10 @@ class AmazonInstance(CloudInstance):
             logging.debug(f"({self.name}) Rate Limit Exceeded during request {method.__name__}. Sleeping for {10*count} seconds before retrying.")
             time.sleep(10*count)
             return True
+        if 'Job did not complete in 180 seconds' in exception_string:
+            logging.debug(f"({self.name}) Libcloud command timed out sleeping for 10 seconds before retrying.")
+            time.sleep(10)
+            return True
         return False
 
     def __filter_instance_type(self, instance_type):
