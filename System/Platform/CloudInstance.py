@@ -4,6 +4,7 @@ import abc
 import subprocess as sp
 import time
 import socket
+import re
 from collections import OrderedDict
 
 from System.Platform import Process
@@ -125,12 +126,12 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                                " became available after multiple tries!" %
                                self.name)
 
-        # Recreate instance
-        self.destroy()
-        self.create()
-
         # Increment the recreation count
         self.recreation_count += 1
+
+        # Recreate instance
+        self.destroy()
+        return self.create()
 
     def start(self):
 
@@ -152,7 +153,12 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
     def stop(self):
 
         # Stop instance
-        self.stop_instance()
+        try:
+            self.stop_instance()
+        except Exception as e:
+            exception_string = str(e)
+            if 'notFound' in exception_string:
+                logging.debug(f"({self.name}) Failed to stop instance. ResourceNotFound moving on.")
 
         # Add history event
         self.__add_history_event("STOP")
@@ -251,7 +257,6 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         if self.handle_failure(proc_name, proc_obj):
             stdout, stderr = proc_obj.get_output()
             logging.warning(f"({self.name}) Process '{proc_name}' failed but we will retry it!")
-            logging.warning(f"({self.name}) Process '{proc_name}' had the following issue: {stderr}")
             cmd = proc_obj.get_command()
             # alter aws s3 cmd to try recursive vs. non-recursive
             if 'aws s3 cp' in cmd:
@@ -273,6 +278,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
         # Log the output
         stdout, stderr = proc_obj.get_output()
+        stderr = re.sub(r'@(.|\n)*attacks.', '', stderr)  # remove man-in-middle err
         logging.debug(f"({self.name}) The following output/error was received:"
                         f"\n\nSTDOUT:\n{stdout}"
                         f"\n\nSTDERR:\n{stderr}")

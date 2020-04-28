@@ -202,14 +202,14 @@ class AmazonPlatform(CloudPlatform):
             try:
                 return method(*args, **kwargs)
             except Exception as e:
-                if self.__handle_rate_limit_error(e, method, i+1):
+                if self.__handle_api_error(e, method, i+1):
                     continue
                 raise RuntimeError(str(e))
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
-    def __handle_rate_limit_error(self, e, method, count):
+    def __handle_api_error(self, e, method, count):
         exception_string = str(e)
-        logging.debug("[AMAZONPLATFORM] Handling issues with rate limits")
+        logging.debug("[AMAZONPLATFORM] Handling issues with api")
         logging.debug(f"Print out of exception {exception_string}")
         if 'MaxSpotInstanceCountExceeded' in exception_string or 'InstanceLimitExceeded' in exception_string:
             logging.info("Maximum number of spot instances exceeded.")
@@ -217,6 +217,10 @@ class AmazonPlatform(CloudPlatform):
         if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string:
             logging.debug(f"Rate Limit Exceeded during request {method.__name__}. Sleeping for {10*count} seconds before retrying.")
             time.sleep(10*count)
+            return True
+        if 'Job did not complete in 180 seconds' in exception_string or 'Timed out' in exception_string:
+            logging.debug(f"({self.name}) Libcloud command timed out sleeping for 10 seconds before retrying.")
+            time.sleep(10)
             return True
         return False
 

@@ -243,9 +243,9 @@ class GAPReport(object):
         start_time = time.time()
         end_time = time.time()
         for task in self.tasks:
-            if task["start_time"] < start_time:
+            if task["start_time"] and task["start_time"] < start_time:
                 start_time = task["start_time"]
-            if task["end_time"] > end_time:
+            if task["end_time"] and task["end_time"] > end_time:
                 end_time = task["end_time"]
         return end_time - start_time
 
