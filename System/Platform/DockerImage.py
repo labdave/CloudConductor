@@ -117,11 +117,12 @@ class DockerImage:
         response = requests.get(url, headers=headers)
         return response
 
-    def get_manifest(self):
+    def get_manifest(self, digest=None):
         """Gets the manifest HTTP response.
         """
-        if not self._manifest:
-            url = "https://%s/v2/%s/manifests/%s" % (self.hostname, self.path, self.tag)
+        if not self._manifest or digest:
+            tag = self.tag if digest is None else digest
+            url = "https://%s/v2/%s/manifests/%s" % (self.hostname, self.path, tag)
             response = self.send_get_request(
                 url,
                 headers={"Accept": "application/vnd.docker.distribution.manifest.v2+json"}
@@ -158,8 +159,10 @@ class DockerImage:
         try:
             layers = self.get_manifest().json().get("layers")
             total_size = 0
-            for layer in layers:
-                total_size += layer.get("size", 0)
+            if layers:
+                for layer in layers:
+                    total_size += layer.get("size", 0)
+
         except Exception as ex:
             logger.error("Cannot determine image size for %s: %s" % (self.name, str(ex)))
             import traceback

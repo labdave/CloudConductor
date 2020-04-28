@@ -64,7 +64,10 @@ class Bammatcher(PseudoMerger):
 class BammatcherReporter(Merger):
     def __init__(self, module_id, is_docker=False):
         super(BammatcherReporter, self).__init__(module_id, is_docker)
-        self.output_keys = ["relatedness_report"]
+        self.output_keys = ["relatedness_report", "sites_count_report"]
+
+        # Initialize output prefix for the reports
+        self.output_prefix = None
 
     def define_input(self):
         self.add_argument("bammatcher_report",      is_required=True)
@@ -73,14 +76,14 @@ class BammatcherReporter(Merger):
         self.add_argument("mem",                    default_value=8)
 
     def define_output(self):
-        # Generate output filename
-        output_filepath = self.generate_unique_file_name(extension=".csv")
+        # Generate output prefix
+        self.output_prefix = self.generate_unique_file_name(extension=".csv").rsplit(".", 1)[0]
 
-        self.add_output("relatedness_report", output_filepath)
+        self.add_output("relatedness_report", "{0}.relatedness.csv".format(self.output_prefix))
+        self.add_output("sites_count_report", "{0}.sites_count.csv".format(self.output_prefix))
 
     def define_command(self):
         bammatcher_reporter     = self.get_argument("bammatcher_reporter")
         reports                 = self.get_argument("bammatcher_report")
-        output_report           = self.get_output("relatedness_report")
 
-        return "{0} {1} > {2} !LOG2!".format(bammatcher_reporter, " ".join(reports), output_report)
+        return "{0} {1} {2} !LOG3!".format(bammatcher_reporter, self.output_prefix, " ".join(reports))
