@@ -127,15 +127,25 @@ class AmazonSpotInstance(AmazonInstance):
         if self.is_preemptible and not force_destroy and status != CloudInstance.TERMINATED:
 
             # Restart the instance
-            stopped = status == CloudInstance.OFF
-            while not stopped:
+            while not status != CloudInstance.OFF and status != CloudInstance.TERMINATED:
                 logging.warning("(%s) Waiting for 30 seconds for instance to stop" % self.name)
                 time.sleep(30)
-                stopped = self.get_status() == CloudInstance.OFF
-            self.start()
+                status = self.get_status()
 
-            # Instance restart complete
-            logging.debug("(%s) Instance restarted, continue running processes!" % self.name)
+            if status == CloudInstance.OFF:
+                self.start()
+                # Instance restart complete
+                logging.debug("(%s) Instance restarted, continue running processes!" % self.name)
+            elif status == CloudInstance.TERMINATED:
+                force_destroy = True
+                # Deallocate resources on the platform for current instance
+                self.platform.deallocate_resources(self.nr_cpus, self.mem, self.disk_space)
+
+                # Recreate the instance
+                self.recreate()
+
+                # Instance recreation complete
+                logging.debug("(%s) Instance recreated, rerunning all processes!" % self.name)
 
         else:
             logging.info(f"({self.name}) Recreating instance!!! ")

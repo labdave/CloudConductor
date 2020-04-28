@@ -370,14 +370,14 @@ class AmazonInstance(CloudInstance):
             try:
                 return method(*args, **kwargs)
             except Exception as e:
-                if self.__handle_rate_limit_error(e, method, i+1):
+                if self.__handle_api_error(e, method, i+1):
                     continue
                 raise RuntimeError(str(e))
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
-    def __handle_rate_limit_error(self, e, method, count):
+    def __handle_api_error(self, e, method, count):
         exception_string = str(e)
-        logging.debug(f"({self.name}) [AMAZONINSTANCE] Handling issues with rate limits")
+        logging.debug(f"({self.name}) [AMAZONINSTANCE] Handling issues with api")
         logging.debug(f"({self.name}) Print out of exception {exception_string}")
         if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
             logging.info(f"({self.name}) Maximum number of spot instances exceeded.")

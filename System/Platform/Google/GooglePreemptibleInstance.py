@@ -127,11 +127,24 @@ class GooglePreemptibleInstance(GoogleInstance):
         if self.is_preemptible and not force_destroy:
 
             # Restart the instance
-            self.stop()
-            self.start()
+            try:
+                self.stop()
+                self.start()
 
-            # Instance restart complete
-            logging.debug("(%s) Instance restarted, continue running processes!" % self.name)
+                # Instance restart complete
+                logging.debug("(%s) Instance restarted, continue running processes!" % self.name)
+            except Exception as e:
+                if 'notFound' in str(e):
+                    force_destroy = True
+                    logging.debug(f"({self.name}) Failed to stop instance. ResourceNotFound... recreating.")
+                    # Deallocate resources on the platform for current instance
+                    self.platform.deallocate_resources(self.nr_cpus, self.mem, self.disk_space)
+
+                    # Recreate the instance
+                    self.recreate()
+
+                    # Instance recreation complete
+                    logging.debug("(%s) Instance recreated, rerunning all processes!" % self.name)
 
         else:
             self.destroy_instance()

@@ -126,12 +126,12 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                                " became available after multiple tries!" %
                                self.name)
 
-        # Recreate instance
-        self.destroy()
-        self.create()
-
         # Increment the recreation count
         self.recreation_count += 1
+
+        # Recreate instance
+        self.destroy()
+        return self.create()
 
     def start(self):
 
@@ -153,7 +153,12 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
     def stop(self):
 
         # Stop instance
-        self.stop_instance()
+        try:
+            self.stop_instance()
+        except Exception as e:
+            exception_string = str(e)
+            if 'notFound' in exception_string:
+                logging.debug(f"({self.name}) Failed to stop instance. ResourceNotFound moving on.")
 
         # Add history event
         self.__add_history_event("STOP")

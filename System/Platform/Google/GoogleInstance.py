@@ -108,7 +108,6 @@ class GoogleInstance(CloudInstance):
         except LibcloudError:
             logging.debug(f"({self.name}) Libcloud issue while starting the instance waiting for 10 seconds before retrying.")
             time.sleep(10)
-            return True
 
         logging.info(f"({self.name}) Instance started. Waiting for it to become available")
 
@@ -134,8 +133,12 @@ class GoogleInstance(CloudInstance):
         return self.node.public_ips[0]
 
     def stop_instance(self):
-        self.driver.stop_node(self.node)
-        logging.info(f"({self.name}) Instance stopped!")
+        try:
+            self.driver.stop_node(self.node)
+        except Exception as e:
+            exception_string = str(e)
+            if 'notFound' in exception_string:
+                logging.debug(f"({self.name}) Failed to stop instance. ResourceNotFound moving on.")
 
     def get_status(self, log_status=False):
 
