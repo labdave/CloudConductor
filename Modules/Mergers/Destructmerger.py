@@ -15,8 +15,8 @@ class Destructmerger(Merger):
 		self.add_argument("sample_id",				is_required=True)
 		self.add_argument("nr_cpus",				default_value=2)
 		self.add_argument("mem",					default_value=10.0)
-		self.add_argument("chr_switch",				default_value=False)
-		self.add_argument("chr_filter",				default_value=False)
+		self.add_argument("chr_switch",				default_value=0)
+		self.add_argument("chr_filter",				default_value=0)
 
 
 	def define_output(self):
