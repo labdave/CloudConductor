@@ -90,7 +90,7 @@ class GoogleInstance(CloudInstance):
                 logging.warning(f"({self.name}) Failed to create instance due to: {str(e)}")
 
         if not self.node:
-            raise RuntimeError("({self.name}) Failed to create instance!")
+            raise RuntimeError(f"({self.name}) Failed to create instance!")
         # Return the external IP from node
         return self.node.public_ips[0]
 
