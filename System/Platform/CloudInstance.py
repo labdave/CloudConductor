@@ -273,7 +273,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
         # Log the output
         stdout, stderr = proc_obj.get_output()
-        re.sub(r'@(.|\n)*attacks.', '', stderr)  # remove man-in-middle err
+        stderr = re.sub(r'@(.|\n)*attacks.', '', stderr)  # remove man-in-middle err
         logging.debug(f"({self.name}) The following output/error was received:"
                         f"\n\nSTDOUT:\n{stdout}"
                         f"\n\nSTDERR:\n{stderr}")
