@@ -150,8 +150,12 @@ class AmazonSpotInstance(AmazonInstance):
                     logging.debug("(%s) Instance recreated, rerunning all processes!" % self.name)
 
         else:
-            logging.info(f"({self.name}) Recreating instance!!! ")
-            self.destroy_instance()
+            try:
+                self.destroy_instance()
+            except Exception as e:
+                if 'notFound' in str(e):
+                    logging.debug(f"({self.name}) Failed to destroy instance. ResourceNotFound... moving on.")
+
             # Deallocate resources on the platform for current instance
             self.platform.deallocate_resources(self.nr_cpus, self.mem, self.disk_space)
 
