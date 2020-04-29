@@ -86,8 +86,8 @@ class GoogleInstance(CloudInstance):
                                                     ex_preemptible=self.is_preemptible,
                                                     ex_metadata=metadata)
             except Exception as e:
-                time.sleep(10)
-                logging.warning(f"({self.name}) Failed to create instance due to: {str(e)}")
+                logging.warning(f"({self.name}) Failed to create instance due to: {str(e)}. Waiting 30 seconds before retrying.")
+                time.sleep(30)
 
         if not self.node:
             raise RuntimeError(f"({self.name}) Failed to create instance!")
@@ -106,8 +106,8 @@ class GoogleInstance(CloudInstance):
             logging.info(f"({self.name}) Instance not found. Recreating a new instance.")
             self.recreate()
         except LibcloudError:
-            logging.debug(f"({self.name}) Libcloud issue while starting the instance waiting for 10 seconds before retrying.")
-            time.sleep(10)
+            logging.debug(f"({self.name}) Libcloud issue while starting the instance waiting for 30 seconds before retrying.")
+            time.sleep(30)
 
         logging.info(f"({self.name}) Instance started. Waiting for it to become available")
 
