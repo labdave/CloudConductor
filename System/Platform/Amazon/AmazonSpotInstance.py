@@ -125,27 +125,29 @@ class AmazonSpotInstance(AmazonInstance):
 
         # Restart the instance if it is preemptible and is not required to be destroyed
         if self.is_preemptible and not force_destroy and status != CloudInstance.TERMINATED:
+            try:
+                # Restart the instance
+                while not status != CloudInstance.OFF:
+                    logging.warning("(%s) Waiting for 30 seconds for instance to stop" % self.name)
+                    time.sleep(30)
+                    status = self.get_status()
 
-            # Restart the instance
-            while not status != CloudInstance.OFF and status != CloudInstance.TERMINATED:
-                logging.warning("(%s) Waiting for 30 seconds for instance to stop" % self.name)
-                time.sleep(30)
-                status = self.get_status()
+                if status == CloudInstance.OFF:
+                    self.start()
+                    # Instance restart complete
+                    logging.debug("(%s) Instance restarted, continue running processes!" % self.name)
+            except Exception as e:
+                if 'notFound' in str(e):
+                    force_destroy = True
+                    logging.debug(f"({self.name}) Failed to stop instance. ResourceNotFound... recreating.")
+                    # Deallocate resources on the platform for current instance
+                    self.platform.deallocate_resources(self.nr_cpus, self.mem, self.disk_space)
 
-            if status == CloudInstance.OFF:
-                self.start()
-                # Instance restart complete
-                logging.debug("(%s) Instance restarted, continue running processes!" % self.name)
-            elif status == CloudInstance.TERMINATED:
-                force_destroy = True
-                # Deallocate resources on the platform for current instance
-                self.platform.deallocate_resources(self.nr_cpus, self.mem, self.disk_space)
+                    # Recreate the instance
+                    self.recreate()
 
-                # Recreate the instance
-                self.recreate()
-
-                # Instance recreation complete
-                logging.debug("(%s) Instance recreated, rerunning all processes!" % self.name)
+                    # Instance recreation complete
+                    logging.debug("(%s) Instance recreated, rerunning all processes!" % self.name)
 
         else:
             logging.info(f"({self.name}) Recreating instance!!! ")
