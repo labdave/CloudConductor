@@ -385,7 +385,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                 break
 
             # Check if ssh server is accessible
-            if self.__check_ssh():
+            if self.check_ssh():
                 needs_recreate = False
                 break
 
@@ -398,7 +398,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             self.ssh_ready = True
             logging.debug(f'({self.name}) Instance can be accessed through SSH!')
 
-    def __check_ssh(self):
+    def check_ssh(self):
 
         # If the instance is off, the ssh is definitely not ready
         if self.external_IP is None:

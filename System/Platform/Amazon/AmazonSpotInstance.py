@@ -96,7 +96,7 @@ class AmazonSpotInstance(AmazonInstance):
             return can_retry
 
         # Check if the problem is that we cannot SSH in the instance
-        elif proc_obj.returncode == 255 and not super(AmazonSpotInstance, self).__check_ssh():
+        elif proc_obj.returncode == 255 and not self.check_ssh():
             logging.warning("(%s) SSH connection cannot be established! Resetting..." % self.name)
             self.reset()
             return can_retry
