@@ -45,7 +45,7 @@ class AmazonSpotInstance(AmazonInstance):
                 return can_retry
 
         # Get the status from the cloud
-        curr_status = self.get_status()
+        curr_status = self.get_status(log_status=True)
 
         # Re-run any command (except create) if instance is up and cmd can be retried
         if curr_status == CloudInstance.AVAILABLE:
