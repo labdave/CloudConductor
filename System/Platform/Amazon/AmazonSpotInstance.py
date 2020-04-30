@@ -114,7 +114,7 @@ class AmazonSpotInstance(AmazonInstance):
 
         # Incrementing the reset count and checking if it reached the threshold
         self.reset_count += 1
-        logging.info(f"This is reset attempt #{self.reset_count}. Max retries is {self.max_resets} attempts.")
+        logging.info(f"({self.name}) This is reset attempt #{self.reset_count}. Max retries is {self.max_resets} attempts.")
         if self.reset_count > self.max_resets:
             logging.warning("(%s) Instance failed! Instance preempted and has reached the maximum number of resets (num resets: %s). "
                             "Resetting as standard instance." % (self.name, self.max_resets))
