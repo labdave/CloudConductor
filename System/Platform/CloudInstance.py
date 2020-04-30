@@ -99,28 +99,30 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             # Get the current instance status
             status = self.get_status()
 
-            # If status is OFF then the instance was destroyed
-            if status == CloudInstance.OFF or status == CloudInstance.TERMINATED:
-                self.__add_history_event("DESTROY")
-                break
-
-            # If status is not DESTROYING then we destroy the instance
-            elif status != CloudInstance.DESTROYING:
+            if status != CloudInstance.DESTROYING:
                 try:
                     self.destroy_instance()
                 except Exception as e:
                     if 'notFound' in str(e):
+                        self.node = None
+                        self.__add_history_event("DESTROY")
                         logging.debug(f"({self.name}) Failed to destroy instance. ResourceNotFound... moving on.")
                         break
 
                 # Allocate resources on the platform for current instance
                 self.platform.deallocate_resources(self.nr_cpus, self.mem, self.disk_space)
 
+            # If status is OFF then the instance was destroyed
+            if status == CloudInstance.OFF or status == CloudInstance.TERMINATED:
+                self.node = None
+                self.__add_history_event("DESTROY")
+                break
+
             # Wait for 10 seconds before checking again for status
             time.sleep(10)
 
     def recreate(self):
-        logging.info(f"({self.name}) Recreating instance. Try #{self.recreation_count}/{self.default_num_cmd_retries}")
+        logging.info(f"({self.name}) Recreating instance. Try #{self.recreation_count+1}/{self.default_num_cmd_retries}")
         # Check if we recreated too many times already
         if self.recreation_count > self.default_num_cmd_retries:
             logging.debug("(%s) Instance successfully created but "
@@ -136,7 +138,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
         # Recreate instance
         self.destroy()
-        return self.create()
+        self.create()
 
     def start(self):
 
