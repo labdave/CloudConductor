@@ -11,9 +11,7 @@ class Dellylumpydestructmerger(Merger):
 	def define_input(self):
 		# Module creator needs to define which arguments have is_resource=True
 		# Module creator needs to rename arguments as required by CC
-		self.add_argument("delly_merged_vcf",		is_required=True)
-		self.add_argument("lumpy_merged_vcf",		is_required=True)
-		self.add_argument("destruct_merged_vcf",	is_required=True)
+		self.add_argument("merged_vcf",				is_required=True)
 		self.add_argument("nr_cpus",				default_value=2)
 		self.add_argument("mem",					default_value=10.0)
 		self.add_argument("chr_filter",				default_value=0)
@@ -37,11 +35,20 @@ class Dellylumpydestructmerger(Merger):
 
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC
-		delly_file				= self.get_argument("delly_merged_vcf")
-		lumpy_file				= self.get_argument("lumpy_merged_vcf")
-		destruct_file			= self.get_argument("destruct_merged_vcf")
-		sample_id				= self.get_argument("sample_id")
+		merged_vcf_list			= self.get_argument("merged_vcf")
 		chr_filter				= self.get_argument("chr_filter")
+
+		# DEPENDS ON INTEGRITY OF FILE NAMES FROM INDIVIDUAL MERGERS
+		for vcf in merged_vcf_list:
+			if 'lumpy' in vcf:
+				lumpy_file = vcf
+				continue
+			if 'delly' in vcf:
+				delly_file = vcf
+				continue
+			if 'destruct' in vcf:
+				destruct_file = vcf
+				continue
 
 		# get output
 		all_merged_cons_vcf		= self.get_output("all_merged_vcf")

@@ -5,7 +5,7 @@ class Dellymerger(Merger):
 	def __init__(self, module_id, is_docker=False):
 		super(Dellymerger, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
-		self.output_keys = ["delly_merged_vcf"]
+		self.output_keys = ["merged_vcf"]
 
 
 	def define_input(self):
@@ -22,8 +22,10 @@ class Dellymerger(Merger):
 	def define_output(self):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
+
+		# FILE NAME IN ALL MERGERS DEPENDS ON THIS: CHANGE WITH CAUTION
 		delly_merged_vcf		= self.generate_unique_file_name("delly.merged.vcf")
-		self.add_output("delly_merged_vcf",			delly_merged_vcf)
+		self.add_output("merged_vcf",			delly_merged_vcf)
 
 
 	def define_command(self):
@@ -34,7 +36,7 @@ class Dellymerger(Merger):
 		chr_filter				= self.get_argument("chr_filter")
 
 		# get output
-		delly_merged_vcf		= self.get_output("delly_merged_vcf")
+		delly_merged_vcf		= self.get_output("merged_vcf")
 
 		# add module
 		cmd = " python Merge_sample_level_Delly.py"
