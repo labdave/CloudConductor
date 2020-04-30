@@ -40,14 +40,21 @@ class Lumpymerger(Merger):
 		cmd = " python Merge_sample_level_Lumpy.py"
 
 		# edit sample_id list into one item
-		sample_id = '?'.join(sample_id)
+		if isinstance(sample_id, str):
+			sample_id = ''.join(sample_id)
+		else:
+			sample_id = '?'.join(sample_id)
+
 		# add arguments
 		cmd += " {0} {1} {2} {3}".format(
 			lumpy_merged_vcf, sample_id, chr_switch, chr_filter)
 
 		# add vcf files
-		for vcf in vcf_list:
-			cmd += " {}".format(vcf)
+		if isinstance(vcf_list, str):
+			cmd += " {}".format(''.join(vcf_list))
+		else:
+			for vcf in vcf_list:
+				cmd += " {}".format(vcf)
 
 		# add logging
 		cmd += " !LOG3!"
