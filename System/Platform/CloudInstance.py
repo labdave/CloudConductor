@@ -106,7 +106,12 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
             # If status is not DESTROYING then we destroy the instance
             elif status != CloudInstance.DESTROYING:
-                self.destroy_instance()
+                try:
+                    self.destroy_instance()
+                except Exception as e:
+                    if 'notFound' in str(e):
+                        logging.debug(f"({self.name}) Failed to destroy instance. ResourceNotFound... moving on.")
+                        break
 
                 # Allocate resources on the platform for current instance
                 self.platform.deallocate_resources(self.nr_cpus, self.mem, self.disk_space)
@@ -115,7 +120,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             time.sleep(10)
 
     def recreate(self):
-
+        logging.info(f"({self.name}) Recreating instance. Try #{self.recreation_count}/{self.default_num_cmd_retries}")
         # Check if we recreated too many times already
         if self.recreation_count > self.default_num_cmd_retries:
             logging.debug("(%s) Instance successfully created but "
@@ -266,7 +271,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                     cmd = cmd.replace('aws s3 cp', 'aws s3 cp --recursive')
             if 'ssh' in stderr:
                 # issue with ssh connection, sleep for 10 seconds in case the server was having trouble with connections/commands
-                time.sleep(10)
+                time.sleep(30)
             self.run(job_name=proc_name,
                      cmd=cmd,
                      num_retries=proc_obj.get_num_retries()-1,
@@ -323,12 +328,9 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
                 # Calculate time delta in hours
                 time_delta = (event["timestamp"] - instance_is_on) / 3600.0
-                logging.info(f"Compute Cost calc for {self.name} is {time_delta} * {compute_cost}")
 
                 # Add cost since last start-up
                 total_compute_cost += time_delta * compute_cost
-
-                logging.info(f"Total Compute Cost for {self.name} is {total_compute_cost}")
 
                 # Mark the instance shut down and no compute cost present
                 instance_is_on = None
@@ -345,12 +347,9 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
                 # Calculate time delta
                 time_delta = (event["timestamp"] - storage_is_present) / 3600.0
-                logging.info(f"Storage Cost calc for {self.name} is {time_delta} * {storage_cost}")
 
                 # Add cost since last start-up
                 total_storage_cost += time_delta * storage_cost
-
-                logging.info(f"Total Storage Cost for {self.name} is {total_storage_cost}")
 
                 # Mark the storage are removed and no storage cost present
                 storage_is_present = None
