@@ -40,6 +40,7 @@ class Destructmerger(Merger):
 		cmd = " python Merge_sample_level_Destruct.py"
 
 		# edit sample_id list into one item
+		print(sample_id)
 		if len(sample_id) == 1:
 			sample_id = sample_id[0]
 		else:
@@ -50,6 +51,7 @@ class Destructmerger(Merger):
 			destruct_merged_vcf, sample_id, chr_switch, chr_filter)
 
 		# add vcf files
+		print(vcf_list)
 		if len(vcf_list) == 1:
 			cmd += " {}".format(vcf_list[0])
 		else:
