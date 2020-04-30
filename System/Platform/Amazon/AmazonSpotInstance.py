@@ -142,14 +142,14 @@ class AmazonSpotInstance(AmazonInstance):
                     logging.debug(f"({self.name}) Failed to stop instance. ResourceNotFound... recreating.")
 
                     # Recreate the instance
-                    self = self.recreate()
+                    self.recreate()
 
                     # Instance recreation complete
                     logging.debug("(%s) Instance recreated, rerunning all processes!" % self.name)
 
         else:
             # Recreate the instance
-            self = self.recreate()
+            self.recreate()
 
             # Instance recreation complete
             logging.debug("(%s) Instance recreated, rerunning all processes!" % self.name)
