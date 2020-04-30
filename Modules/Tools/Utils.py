@@ -1,6 +1,7 @@
 import logging
 import copy
 from itertools import zip_longest
+from pathlib import Path
 
 from System.Datastore import GAPFile
 from Modules import Module
@@ -968,7 +969,15 @@ class GetERCCReadCounts(Module):
 
         read_counts     = self.get_output("read_counts")
 
+        # check for the file size
+        sam_size = Path(sam).stat().st_size
+
+        # if the sam file is empty
+        if not sam_size:
+            cmd = 'echo -e "ERCC-00000\t0" > %s !LOG2!' % read_counts
+            return cmd
+
         # generate command to count the reads and then filter for ERCC baits
-        cmd = "awk '{A[$3]++}END{for(i in A)print i,A[i]}' %s | grep '^ERCC' > %s" % (sam,read_counts)
+        cmd = "awk '{A[$3]++}END{for(i in A)print i,A[i]}' %s | grep '^ERCC' > %s !LOG2!" % (sam,read_counts)
 
         return cmd
