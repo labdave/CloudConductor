@@ -46,8 +46,8 @@ class Destructmerger(Merger):
 			sample_id = '?'.join(sample_id)
 
 		# add arguments
-		cmd += " {0} {1} {2} {3}".format(
-			destruct_merged_vcf, sample_id, chr_switch, chr_filter)
+		cmd += " {0} {1} {2} {3} {4}".format(
+			len(sample_id), destruct_merged_vcf, sample_id, chr_switch, chr_filter)
 
 		# add vcf files
 		if len(vcf_list) == 1:
