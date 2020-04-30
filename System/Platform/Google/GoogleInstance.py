@@ -104,7 +104,7 @@ class GoogleInstance(CloudInstance):
             self.driver.start_node(self.node)
         except ResourceNotFoundError:
             logging.info(f"({self.name}) Instance not found. Recreating a new instance.")
-            self.recreate()
+            self = self.recreate()
         except LibcloudError:
             logging.debug(f"({self.name}) Libcloud issue while starting the instance waiting for 30 seconds before retrying.")
             time.sleep(30)
