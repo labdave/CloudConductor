@@ -21,7 +21,7 @@ class Dellylumpydestructmerger(Merger):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
 		all_merged_vcf			= self.generate_unique_file_name("all.merged.vcf")
-		all_merged_cons_file	= all_merged_vcf.replace('.vcf', '_cons.vcf')
+		all_merged_cons_vcf		= all_merged_vcf.replace('.vcf', '_cons.vcf')
 		tmp_bed					= all_merged_vcf+'.tmp.bed'
 		tmp1_bed				= all_merged_vcf+'.tmp1.bed'
 		tmp_all_bed				= all_merged_vcf+'.tmp.all.bed'
@@ -51,7 +51,7 @@ class Dellylumpydestructmerger(Merger):
 				continue
 
 		# get output
-		all_merged_cons_vcf		= self.get_output("all_merged_vcf")
+		all_merged_vcf			= self.get_output("all_merged_vcf")
 
 		# add module
 		cmd = " python Merge_delly_lumpy_destruct.py"
