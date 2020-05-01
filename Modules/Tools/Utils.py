@@ -943,7 +943,7 @@ class CovertToSAM(Module):
         if bed:
             cmd += " -L {0}".format(bed)
 
-        cmd += " > {0}".format(sam)
+        cmd += " > {0} !LOG2!".format(sam)
 
         return cmd
 
