@@ -130,12 +130,21 @@ class AmazonSpotInstance(AmazonInstance):
                 while not status != CloudInstance.OFF:
                     logging.warning("(%s) Waiting for 30 seconds for instance to stop" % self.name)
                     time.sleep(30)
-                    status = self.get_status()
+                    status = self.get_status(log_status=True)
 
                 if status == CloudInstance.OFF:
                     self.start()
                     # Instance restart complete
                     logging.debug("(%s) Instance restarted, continue running processes!" % self.name)
+                if status == CloudInstance.TERMINATED:
+                    force_destroy = True
+                    logging.debug(f"({self.name}) Failed to stop instance. ResourceNotFound... recreating.")
+
+                    # Recreate the instance
+                    self.recreate()
+
+                    # Instance recreation complete
+                    logging.debug("(%s) Instance recreated, rerunning all processes!" % self.name)
             except Exception as e:
                 if 'notFound' in str(e):
                     force_destroy = True
