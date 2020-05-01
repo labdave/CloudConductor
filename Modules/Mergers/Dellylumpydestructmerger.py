@@ -40,13 +40,13 @@ class Dellylumpydestructmerger(Merger):
 
 		# DEPENDS ON INTEGRITY OF FILE NAMES FROM INDIVIDUAL MERGERS
 		for vcf in merged_vcf_list:
-			if 'lumpy' in vcf:
+			if 'lumpy.merged' in vcf:
 				lumpy_file = vcf
 				continue
-			if 'delly' in vcf:
+			if 'delly.merged' in vcf:
 				delly_file = vcf
 				continue
-			if 'destruct' in vcf:
+			if 'destruct.merged' in vcf:
 				destruct_file = vcf
 				continue
 
@@ -54,13 +54,13 @@ class Dellylumpydestructmerger(Merger):
 		all_merged_vcf			= self.get_output("all_merged_vcf")
 
 		# add module
-		cmd = " python Merge_delly_lumpy_destruct.py " + str(merged_vcf_list)
+		cmd = " python Merge_delly_lumpy_destruct.py"
 
 		# add arguments
-		# cmd += " {0} {1}".format(all_merged_vcf, chr_filter)
+		cmd += " {0} {1}".format(all_merged_vcf, chr_filter)
 
-		# # add merged vcf files
-		# cmd += " {0} {1} {2}".format(delly_file, lumpy_file, destruct_file)
+		# add merged vcf files
+		cmd += " {0} {1} {2}".format(delly_file, lumpy_file, destruct_file)
 
 		# add logging
 		cmd += " !LOG3!"
