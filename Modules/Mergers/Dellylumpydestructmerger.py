@@ -54,7 +54,7 @@ class Dellylumpydestructmerger(Merger):
 		all_merged_vcf			= self.get_output("all_merged_vcf")
 
 		# add module
-		cmd = " python Merge_delly_lumpy_destruct.py " + merged_vcf_list
+		cmd = " python Merge_delly_lumpy_destruct.py " + str(merged_vcf_list)
 
 		# add arguments
 		# cmd += " {0} {1}".format(all_merged_vcf, chr_filter)
