@@ -184,7 +184,7 @@ class AmazonInstance(CloudInstance):
                 break
 
             # Wait for 10 seconds before checking the status again
-            time.sleep(10)
+            time.sleep(self.get_api_sleep(cycle_count+1))
 
             # Increment the cycle count
             cycle_count += 1
@@ -394,11 +394,11 @@ class AmazonInstance(CloudInstance):
             return False
         if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string or 'RequestResourceCountExceeded' in exception_string:
             logging.debug(f"({self.name}) Rate Limit Exceeded during request {method.__name__}. Sleeping for {10*count} seconds before retrying.")
-            time.sleep(10*count)
+            time.sleep(self.get_api_sleep(count))
             return True
         if 'Job did not complete in 180 seconds' in exception_string or 'Timed out' in exception_string:
             logging.debug(f"({self.name}) Libcloud command timed out sleeping for 30 seconds before retrying.")
-            time.sleep(30)
+            time.sleep(self.get_api_sleep(count))
             return True
         return False
 

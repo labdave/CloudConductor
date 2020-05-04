@@ -91,8 +91,9 @@ class GoogleInstance(CloudInstance):
                     logging.warning(f"({self.name}) Instance already exists. Getting status...")
                     self.get_status(log_status=True)
                 else:
-                    logging.warning(f"({self.name}) Failed to create instance due to: {str(e)}. Waiting 30 seconds before retrying.")
-                    time.sleep(30)
+                    sleep_time = self.get_api_sleep(creation_attempts-1)
+                    logging.warning(f"({self.name}) Failed to create instance due to: {str(e)}. Waiting {sleep_time} seconds before retrying.")
+                    time.sleep(sleep_time)
 
         if not self.node:
             raise RuntimeError(f"({self.name}) Failed to create instance!")
@@ -127,7 +128,7 @@ class GoogleInstance(CloudInstance):
                 break
 
             # Wait for 10 seconds before checking the status again
-            time.sleep(10)
+            time.sleep(self.get_api_sleep(cycle_count+1))
 
             # Increment the cycle count
             cycle_count += 1
