@@ -219,8 +219,8 @@ class AmazonPlatform(CloudPlatform):
             time.sleep(10*count)
             return True
         if 'Job did not complete in 180 seconds' in exception_string or 'Timed out' in exception_string:
-            logging.debug(f"({self.name}) Libcloud command timed out sleeping for 10 seconds before retrying.")
-            time.sleep(10)
+            logging.debug(f"({self.name}) Libcloud command timed out sleeping for 30 seconds before retrying.")
+            time.sleep(30)
             return True
         return False
 
