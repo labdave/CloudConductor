@@ -11,7 +11,7 @@ class Dellymerger(Merger):
 	def define_input(self):
 		# Module creator needs to define which arguments have is_resource=True
 		# Module creator needs to rename arguments as required by CC
-		self.add_argument("delly_vcf",				is_required=True)
+		self.add_argument("vcf",				is_required=True)
 		self.add_argument("sample_id",				is_required=True)
 		self.add_argument("nr_cpus",				default_value=2)
 		self.add_argument("mem",					default_value=10.0)
@@ -30,11 +30,12 @@ class Dellymerger(Merger):
 
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC
-		vcf_list				= self.get_argument("delly_vcf")
+		vcf_list				= self.get_argument("vcf")
 		sample_id				= self.get_argument("sample_id")
 		chr_switch				= self.get_argument("chr_switch")
 		chr_filter				= self.get_argument("chr_filter")
 
+		for file_ in vcf:
 		# get output
 		delly_merged_vcf		= self.get_output("merged_vcf")
 
