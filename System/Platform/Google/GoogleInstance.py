@@ -86,8 +86,13 @@ class GoogleInstance(CloudInstance):
                                                     ex_preemptible=self.is_preemptible,
                                                     ex_metadata=metadata)
             except Exception as e:
-                logging.warning(f"({self.name}) Failed to create instance due to: {str(e)}. Waiting 30 seconds before retrying.")
-                time.sleep(30)
+                exception_string = str(e)
+                if 'alreadyExists' in exception_string:
+                    logging.warning(f"({self.name}) Instance already exists. Getting status...")
+                    self.get_status(log_status=True)
+                else:
+                    logging.warning(f"({self.name}) Failed to create instance due to: {str(e)}. Waiting 30 seconds before retrying.")
+                    time.sleep(30)
 
         if not self.node:
             raise RuntimeError(f"({self.name}) Failed to create instance!")
