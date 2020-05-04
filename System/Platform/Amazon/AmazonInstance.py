@@ -326,6 +326,11 @@ class AmazonInstance(CloudInstance):
             return node
         except Exception as e:
             exception_string = str(e)
+            if 'alreadyExists' in exception_string:
+                logging.warning(f"({self.name}) Instance already exists. Getting status...")
+                self.get_status(log_status=True)
+                return self.node
+
             logging.debug(f"({self.name}) Failed to create a spot instance of type: {self.instance_type['InstanceType']}")
             logging.debug(f"({self.name}) There was an issue when creating a spot instance: {exception_string}")
             if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
@@ -349,6 +354,11 @@ class AmazonInstance(CloudInstance):
             return node
         except Exception as e:
             exception_string = str(e)
+            if 'alreadyExists' in exception_string:
+                logging.warning(f"({self.name}) Instance already exists. Getting status...")
+                self.get_status(log_status=True)
+                return self.node
+
             logging.info(f"({self.name}) Failed to create an on demand instance of type: {self.instance_type['InstanceType']}")
             logging.error(f"({self.name}) There was an issue when creating an on demand instance: {exception_string}")
             if 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
@@ -382,13 +392,13 @@ class AmazonInstance(CloudInstance):
         if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
             logging.info(f"({self.name}) Maximum number of spot instances exceeded.")
             return False
-        if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string:
+        if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string or 'RequestResourceCountExceeded' in exception_string:
             logging.debug(f"({self.name}) Rate Limit Exceeded during request {method.__name__}. Sleeping for {10*count} seconds before retrying.")
             time.sleep(10*count)
             return True
         if 'Job did not complete in 180 seconds' in exception_string or 'Timed out' in exception_string:
-            logging.debug(f"({self.name}) Libcloud command timed out sleeping for 10 seconds before retrying.")
-            time.sleep(10)
+            logging.debug(f"({self.name}) Libcloud command timed out sleeping for 30 seconds before retrying.")
+            time.sleep(30)
             return True
         return False
 
