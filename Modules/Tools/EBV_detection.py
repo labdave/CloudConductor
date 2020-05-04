@@ -45,8 +45,8 @@ class EBV_detection(Module):
         
 
         # get output
-        paired_ebv_sam                  = self.get_output("paired_ebv_sam").replace("_Aligned.out.sam", "")
-        single_ebv_sam                  = self.get_output("single_ebv_sam").replace("_Aligned.out.sam", "")
+        paired_ebv_sam                  = str(self.get_output("paired_ebv_sam")).replace("_Aligned.out.sam", "")
+        single_ebv_sam                  = str(self.get_output("single_ebv_sam")).replace("_Aligned.out.sam", "")
 
         # add module
         cmd = "bash /usr/local/bin/ebv_detection.sh"
