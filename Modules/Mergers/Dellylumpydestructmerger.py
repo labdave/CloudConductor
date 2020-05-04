@@ -5,7 +5,7 @@ class Dellylumpydestructmerger(Merger):
 	def __init__(self, module_id, is_docker=False):
 		super(Dellylumpydestructmerger, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
-		self.output_keys = ["all_merged_vcf", "all_merged_cons_vcf"]
+		self.output_keys = ["all_merged_vcf", "all_merged_cons_vcf", "tmp_all_bed"]
 
 
 	def define_input(self):
