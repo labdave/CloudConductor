@@ -37,7 +37,7 @@ class Delly(Module):
         vcf             = self.get_output("delly_vcf")
 
         # Generate unique file name for intermediate bcf
-        bcf             = "/data/delly/output/temp.bcf"
+        bcf             = "/data/temp.bcf"
 
         # Generate command
         if exclude_list:

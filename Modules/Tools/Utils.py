@@ -943,7 +943,7 @@ class CovertToSAM(Module):
         if bed:
             cmd += " -L {0}".format(bed)
 
-        cmd += " > {0}".format(sam)
+        cmd += " > {0} !LOG2!".format(sam)
 
         return cmd
 
@@ -969,6 +969,7 @@ class GetERCCReadCounts(Module):
         read_counts     = self.get_output("read_counts")
 
         # generate command to count the reads and then filter for ERCC baits
-        cmd = "awk '{A[$3]++}END{for(i in A)print i,A[i]}' %s | grep '^ERCC' > %s" % (sam,read_counts)
+        cmd = "if [ -s %s ]; then awk '{A[$3]++}END{for(i in A)print i,A[i]}' %s | grep '^ERCC' > %s !LOG2!; " \
+              "else echo -e \"ERCC-00000\t0\" > %s !LOG2!; fi" % (sam,sam,read_counts,read_counts)
 
         return cmd
