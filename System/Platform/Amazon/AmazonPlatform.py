@@ -294,7 +294,7 @@ class AmazonPlatform(CloudPlatform):
 
         client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1', config=self.boto_config)
         spot_pricing_data = {}
-        start_time = datetime.today() - timedelta(days=2)
+        start_time = datetime.today() - timedelta(hours=6)
         next_token = ''
 
         while True:
