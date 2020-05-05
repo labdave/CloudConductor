@@ -6,7 +6,7 @@ class EBV_detection(Module):
     def __init__(self, module_id, is_docker=False):
         super(EBV_detection, self).__init__(module_id, is_docker)
         # Add output keys here if needed
-        self.output_keys = ["paired_ebv_sam", "single_ebv_sam"]
+        self.output_keys = ["paired_ebv_sam", "single_ebv_sam", "paired_ebv_logf", "single_ebv_logf"]
 
 
     def define_input(self):
@@ -27,9 +27,13 @@ class EBV_detection(Module):
         # based on the output keys provided during module creation
         paired_ebv_sam  = self.generate_unique_file_name("ebv_paired_Aligned.out.sam")
         single_ebv_sam  = self.generate_unique_file_name("ebv_single_Aligned.out.sam")
+        paired_ebv_logf = self.generate_unique_file_name("ebv_paired_Log.final.out")
+        single_ebv_logf = self.generate_unique_file_name("ebv_single_Log.final.out")
         #log_file        
         self.add_output("paired_ebv_sam",       paired_ebv_sam)
         self.add_output("single_ebv_sam",       single_ebv_sam)
+        self.add_output("paired_ebv_logf",      paired_ebv_logf)
+        self.add_output("single_ebv_logf",      single_ebv_logf)
 
 
     def define_command(self):
@@ -45,8 +49,8 @@ class EBV_detection(Module):
         
 
         # get output
-        paired_ebv_sam                  = str(self.get_output("paired_ebv_sam")).replace("Aligned.out.sam", "")
-        single_ebv_sam                  = str(self.get_output("single_ebv_sam")).replace("Aligned.out.sam", "")
+        paired_prefix                  = str(self.get_output("paired_ebv_sam")).replace("Aligned.out.sam", "")
+        single_prefix                  = str(self.get_output("single_ebv_sam")).replace("Aligned.out.sam", "")
 
         # add module
         cmd = "bash /usr/local/bin/ebv_detection.sh"
@@ -54,7 +58,7 @@ class EBV_detection(Module):
         # add arguments
         cmd += " {0} {1} {2} {3} {4} {5} {6} {7} {8} {9}".format(
             bam, ref_masked_ebv, nr_cpus,
-            f, F, paired_ebv_sam, single_ebv_sam, outFilterMismatchNmax, outFilterMultimapNmax, limitOutSAMoneReadBytes)
+            f, F, paired_prefix, single_prefix, outFilterMismatchNmax, outFilterMultimapNmax, limitOutSAMoneReadBytes)
 
         # add logging verbosity
         cmd += " !LOG3!"
