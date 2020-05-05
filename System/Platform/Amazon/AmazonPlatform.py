@@ -197,8 +197,8 @@ class AmazonPlatform(CloudPlatform):
 
     def __aws_request(self, method, *args, **kwargs):
         """ Function for handling AWS requests and rate limit issues """
-        # retry command up to 20 times
-        for i in range(20):
+        # retry command up to 8 times
+        for i in range(8):
             try:
                 return method(*args, **kwargs)
             except Exception as e:

@@ -159,13 +159,13 @@ class AmazonInstance(CloudInstance):
             except Exception as e:
                 exception_string = str(e)
                 if 'IncorrectInstanceState' in exception_string:
-                    logging.info(f"Instance is in the incorrect state to be started.")
+                    logging.info(f"({self.name}) Instance is in the incorrect state to be started.")
                     status = self.get_status()
-                    logging.info(f"Instance state = {status.upper()}")
+                    logging.info(f"({self.name}) Instance state = {status.upper()}")
                 # we don't care if it fails, we'll retry the attempt
                 pass
             if not instance_started:
-                logging.warning("(%s) Failed to restart instance, waiting 30 seconds before retrying" % self.name)
+                logging.warning(f"({self.name}) Failed to restart instance, waiting 30 seconds before retrying")
                 # wait 30 seconds before trying to restart again
                 time.sleep(30)
                 counter -= 1
@@ -375,8 +375,8 @@ class AmazonInstance(CloudInstance):
 
     def __aws_request(self, method, *args, **kwargs):
         """ Function for handling AWS requests and rate limit issues """
-        # retry command up to 20 times
-        for i in range(20):
+        # retry command up to 8 times
+        for i in range(8):
             try:
                 return method(*args, **kwargs)
             except Exception as e:

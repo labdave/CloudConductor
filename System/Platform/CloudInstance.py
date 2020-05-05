@@ -121,8 +121,8 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                 self.__add_history_event("DESTROY")
                 break
 
-            # Wait for 10 seconds before checking again for status
-            time.sleep(10)
+            # Wait for 30 seconds before checking again for status
+            time.sleep(30)
 
     def recreate(self):
         logging.info(f"({self.name}) Recreating instance. Try #{self.recreation_count+1}/{self.default_num_cmd_retries}")
@@ -378,7 +378,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             # Increment the cycle count
             cycle_count += 1
 
-            # Wait for 15 seconds before checking the SSH server and status again
+            # Wait for 30 seconds before checking the SSH server and status again
             time.sleep(30)
 
             status = self.get_status(log_status=True)
