@@ -197,8 +197,8 @@ class AmazonPlatform(CloudPlatform):
 
     def __aws_request(self, method, *args, **kwargs):
         """ Function for handling AWS requests and rate limit issues """
-        # retry command up to 20 times
-        for i in range(20):
+        # retry command up to 8 times
+        for i in range(8):
             try:
                 return method(*args, **kwargs)
             except Exception as e:
@@ -209,18 +209,20 @@ class AmazonPlatform(CloudPlatform):
 
     def __handle_api_error(self, e, method, count):
         exception_string = str(e)
-        logging.debug("[AMAZONPLATFORM] Handling issues with api")
-        logging.debug(f"Print out of exception {exception_string}")
-        if 'MaxSpotInstanceCountExceeded' in exception_string or 'InstanceLimitExceeded' in exception_string:
-            logging.info("Maximum number of spot instances exceeded.")
+        logging.debug(f"({self.name}) [AMAZONINSTANCE] Handling issues with api")
+        logging.debug(f"({self.name}) Handling API exception: {exception_string}")
+        if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
+            logging.info(f"({self.name}) Maximum number of spot instances exceeded.")
             return False
         if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string or 'RequestResourceCountExceeded' in exception_string:
-            logging.debug(f"Rate Limit Exceeded during request {method.__name__}. Sleeping for {10*count} seconds before retrying.")
-            time.sleep(10*count)
+            sleep_time = self.get_api_sleep(count)
+            logging.debug(f"({self.name}) Rate Limit Exceeded during request {method.__name__}. Sleeping for {sleep_time} seconds before retrying.")
+            time.sleep(sleep_time)
             return True
         if 'Job did not complete in 180 seconds' in exception_string or 'Timed out' in exception_string:
-            logging.debug(f"({self.name}) Libcloud command timed out sleeping for 30 seconds before retrying.")
-            time.sleep(30)
+            sleep_time = self.get_api_sleep(count)
+            logging.debug(f"({self.name}) Libcloud command timed out sleeping for {sleep_time} seconds before retrying.")
+            time.sleep(sleep_time)
             return True
         return False
 
