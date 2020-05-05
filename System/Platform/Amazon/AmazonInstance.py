@@ -159,13 +159,13 @@ class AmazonInstance(CloudInstance):
             except Exception as e:
                 exception_string = str(e)
                 if 'IncorrectInstanceState' in exception_string:
-                    logging.info(f"Instance is in the incorrect state to be started.")
+                    logging.info(f"({self.name}) Instance is in the incorrect state to be started.")
                     status = self.get_status()
-                    logging.info(f"Instance state = {status.upper()}")
+                    logging.info(f"({self.name}) Instance state = {status.upper()}")
                 # we don't care if it fails, we'll retry the attempt
                 pass
             if not instance_started:
-                logging.warning("(%s) Failed to restart instance, waiting 30 seconds before retrying" % self.name)
+                logging.warning(f"({self.name}) Failed to restart instance, waiting 30 seconds before retrying")
                 # wait 30 seconds before trying to restart again
                 time.sleep(30)
                 counter -= 1
@@ -184,7 +184,7 @@ class AmazonInstance(CloudInstance):
                 break
 
             # Wait for 10 seconds before checking the status again
-            time.sleep(10)
+            time.sleep(self.get_api_sleep(cycle_count+1))
 
             # Increment the cycle count
             cycle_count += 1
@@ -375,8 +375,8 @@ class AmazonInstance(CloudInstance):
 
     def __aws_request(self, method, *args, **kwargs):
         """ Function for handling AWS requests and rate limit issues """
-        # retry command up to 20 times
-        for i in range(20):
+        # retry command up to 8 times
+        for i in range(8):
             try:
                 return method(*args, **kwargs)
             except Exception as e:
@@ -388,17 +388,19 @@ class AmazonInstance(CloudInstance):
     def __handle_api_error(self, e, method, count):
         exception_string = str(e)
         logging.debug(f"({self.name}) [AMAZONINSTANCE] Handling issues with api")
-        logging.debug(f"({self.name}) Print out of exception {exception_string}")
+        logging.debug(f"({self.name}) Handling API exception: {exception_string}")
         if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
             logging.info(f"({self.name}) Maximum number of spot instances exceeded.")
             return False
         if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string or 'RequestResourceCountExceeded' in exception_string:
-            logging.debug(f"({self.name}) Rate Limit Exceeded during request {method.__name__}. Sleeping for {10*count} seconds before retrying.")
-            time.sleep(10*count)
+            sleep_time = self.get_api_sleep(count)
+            logging.debug(f"({self.name}) Rate Limit Exceeded during request {method.__name__}. Sleeping for {sleep_time} seconds before retrying.")
+            time.sleep(sleep_time)
             return True
         if 'Job did not complete in 180 seconds' in exception_string or 'Timed out' in exception_string:
-            logging.debug(f"({self.name}) Libcloud command timed out sleeping for 30 seconds before retrying.")
-            time.sleep(30)
+            sleep_time = self.get_api_sleep(count)
+            logging.debug(f"({self.name}) Libcloud command timed out sleeping for {sleep_time} seconds before retrying.")
+            time.sleep(sleep_time)
             return True
         return False
 

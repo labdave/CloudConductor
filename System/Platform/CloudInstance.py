@@ -5,6 +5,7 @@ import subprocess as sp
 import time
 import socket
 import re
+import random
 from collections import OrderedDict
 
 from System.Platform import Process
@@ -17,6 +18,8 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
     DESTROYING  = 2  # Instance is being destroyed
     AVAILABLE   = 3  # Available for running processes
     TERMINATED  = 4  # Destroyed instance
+
+    API_SLEEP_CAP = 200
 
     STATUSES    = ["OFF", "CREATING", "DESTROYING", "AVAILABLE", "TERMINATED"]
 
@@ -118,8 +121,8 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                 self.__add_history_event("DESTROY")
                 break
 
-            # Wait for 10 seconds before checking again for status
-            time.sleep(10)
+            # Wait for 30 seconds before checking again for status
+            time.sleep(30)
 
     def recreate(self):
         logging.info(f"({self.name}) Recreating instance. Try #{self.recreation_count+1}/{self.default_num_cmd_retries}")
@@ -375,7 +378,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             # Increment the cycle count
             cycle_count += 1
 
-            # Wait for 15 seconds before checking the SSH server and status again
+            # Wait for 30 seconds before checking the SSH server and status again
             time.sleep(30)
 
             status = self.get_status(log_status=True)
@@ -398,6 +401,10 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             # If no resetting is needed, then we are all set!
             self.ssh_ready = True
             logging.debug(f'({self.name}) Instance can be accessed through SSH!')
+
+    def get_api_sleep(self, attempt):
+        temp = min(CloudInstance.API_SLEEP_CAP, 4 * 2 ** attempt)
+        return temp / 2 + random.randrange(0, temp/2)
 
     def check_ssh(self):
 

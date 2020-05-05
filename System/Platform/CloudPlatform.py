@@ -4,6 +4,7 @@ import uuid
 import threading
 import os
 import time
+import random
 from pathlib import Path
 
 from cryptography.hazmat.primitives import serialization
@@ -17,6 +18,8 @@ from System import CC_MAIN_DIR
 class CloudPlatform(object, metaclass=abc.ABCMeta):
 
     CONFIG_SPEC = f"{CC_MAIN_DIR}/System/Platform/Platform.validate"
+
+    API_SLEEP_CAP = 200
 
     def __init__(self, name, platform_config_file, final_output_dir):
 
@@ -265,6 +268,10 @@ class CloudPlatform(object, metaclass=abc.ABCMeta):
             self.cpu -= nr_cpus
             self.mem -= mem
             self.disk_space -= disk_space
+
+    def get_api_sleep(self, attempt):
+        temp = min(CloudPlatform.API_SLEEP_CAP, 4 * 2 ** attempt)
+        return temp / 2 + random.randrange(0, temp/2)
 
     def __check_instance(self, inst_name, nr_cpus, mem, disk_space):
         # Check that nr_cpus, mem, disk space are under max
