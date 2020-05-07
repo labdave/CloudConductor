@@ -121,6 +121,7 @@ class GooglePlatform(CloudPlatform):
         # Transfer report file to bucket
         options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
         cmd = "gsutil %s cp -r '%s' '%s' 1>/dev/null 2>&1 " % (options_fast, report_path, dest_path)
+        logging.debug(f"Publish report cmd: {cmd}")
         Process.run_local_cmd(cmd, err_msg="Could not transfer final report to the final output directory!")
 
         # Check if the user has provided a Pub/Sub report topic

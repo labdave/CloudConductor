@@ -160,10 +160,8 @@ class AmazonInstance(CloudInstance):
                 exception_string = str(e)
                 if 'IncorrectInstanceState' in exception_string:
                     logging.info(f"({self.name}) Instance is in the incorrect state to be started.")
-                    status = self.get_status()
+                    status = self.get_status(log_status=True)
                     logging.info(f"({self.name}) Instance state = {status.upper()}")
-                # we don't care if it fails, we'll retry the attempt
-                pass
             if not instance_started:
                 logging.warning(f"({self.name}) Failed to restart instance, waiting 30 seconds before retrying")
                 # wait 30 seconds before trying to restart again

@@ -146,7 +146,6 @@ class AmazonPlatform(CloudPlatform):
 
         # Generate destination file path
         dest_path = os.path.join(self.final_output_dir, os.path.basename(report_path))
-        logging.info("Destinatinon path for report: %s" % dest_path)
 
         # Transfer report file to bucket
         # cmd = "aws s3 cp $( [ -d %s ] && echo --recursive ) %s %s" % \
@@ -158,6 +157,7 @@ class AmazonPlatform(CloudPlatform):
             "AWS_ACCESS_KEY_ID": self.identity,
             "AWS_SECRET_ACCESS_KEY": self.secret
         }
+        logging.debug(f"Publish report cmd: {cmd}")
         Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var)
 
     def push_log(self, log_path):
