@@ -318,7 +318,7 @@ class TaskWorker(Thread):
 
         # Obtain the input multiplier if not provided
         if input_multiplier is None:
-            input_multiplier = self.platform.config.get("input_multiplier", 5)
+            input_multiplier = int(self.platform.config.get("input_multiplier", 5))
 
         # Set size of desired disk
         disk_size = int(math.ceil(input_multiplier * input_size))
