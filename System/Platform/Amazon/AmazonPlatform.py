@@ -151,14 +151,10 @@ class AmazonPlatform(CloudPlatform):
         # cmd = "aws s3 cp $( [ -d %s ] && echo --recursive ) %s %s" % \
         #        (report_path, report_path, dest_path)
         options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
-        cmd = "gsutil %s cp -r '%s' '%s' 1>/dev/null 2>&1 " % (options_fast, report_path, dest_path)
+        cmd = "gsutil %s cp -r '%s' '%s'" % (options_fast, report_path, dest_path)
         err_msg = "Could not transfer final report to the final output directory!"
-        env_var = {
-            "AWS_ACCESS_KEY_ID": self.identity,
-            "AWS_SECRET_ACCESS_KEY": self.secret
-        }
         logging.debug(f"Publish report cmd: {cmd}")
-        Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var)
+        Process.run_local_cmd(cmd, err_msg=err_msg)
 
     def push_log(self, log_path):
 
@@ -169,13 +165,9 @@ class AmazonPlatform(CloudPlatform):
         # cmd = "aws s3 cp $( [ -d %s ] && echo --recursive ) %s %s" % \
         #        (log_path, log_path, dest_path)
         options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
-        cmd = "gsutil %s cp -r '%s' '%s' 1>/dev/null 2>&1 " % (options_fast, log_path, dest_path)
+        cmd = "gsutil %s cp -r '%s' '%s'" % (options_fast, log_path, dest_path)
         err_msg = "Could not transfer final log to the final output directory!"
-        env_var = {
-            "AWS_ACCESS_KEY_ID": self.identity,
-            "AWS_SECRET_ACCESS_KEY": self.secret
-        }
-        Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var)
+        Process.run_local_cmd(cmd, err_msg=err_msg)
 
     def clean_up(self):
 
