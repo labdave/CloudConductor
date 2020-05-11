@@ -127,11 +127,14 @@ class AmazonSpotInstance(AmazonInstance):
         if self.is_preemptible and not force_destroy and status != CloudInstance.TERMINATED:
             try:
                 # Restart the instance
-                while status != CloudInstance.OFF and status != CloudInstance.TERMINATED:
+                while status != CloudInstance.OFF and status != CloudInstance.TERMINATED and status != CloudInstance.AVAILABLE:
                     logging.warning("(%s) Waiting for 30 seconds for instance to stop" % self.name)
                     time.sleep(30)
                     status = self.get_status(log_status=True)
 
+                if status == CloudInstance.AVAILABLE:
+                    # Instance restart complete
+                    logging.debug("(%s) Instance is running, continue running processes!" % self.name)
                 if status == CloudInstance.OFF:
                     self.start()
                     # Instance restart complete
