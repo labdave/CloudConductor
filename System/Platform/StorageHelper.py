@@ -232,13 +232,6 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
         options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
         return f"sudo gsutil {options_fast} cp -r {src_path} {dest_dir}"
 
-        # # Reformat source path
-        # recursive_flag = '--recursive' if "/*" in src_path else ''
-        # src_path = src_path.rstrip("/*")
-        # dest_dir = dest_dir.rstrip("/*")
-
-        # return f"aws s3 cp {recursive_flag} {src_path} {dest_dir}/{os.path.basename(src_path)}"
-
     @staticmethod
     def mkdir(dir_path):
         # Skip making directory as Amazon Storage doesn't have concept of directories
@@ -248,10 +241,7 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
     def get_file_size(path):
         # Return cmd for getting file size in bytes
         return f"gsutil du -s {path}"
-        # # Return cmd for getting file size in bytes
-        # return f"aws s3 ls {path} --recursive --summarize | tail -n1 | cut -d' ' -f6"
 
     @staticmethod
     def rm(path):
         return f"gsutil rm -r {path}"
-        # return f"aws s3 rm --recursive {path}"
