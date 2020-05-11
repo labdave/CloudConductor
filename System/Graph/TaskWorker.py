@@ -334,7 +334,7 @@ class TaskWorker(Thread):
         # Must be at least as big as minimum disk size + disk image
         disk_size = disk_size + disk_image_size + min_disk_size
 
-        logging.debug(f"({self.task.get_ID()}) Calculated Input size: {input_size}, Disk Image Size: {disk_image_size}, Added Disk Size: {min_disk_size}")
+        logging.debug(f"({self.task.get_ID()}) Calculated Input size: {input_size}, Disk Image Size: {disk_image_size}")
 
         # And smaller than max disk size
         if disk_size > max_disk_size:
