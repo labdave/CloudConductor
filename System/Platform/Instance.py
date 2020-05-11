@@ -6,6 +6,8 @@ import time
 import socket
 from collections import OrderedDict
 
+from kube_api import job
+
 from System.Platform import Process
 
 
@@ -31,15 +33,6 @@ class Instance(object, metaclass=abc.ABCMeta):
         self.identity = kwargs.pop("identity")
         self.secret = kwargs.pop("secret")
 
-        # Obtain location specific information
-        self.region = kwargs.pop("region")
-        self.zone = kwargs.pop("zone")
-
-        # Initialize the workspace directories
-        self.wrk_dir = "/data"
-        self.wrk_log_dir = f"{self.wrk_dir}/log"
-        self.wrk_out_dir = f"{self.wrk_dir}/output"
-
         # Default number of times to retry commands if none specified at command runtime
         self.default_num_cmd_retries = kwargs.pop("cmd_retries", 3)
         self.recreation_count = 0
@@ -60,22 +53,13 @@ class Instance(object, metaclass=abc.ABCMeta):
     def get_runtime(self):
         return self.get_stop_time() - self.get_start_time()
 
+    def wait(self):
+        raise NotImplementedError("Make a system to wait for all processes")
+
     # ABSTRACT METHODS TO BE IMPLEMENTED BY INHERITING CLASSES
 
     @abc.abstractmethod
-    def create(self):
-        pass
-
-    @abc.abstractmethod
-    def destroy(self):
-        pass
-
-    @abc.abstractmethod
     def run(self):
-        pass
-
-    @abc.abstractmethod
-    def stop(self):
         pass
 
     @abc.abstractmethod
@@ -83,7 +67,7 @@ class Instance(object, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def handle_failure(self, proc_name, proc_obj):
+    def finalize(self):
         pass
 
     @abc.abstractmethod
@@ -103,6 +87,14 @@ class Instance(object, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
+    def add_checkpoint(self, clear_output=True):
+        pass
+
+    @abc.abstractmethod
+    def compute_cost(self):
+        pass
+
+    @abc.abstractmethod
     def get_compute_price(self):
         pass
 
@@ -111,11 +103,20 @@ class Instance(object, metaclass=abc.ABCMeta):
         pass
 
 
-class CloudInstance(Instance):
+class CloudInstance(Instance, metaclass=abc.ABCMeta):
 
     def __init__(self, name, nr_cpus, mem, disk_space, **kwargs):
 
         super(CloudInstance, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
+
+        # Obtain location specific information
+        self.region = kwargs.pop("region")
+        self.zone = kwargs.pop("zone")
+
+        # Initialize the workspace directories
+        self.wrk_dir = "/data"
+        self.wrk_log_dir = f"{self.wrk_dir}/log"
+        self.wrk_out_dir = f"{self.wrk_dir}/output"
 
         # Obtain the mother platform object
         self.platform = kwargs.pop("platform")
@@ -551,3 +552,13 @@ class CloudInstance(Instance):
     @abc.abstractmethod
     def stop_instance(self):
         pass
+
+
+class KubernetesJob(Instance, job):
+
+    def __init__(self, name, nr_cpus, mem, disk_space, **kwargs):
+
+        super(KubernetesJob, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
+
+    def get_nodepool_label(self):
+        return NotImplementedError("Identify from instance resources what type of binning label should be put")

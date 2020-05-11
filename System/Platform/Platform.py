@@ -9,6 +9,7 @@ from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
+from kube_api import config
 
 from Config import ConfigParser
 from System import CC_MAIN_DIR
@@ -50,12 +51,6 @@ class Platform(object, metaclass=abc.ABCMeta):
         self.identity = self.config["identity"]
         self.secret = self.config.get("secret", None)
 
-        # Obtain processing locations
-        self.region = self.config["region"]
-        self.zone = self.config.get("zone", None)
-        if self.zone is None:
-            self.zone = self.get_random_zone()
-
         # Obtain remaining parameters from the configuration file
         self.cmd_retries = self.config["cmd_retries"]
 
@@ -65,6 +60,79 @@ class Platform(object, metaclass=abc.ABCMeta):
 
         # Save extra variables
         self.extra = self.config.get("extra", {})
+
+    def get_max_nr_cpus(self):
+        return self.NR_CPUS["MAX"]
+
+    def get_max_mem(self):
+        return self.MEM["MAX"]
+
+    def get_max_disk_space(self):
+        return self.DISK_SPACE["MAX"]
+
+    def get_min_disk_space(self):
+        return self.DISK_SPACE["MIN"]
+
+    # ABSTRACT METHODS TO BE IMPLEMENTED BY INHERITING CLASSES
+
+    @abc.abstractmethod
+    def get_instance(self, nr_cpus, mem, disk_space, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def init_platform(self):
+        pass
+
+    @abc.abstractmethod
+    def authenticate_platform(self):
+        pass
+
+    @abc.abstractmethod
+    def validate(self):
+        pass
+
+    @abc.abstractmethod
+    def publish_report(self, report_path):
+        pass
+
+    @abc.abstractmethod
+    def push_log(self, log_path):
+        pass
+
+    @abc.abstractmethod
+    def clean_up(self):
+        pass
+
+    # PRIVATE UTILITY METHODS
+
+    @staticmethod
+    def generate_unique_id(id_len=6):
+        return str(uuid.uuid4())[0:id_len]
+
+    @staticmethod
+    def standardize_dir(dir_path):
+        # Makes directory names uniform to include a single '/' at the end
+        return dir_path.rstrip("/") + "/"
+
+
+class CloudPlatform(Platform, metaclass=abc.ABCMeta):
+
+    def __init__(self, name, platform_config_file, final_output_dir):
+        super(CloudPlatform, self).__init__(name, platform_config_file, final_output_dir)
+
+        # Obtain processing locations
+        self.region = self.config["region"]
+        self.zone = self.config.get("zone", None)
+        if self.zone is None:
+            self.zone = self.get_random_zone()
+
+        # Obtain disk image name
+        self.disk_image = self.config["disk_image"]
+        self.disk_image_obj = None
+
+        # Initialize the location of the CloudConductor ssh_key
+        self.ssh_private_key = None
+        self.ssh_connection_user = self.config["ssh_connection_user"]
 
         # Check if CloudInstance class is set by the user
         self.InstanceClass = self.get_instance_class()
@@ -86,9 +154,34 @@ class Platform(object, metaclass=abc.ABCMeta):
         self.mem = 0
         self.disk_space = 0
 
-        # TODO: I still have to add this, because Datastore required a work directory
-        self.wrk_dir = "/data"
-        self.final_output_dir = self.standardize_dir(final_output_dir)
+    def init_platform(self):
+
+        # Authenticate CloudConductor locally
+        self.authenticate_cc()
+
+        # Authenticate the current platform
+        self.authenticate_platform()
+
+        # Validate the current platform
+        self.validate()
+
+    def authenticate_cc(self):
+
+        # Obtain the home directory of the current user
+        home_dir = str(Path.home())
+
+        # Ensure the .ssh directory is present in the home directory
+        if not os.path.exists(f'{home_dir}/.ssh'):
+            os.mkdir(f'{home_dir}/.ssh')
+
+        # Check if the cloud_conductor private/public key pair exists; if not, create one pair
+        private_key = f'{home_dir}/.ssh/cloud_conductor'
+        public_key = f'{private_key}.pub'
+        if os.path.exists(private_key) and os.path.exists(public_key):
+            self.ssh_private_key = private_key
+        else:
+            self.__create_ssh_key(private_key)
+            self.ssh_private_key = private_key
 
     def get_instance(self, nr_cpus, mem, disk_space, **kwargs):
         """Initialize new instance and register with platform"""
@@ -162,15 +255,20 @@ class Platform(object, metaclass=abc.ABCMeta):
 
         # Load cloud instance kwargs with platform variables
         kwargs.update({
-            "identity"              : self.identity,
-            "secret"                : self.secret,
+            "identity": self.identity,
+            "secret": self.secret,
 
-            "cmd_retries"           : self.cmd_retries,
+            "cmd_retries": self.cmd_retries,
 
-            "region"                : self.region,
-            "zone"                  : self.zone,
+            "region": self.region,
+            "zone": self.zone,
 
-            "platform"              : self
+            "ssh_connection_user": self.ssh_connection_user,
+            "ssh_private_key": self.ssh_private_key,
+
+            "disk_image": self.disk_image_obj,
+
+            "platform": self
         })
 
         # Also add the extra information
@@ -196,21 +294,6 @@ class Platform(object, metaclass=abc.ABCMeta):
 
             # Raise the actual exception
             raise
-
-    def get_max_nr_cpus(self):
-        return self.NR_CPUS["MAX"]
-
-    def get_max_mem(self):
-        return self.MEM["MAX"]
-
-    def get_max_disk_space(self):
-        return self.DISK_SPACE["MAX"]
-
-    def get_min_disk_space(self):
-        return self.DISK_SPACE["MIN"]
-
-    def get_final_output_dir(self):
-        return self.final_output_dir
 
     def lock(self):
         with self.platform_lock:
@@ -255,10 +338,6 @@ class Platform(object, metaclass=abc.ABCMeta):
     # ABSTRACT METHODS TO BE IMPLEMENTED BY INHERITING CLASSES
 
     @abc.abstractmethod
-    def init_platform(self):
-        pass
-
-    @abc.abstractmethod
     def get_random_zone(self):
         pass
 
@@ -270,91 +349,10 @@ class Platform(object, metaclass=abc.ABCMeta):
     def get_instance_class(self):
         pass
 
-    @abc.abstractmethod
-    def authenticate_platform(self):
-        pass
-
-    @abc.abstractmethod
-    def validate(self):
-        pass
-
     @staticmethod
     @abc.abstractmethod
     def standardize_instance(inst_name, nr_cpus, meme, disk_space):
         pass
-
-    @abc.abstractmethod
-    def publish_report(self, report_path):
-        pass
-
-    @abc.abstractmethod
-    def push_log(self, log_path):
-        pass
-
-    @abc.abstractmethod
-    def clean_up(self):
-        pass
-
-    @staticmethod
-    def generate_unique_id(id_len=6):
-        return str(uuid.uuid4())[0:id_len]
-
-    @staticmethod
-    def standardize_dir(dir_path):
-        # Makes directory names uniform to include a single '/' at the end
-        return dir_path.rstrip("/") + "/"
-
-
-class CloudPlatform(Platform):
-
-    def __init__(self, name, platform_config_file, final_output_dir):
-        super(CloudPlatform, self).__init__(name, platform_config_file, final_output_dir)
-
-        # Obtain disk image name
-        self.disk_image = self.config["disk_image"]
-        self.disk_image_obj = None
-
-        # Initialize the location of the CloudConductor ssh_key
-        self.ssh_private_key = None
-        self.ssh_connection_user = self.config["ssh_connection_user"]
-
-    def init_platform(self):
-
-        # Authenticate CloudConductor locally
-        self.authenticate_cc()
-
-        # Authenticate the current platform
-        self.authenticate_platform()
-
-        # Validate the current platform
-        self.validate()
-
-    def authenticate_cc(self):
-
-        # Obtain the home directory of the current user
-        home_dir = str(Path.home())
-
-        # Ensure the .ssh directory is present in the home directory
-        if not os.path.exists(f'{home_dir}/.ssh'):
-            os.mkdir(f'{home_dir}/.ssh')
-
-        # Check if the cloud_conductor private/public key pair exists; if not, create one pair
-        private_key = f'{home_dir}/.ssh/cloud_conductor'
-        public_key = f'{private_key}.pub'
-        if os.path.exists(private_key) and os.path.exists(public_key):
-            self.ssh_private_key = private_key
-        else:
-            self.__create_ssh_key(private_key)
-            self.ssh_private_key = private_key
-
-    def get_instance(self, nr_cpus, mem, disk_space, **kwargs):
-        kwargs.update({
-            "ssh_connection_user"   : self.ssh_connection_user,
-            "ssh_private_key"       : self.ssh_private_key,
-
-            "disk_image"        : self.disk_image_obj
-        })
-        return super(CloudPlatform, self).get_instance(nr_cpus, mem, disk_space, **kwargs)
 
     # PRIVATE UTILITY METHODS
 
@@ -391,14 +389,18 @@ class CloudPlatform(Platform):
             )
 
 
-class KubernetesPlatform(Platform):
+class KubernetesCluster(Platform):
 
     def __init__(self, name, platform_config_file, final_output_dir):
+        super(KubernetesCluster, self).__init__(name, platform_config_file, final_output_dir)
 
-        # Initialize the base class
-        super(KubernetesPlatform, self).__init__(name, platform_config_file, final_output_dir)
+        self.jobs = {}
 
-        self.extra = self.config.get("extra", {})
+    def get_instance(self, nr_cpus, mem, disk_space, **kwargs):
+        raise NotImplementedError("Implement system to return Kubernetes jobs and save them internally")
+
+    def authenticate_platform(self):
+        config.load_configuration(self.identity)
 
     def init_platform(self):
         # Authenticate the current platform
@@ -406,3 +408,37 @@ class KubernetesPlatform(Platform):
 
         # Validate the current platform
         self.validate()
+
+    def validate(self):
+        raise NotImplementedError("Check if we have access to the Kube cluster")
+
+    def publish_report(self, report_path):
+
+        # Generate destination file path
+        dest_path = os.path.join(self.final_output_dir, os.path.basename(report_path))
+
+        # Authenticate for gsutil use
+        cmd = "gcloud auth activate-service-account --key-file %s" % self.identity
+        Process.run_local_cmd(cmd, err_msg="Authentication to Google Cloud failed!")
+
+        # Transfer report file to bucket
+        options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
+        cmd = "gsutil %s cp -r '%s' '%s' 1>/dev/null 2>&1 " % (options_fast, report_path, dest_path)
+        Process.run_local_cmd(cmd, err_msg="Could not transfer final report to the final output directory!")
+
+    def push_log(self, log_path):
+
+        # Generate destination file path
+        dest_path = os.path.join(self.final_output_dir, os.path.basename(log_path))
+
+        # Authenticate for gsutil use
+        cmd = "gcloud auth activate-service-account --key-file %s" % self.identity
+        Process.run_local_cmd(cmd, err_msg="Authentication to Google Cloud failed!")
+
+        # Transfer report file to bucket
+        options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
+        cmd = "gsutil %s cp -r '%s' '%s' 1>/dev/null 2>&1 " % (options_fast, log_path, dest_path)
+        Process.run_local_cmd(cmd, err_msg="Could not transfer final log to the final output directory!")
+
+    def clean_up(self):
+        raise NotImplementedError("Clear all jobs using self.jobs")
