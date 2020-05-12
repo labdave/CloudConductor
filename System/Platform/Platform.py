@@ -73,6 +73,9 @@ class Platform(object, metaclass=abc.ABCMeta):
     def get_min_disk_space(self):
         return self.DISK_SPACE["MIN"]
 
+    def get_final_output_dir(self):
+        return self.final_output_dir
+
     # ABSTRACT METHODS TO BE IMPLEMENTED BY INHERITING CLASSES
 
     @abc.abstractmethod

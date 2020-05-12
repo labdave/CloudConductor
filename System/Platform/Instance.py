@@ -33,6 +33,11 @@ class Instance(object, metaclass=abc.ABCMeta):
         self.identity = kwargs.pop("identity")
         self.secret = kwargs.pop("secret")
 
+        # Initialize the workspace directories
+        self.wrk_dir = "/data"
+        self.wrk_log_dir = f"{self.wrk_dir}/log"
+        self.wrk_out_dir = f"{self.wrk_dir}/output"
+
         # Default number of times to retry commands if none specified at command runtime
         self.default_num_cmd_retries = kwargs.pop("cmd_retries", 3)
         self.recreation_count = 0
@@ -79,10 +84,6 @@ class Instance(object, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def set_workspace(self, wrk_dir, wrk_log_dir, wrk_out_dir):
-        pass
-
-    @abc.abstractmethod
     def get_status(self, log_status=False):
         pass
 
@@ -112,11 +113,6 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
         # Obtain location specific information
         self.region = kwargs.pop("region")
         self.zone = kwargs.pop("zone")
-
-        # Initialize the workspace directories
-        self.wrk_dir = "/data"
-        self.wrk_log_dir = f"{self.wrk_dir}/log"
-        self.wrk_out_dir = f"{self.wrk_dir}/output"
 
         # Obtain the mother platform object
         self.platform = kwargs.pop("platform")
@@ -520,11 +516,6 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
                 return event["timestamp"]
 
         return time.time()
-
-    def set_workspace(self, wrk_dir, wrk_log_dir, wrk_out_dir):
-        self.wrk_dir = wrk_dir
-        self.wrk_log_dir = wrk_log_dir
-        self.wrk_out_dir = wrk_out_dir
 
     def add_checkpoint(self, clear_output=True):
         """ Function for setting where processor should fall back to in case of a preemption.

@@ -1,5 +1,6 @@
 import threading
 import time
+import os
 import math
 import logging
 
@@ -95,6 +96,28 @@ class TaskWorker(Thread):
     def get_cmd(self):
         return self.cmd
 
+    def get_new_output_dirs(self):
+
+        task_id = self.task.get_ID()
+        visible_samples = self.task.get_visible_samples()
+
+        # Create subfolders for split tasks
+        if self.task.is_split():
+            task_id = task_id.replace(".", "/")
+
+        final_output_dir = os.path.join(self.platform.get_final_output_dir(), task_id)
+        final_tmp_dir = os.path.join(self.platform.get_final_output_dir(), "tmp", task_id)
+
+        if visible_samples is not None and len(visible_samples) <= 1 and not self.datastore.is_multisample():
+            # Single sample output of multi-sample analysis always goes in sample level folder
+            sample_name = visible_samples[0]
+            # Remove sample name from path if it already appears and put it as the first directory
+            task_id = task_id.replace(sample_name + "/", "")
+            final_output_dir = os.path.join(self.platform.get_final_output_dir(), sample_name, task_id)
+            final_tmp_dir = os.path.join(self.platform.get_final_output_dir(), "tmp", sample_name, task_id)
+
+        return final_output_dir, final_tmp_dir
+
     def work(self):
         # Run task module command and save outputs
         try:
@@ -116,13 +139,6 @@ class TaskWorker(Thread):
             # Quit if pipeline is cancelled
             self.__check_cancelled()
 
-            # Define unique workspace for task input/output
-            task_workspace = self.datastore.get_task_workspace(task_id=self.task.get_ID())
-            logging.debug("(%s) Task workspace:\n%s" % (self.task.get_ID(), task_workspace.debug_string()))
-
-            # Specify that module output files should be placed in task's working directory
-            self.module.set_output_dir(task_workspace.get_wrk_out_dir())
-
             # Execute command if one exists
             self.set_status(self.LOADING)
 
@@ -142,10 +158,14 @@ class TaskWorker(Thread):
             # Check to see if pipeline has been cancelled
             self.__check_cancelled()
 
+            # Obtain final directories
+            final_out_dir, final_tmp_dir = self.get_new_output_dirs()
+
             # Create module executor
             self.module_executor = ModuleExecutor(task_id=self.task.get_ID(),
                                                   processor=self.proc,
-                                                  workspace=task_workspace,
+                                                  final_output_dir=final_out_dir,
+                                                  final_tmp_dir= final_tmp_dir,
                                                   docker_image=docker_image)
 
             # Check to see if pipeline has been cancelled

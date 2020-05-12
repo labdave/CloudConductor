@@ -34,7 +34,7 @@ class Module(object, metaclass=abc.ABCMeta):
         self.output_keys = None
 
         # Module output file directory
-        self.output_dir = "/tmp/"
+        self.output_dir = "/data/output/"
 
     @abc.abstractmethod
     def define_input(self):

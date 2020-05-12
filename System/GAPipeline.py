@@ -117,15 +117,6 @@ class GAPipeline(object):
             raise SystemError("One or more errors have been encountered during validation. "
                               "See the above logs for more information")
 
-        # Validate that pipeline workspace can be created
-        workspace = self.datastore.get_task_workspace()
-        for dir_type, dir_path in workspace.get_workspace().items():
-            self.storage_helper.mkdir(dir_path=str(dir_path), job_name="mkdir_%s" % dir_type, wait=True)
-
-        # Validate granting of permission
-        self.helper_processor.run("grant_perm_helper", "sudo chmod -R 777 %s" % workspace.get_wrk_dir())
-        self.helper_processor.wait_process("grant_perm_helper")
-
         logging.info("CloudCounductor run validated! Beginning pipeline execution.")
 
     def run(self, rm_tmp_output_on_success=True):
@@ -134,11 +125,11 @@ class GAPipeline(object):
 
         # Remove temporary output on success
         if rm_tmp_output_on_success:
-            workspace = self.datastore.get_task_workspace()
+            final_tmp_dir = os.path.join(self.platform.get_final_output_dir(), "tmp")
             try:
-                self.storage_helper.rm(path=workspace.get_tmp_output_dir(), job_name="rm_tmp_output", wait=True)
+                self.storage_helper.rm(path=final_tmp_dir, job_name="rm_tmp_output", wait=True)
             except BaseException as e:
-                logging.error("Unable to remove tmp output directory: %s" % workspace.get_tmp_output_dir())
+                logging.error("Unable to remove tmp output directory: %s" % final_tmp_dir)
                 if str(e) != "":
                     logging.error("Received the following err message:\n%s" % e)
 
