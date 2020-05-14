@@ -411,10 +411,7 @@ class AmazonInstance(CloudInstance):
 
     def __cancel_spot_instance_request(self):
         client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1', config=self.boto_config)
-        describe_args = {'Filters': [
-                            {'Name': 'instance-id', 'Values': [self.node.id]}
-                        ]}
-        spot_requests = self.__aws_request(client.describe_spot_instance_requests, **describe_args)
+        spot_requests = self.__aws_request(client.describe_spot_instance_requests, Filters=[{'Name': 'instance-id', 'Values': [self.node.id]}], MaxResults=5)
 
         if spot_requests and spot_requests['SpotInstanceRequests']:
             request_id = spot_requests['SpotInstanceRequests'][0]['SpotInstanceRequestId']
