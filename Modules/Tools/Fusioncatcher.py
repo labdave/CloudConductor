@@ -27,12 +27,12 @@ class Fusioncatcher(Module):
 
         # Get arguments to run Delly
         input_folder    = "/data/fusioncatcher/{}/".format(self.get_argument("sample_id"))
-        output_folder   = "/fusioncatcher_temp/"
+        output_folder   = "/data/fusioncatcher_temp/"
 
         # Generate command
         cmd = "bash fusion_catcher.sh {0} {1} !LOG3!".format(input_folder, output_folder)
 
         fusion_genes = self.get_output("fusion_genes")
-        cmd += ";cp /fusioncatcher_temp/final-list_candidates-fusion-genes.txt {}".format(fusion_genes)
+        cmd += ";ls /data/fusioncatcher_temp !LOG3!; cp /fusioncatcher_temp/final-list_candidates-fusion-genes.txt {} !LOG3!".format(fusion_genes)
 
         return cmd
