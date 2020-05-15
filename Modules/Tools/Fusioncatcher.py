@@ -29,12 +29,6 @@ class Fusioncatcher(Module):
         input_folder    = "/data/fusioncatcher/{}/".format(self.get_argument("sample_id"))
         output_folder   = "/fusioncatcher_temp/"
 
-        # Get output paths
-        vcf             = self.get_output("delly_vcf")
-
-        # Generate unique file name for intermediate bcf
-        bcf             = "/data/temp.bcf"
-
         # Generate command
         cmd = "bash fusion_catcher.sh {0} {1} !LOG3!".format(input_folder, output_folder)
 
