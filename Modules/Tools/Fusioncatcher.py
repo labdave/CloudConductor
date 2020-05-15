@@ -30,9 +30,9 @@ class Fusioncatcher(Module):
         output_folder   = "/data/fusioncatcher_temp/"
 
         # Generate command
-        cmd = "bash fusion_catcher.sh {0} {1} !LOG3!".format(input_folder, output_folder)
-
+        # cmd = "bash fusion_catcher.sh {0} {1} !LOG3!".format(input_folder, output_folder)
+        cmd = ""
         fusion_genes = self.get_output("fusion_genes")
-        cmd += ";ls /data/fusioncatcher_temp !LOG3!; cp /fusioncatcher_temp/final-list_candidates-fusion-genes.txt {} !LOG3!".format(fusion_genes)
+        cmd += "ls -ltr /data/fusioncatcher/ !LOG3!; cp /fusioncatcher_temp/final-list_candidates-fusion-genes.txt {} !LOG3!".format(fusion_genes)
 
         return cmd
