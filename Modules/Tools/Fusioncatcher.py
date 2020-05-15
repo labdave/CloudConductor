@@ -33,6 +33,6 @@ class Fusioncatcher(Module):
         cmd = "bash fusion_catcher.sh {0} {1} !LOG3!".format(input_folder, output_folder)
 
         fusion_genes = self.get_output("fusion_genes")
-        cmd += "cp /fusioncatcher_temp/final-list_candidates-fusion-genes.txt {}".format(fusion_genes)
+        cmd += ";cp /fusioncatcher_temp/final-list_candidates-fusion-genes.txt {}".format(fusion_genes)
 
         return cmd
