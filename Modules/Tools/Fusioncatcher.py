@@ -11,7 +11,7 @@ class Fusioncatcher(Module):
         self.add_argument("R2",             is_required=True)
         self.add_argument("sample_id",      is_required=True)
         self.add_argument("fusioncatcher",  is_required=True, is_resource=True)
-        self.add_argument("nr_cpus",        is_required=True, default_value=4)
+        self.add_argument("nr_cpus",        is_required=True, default_value=8)
         self.add_argument("mem",            is_required=True, default_value=30)
 
 
