@@ -127,11 +127,14 @@ class AmazonSpotInstance(AmazonInstance):
         if self.is_preemptible and not force_destroy and status != CloudInstance.TERMINATED:
             try:
                 # Restart the instance
-                while not status != CloudInstance.OFF:
+                while status != CloudInstance.OFF and status != CloudInstance.TERMINATED and status != CloudInstance.AVAILABLE:
                     logging.warning("(%s) Waiting for 30 seconds for instance to stop" % self.name)
                     time.sleep(30)
                     status = self.get_status(log_status=True)
 
+                if status == CloudInstance.AVAILABLE:
+                    # Instance restart complete
+                    logging.debug("(%s) Instance is running, continue running processes!" % self.name)
                 if status == CloudInstance.OFF:
                     self.start()
                     # Instance restart complete
@@ -188,7 +191,7 @@ class AmazonSpotInstance(AmazonInstance):
         add_to_checkpoint_queue = False
         fail_to_checkpoint = False
         checkpoint_commands = [i[0] for i in self.checkpoints]  # create array of just the commands
-        logging.debug("CHECKPOINT COMMANDS: %s" % str(checkpoint_commands))
+        logging.debug(f"({self.name}) CHECKPOINT COMMANDS: {str(checkpoint_commands)}")
         cleanup_output = False
         for proc_name, proc_obj in list(self.processes.items()):
 
@@ -242,8 +245,7 @@ class AmazonSpotInstance(AmazonInstance):
             self.processes[proc_to_rerun].set_to_rerun()
 
         # Log which commands will be rerun
-        logging.debug("Commands to be rerun: (%s) " % str(
-            [proc_name for proc_name, proc_obj in list(self.processes.items()) if proc_obj.needs_rerun()]))
+        logging.debug(f"({self.name}) Commands to be rerun: ({str([proc_name for proc_name, proc_obj in list(self.processes.items()) if proc_obj.needs_rerun()])}) ")
 
         # Rerunning all the commands that need to be rerun
         for proc_name, proc_obj in list(self.processes.items()):
@@ -255,10 +257,10 @@ class AmazonSpotInstance(AmazonInstance):
 
     def __remove_wrk_out_dir(self):
 
-        logging.debug("(%s) CLEARING OUTPUT for checkpoint cleanup, clearing %s." % (self.name, self.wrk_out_dir))
+        logging.debug(f"({self.name}) CLEARING OUTPUT for checkpoint cleanup, clearing {self.wrk_out_dir}.")
 
         # Generate the removal command. HAS to be 'sudo' to be able to remove files created by any user.
-        cmd = "sudo rm -rf %s*" % self.wrk_out_dir
+        cmd = f"sudo rm -rf {self.wrk_out_dir}*"
 
         # Clean the working output directory
         self.run("cleanup_work_output", cmd)

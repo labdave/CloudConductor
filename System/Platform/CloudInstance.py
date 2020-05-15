@@ -125,7 +125,6 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             time.sleep(30)
 
     def recreate(self):
-        logging.info(f"({self.name}) Recreating instance. Try #{self.recreation_count+1}/{self.default_num_cmd_retries}")
         # Check if we recreated too many times already
         if self.recreation_count > self.default_num_cmd_retries:
             logging.debug("(%s) Instance successfully created but "
@@ -140,7 +139,9 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         self.recreation_count += 1
 
         # Recreate instance
+        logging.debug(f"({self.name}) Destroying before recreating.")
         self.destroy()
+        logging.info(f"({self.name}) Recreating instance. Try #{self.recreation_count}/{self.default_num_cmd_retries}")
         self.create()
 
     def start(self):

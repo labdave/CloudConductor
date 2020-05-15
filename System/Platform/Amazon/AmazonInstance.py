@@ -160,10 +160,8 @@ class AmazonInstance(CloudInstance):
                 exception_string = str(e)
                 if 'IncorrectInstanceState' in exception_string:
                     logging.info(f"({self.name}) Instance is in the incorrect state to be started.")
-                    status = self.get_status()
+                    status = self.get_status(log_status=True)
                     logging.info(f"({self.name}) Instance state = {status.upper()}")
-                # we don't care if it fails, we'll retry the attempt
-                pass
             if not instance_started:
                 logging.warning(f"({self.name}) Failed to restart instance, waiting 30 seconds before retrying")
                 # wait 30 seconds before trying to restart again
@@ -413,10 +411,7 @@ class AmazonInstance(CloudInstance):
 
     def __cancel_spot_instance_request(self):
         client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1', config=self.boto_config)
-        describe_args = {'Filters': [
-                            {'Name': 'instance-id', 'Values': [self.node.id]}
-                        ]}
-        spot_requests = self.__aws_request(client.describe_spot_instance_requests, **describe_args)
+        spot_requests = self.__aws_request(client.describe_spot_instance_requests, Filters=[{'Name': 'instance-id', 'Values': [self.node.id]}], MaxResults=5)
 
         if spot_requests and spot_requests['SpotInstanceRequests']:
             request_id = spot_requests['SpotInstanceRequests'][0]['SpotInstanceRequestId']
