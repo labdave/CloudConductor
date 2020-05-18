@@ -1,3 +1,0 @@
-[submodule "kube_api"]
-	path = kube_api
-	url = git@github.com:labdave/kube_api.git
