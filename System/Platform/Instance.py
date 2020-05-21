@@ -6,8 +6,6 @@ import time
 import socket
 from collections import OrderedDict
 
-from kube_api import job
-
 from System.Platform import Process
 
 
@@ -543,13 +541,3 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def stop_instance(self):
         pass
-
-
-class KubernetesJob(Instance, job):
-
-    def __init__(self, name, nr_cpus, mem, disk_space, **kwargs):
-
-        super(KubernetesJob, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
-
-    def get_nodepool_label(self):
-        return NotImplementedError("Identify from instance resources what type of binning label should be put")

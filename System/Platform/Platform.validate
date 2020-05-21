@@ -14,13 +14,13 @@
     identity                = string
     secret                  = string(default=None)
 
-    region                  = string
+    region                  = string(default=None)
     zone                    = string(default=None)
 
     cmd_retries             = integer(default=3)
 
     ssh_connection_user     = string(default=ubuntu)
 
-    disk_image              = string
+    disk_image              = string(default=None)
 
     [[extra]]

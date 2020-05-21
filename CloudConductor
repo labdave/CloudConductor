@@ -13,7 +13,8 @@ from Config import CustomFormatter
 # Define the available platform modules
 available_plat_modules = {
     "Google": "GooglePlatform",
-    "Amazon": "AmazonPlatform"
+    "Amazon": "AmazonPlatform",
+    "Kubernetes": "KubernetesCluster"
 }
 
 

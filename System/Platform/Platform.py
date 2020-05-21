@@ -9,7 +9,6 @@ from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
-from kube_api import config
 
 from Config import ConfigParser
 from System import CC_MAIN_DIR
@@ -390,58 +389,3 @@ class CloudPlatform(Platform, metaclass=abc.ABCMeta):
                     serialization.PublicFormat.OpenSSH
                 )
             )
-
-
-class KubernetesCluster(Platform):
-
-    def __init__(self, name, platform_config_file, final_output_dir):
-        super(KubernetesCluster, self).__init__(name, platform_config_file, final_output_dir)
-
-        self.jobs = {}
-
-    def get_instance(self, nr_cpus, mem, disk_space, **kwargs):
-        raise NotImplementedError("Implement system to return Kubernetes jobs and save them internally")
-
-    def authenticate_platform(self):
-        config.load_configuration(self.identity)
-
-    def init_platform(self):
-        # Authenticate the current platform
-        self.authenticate_platform()
-
-        # Validate the current platform
-        self.validate()
-
-    def validate(self):
-        raise NotImplementedError("Check if we have access to the Kube cluster")
-
-    def publish_report(self, report_path):
-
-        # Generate destination file path
-        dest_path = os.path.join(self.final_output_dir, os.path.basename(report_path))
-
-        # Authenticate for gsutil use
-        cmd = "gcloud auth activate-service-account --key-file %s" % self.identity
-        Process.run_local_cmd(cmd, err_msg="Authentication to Google Cloud failed!")
-
-        # Transfer report file to bucket
-        options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
-        cmd = "gsutil %s cp -r '%s' '%s' 1>/dev/null 2>&1 " % (options_fast, report_path, dest_path)
-        Process.run_local_cmd(cmd, err_msg="Could not transfer final report to the final output directory!")
-
-    def push_log(self, log_path):
-
-        # Generate destination file path
-        dest_path = os.path.join(self.final_output_dir, os.path.basename(log_path))
-
-        # Authenticate for gsutil use
-        cmd = "gcloud auth activate-service-account --key-file %s" % self.identity
-        Process.run_local_cmd(cmd, err_msg="Authentication to Google Cloud failed!")
-
-        # Transfer report file to bucket
-        options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
-        cmd = "gsutil %s cp -r '%s' '%s' 1>/dev/null 2>&1 " % (options_fast, log_path, dest_path)
-        Process.run_local_cmd(cmd, err_msg="Could not transfer final log to the final output directory!")
-
-    def clean_up(self):
-        raise NotImplementedError("Clear all jobs using self.jobs")
