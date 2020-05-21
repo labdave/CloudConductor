@@ -11,7 +11,7 @@ class Dellylumpydestruct_anno_merger(Merger):
 	def define_input(self):
 		# Module creator needs to define which arguments have is_resource=True
 		# Module creator needs to rename arguments as required by CC
-		self.add_argument("all_merged_vcf",			is_required=True)
+		self.add_argument("all_merged_cons_vcf",	is_required=True)
 		self.add_argument("bed",					is_resource=True)
 		self.add_argument("dac_gap_blacklist",		is_resource=True)
 		self.add_argument("repeat_blacklist",		is_resource=True)
@@ -33,7 +33,7 @@ class Dellylumpydestruct_anno_merger(Merger):
 
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC
-		all_merged_vcf					= self.get_argument("all_merged_vcf")
+		all_merged_cons_vcf				= self.get_argument("all_merged_cons_vcf")
 		bed								= self.get_argument("bed")
 		dac_gap_blacklist				= self.get_argument("dac_gap_blacklist")
 		repeat_blacklist				= self.get_argument("repeat_blacklist")
@@ -50,7 +50,7 @@ class Dellylumpydestruct_anno_merger(Merger):
 		cmd = " python Merge_delly_lumpy_destruct_annotation.py"
 
 		# add arguments
-		cmd += " -i {0} -c {1} -o {2}".format(all_merged_vcf, bed, anno_vcf)
+		cmd += " -i {0} -c {1} -o {2}".format(all_merged_cons_vcf, bed, anno_vcf)
 		cmd += " -t /data/tmp_folder -g {0} -r {1}".format(dac_gap_blacklist, repeat_blacklist)
 		cmd += " -l {0} -G {1} -C {2}".format(level1_bp, gtf, chr_names)
 		cmd += " -p {0} -F {1}".format(paper_freq_pairs, chr_filter)
