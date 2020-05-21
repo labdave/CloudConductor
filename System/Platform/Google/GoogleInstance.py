@@ -5,6 +5,7 @@ import time
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
 from libcloud.common.google import ResourceNotFoundError
+from libcloud.common.types import LibcloudError
 
 from System.Platform.Instance import CloudInstance
 
@@ -72,14 +73,30 @@ class GoogleInstance(CloudInstance):
         if self.name.startswith("helper-"):
             # don't want helper instances to be preemptible
             self.is_preemptible = False
-        self.node = self.driver.create_node(name=self.name,
-                                            image=self.disk_image,
-                                            size=node_size,
-                                            ex_disks_gce_struct=disks,
-                                            ex_service_accounts=sa_scope,
-                                            ex_preemptible=self.is_preemptible,
-                                            ex_metadata=metadata)
 
+        creation_attempts = 1
+        while not self.node and creation_attempts < 4:
+            try:
+                creation_attempts += 1
+                self.node = self.driver.create_node(name=self.name,
+                                                    image=self.disk_image,
+                                                    size=node_size,
+                                                    ex_disks_gce_struct=disks,
+                                                    ex_service_accounts=sa_scope,
+                                                    ex_preemptible=self.is_preemptible,
+                                                    ex_metadata=metadata)
+            except Exception as e:
+                exception_string = str(e)
+                if 'alreadyExists' in exception_string:
+                    logging.warning(f"({self.name}) Instance already exists. Getting status...")
+                    self.get_status(log_status=True)
+                else:
+                    sleep_time = self.get_api_sleep(creation_attempts-1)
+                    logging.warning(f"({self.name}) Failed to create instance due to: {str(e)}. Waiting {sleep_time} seconds before retrying.")
+                    time.sleep(sleep_time)
+
+        if not self.node:
+            raise RuntimeError(f"({self.name}) Failed to create instance!")
         # Return the external IP from node
         return self.node.public_ips[0]
 
@@ -89,7 +106,16 @@ class GoogleInstance(CloudInstance):
         self.driver.destroy_node(self.node)
 
     def start_instance(self):
-        self.driver.start_node(self.node)
+        try:
+            self.driver.start_node(self.node)
+        except ResourceNotFoundError:
+            logging.info(f"({self.name}) Instance not found. Recreating a new instance.")
+            self.recreate()
+        except LibcloudError:
+            logging.debug(f"({self.name}) Libcloud issue while starting the instance waiting for 30 seconds before retrying.")
+            time.sleep(30)
+
+        logging.info(f"({self.name}) Instance started. Waiting for it to become available")
 
         # Initializing the cycle count
         cycle_count = 0
@@ -102,7 +128,7 @@ class GoogleInstance(CloudInstance):
                 break
 
             # Wait for 10 seconds before checking the status again
-            time.sleep(10)
+            time.sleep(self.get_api_sleep(cycle_count+1))
 
             # Increment the cycle count
             cycle_count += 1
@@ -113,7 +139,12 @@ class GoogleInstance(CloudInstance):
         return self.node.public_ips[0]
 
     def stop_instance(self):
-        self.driver.stop_node(self.node)
+        try:
+            self.driver.stop_node(self.node)
+        except Exception as e:
+            exception_string = str(e)
+            if 'notFound' in exception_string:
+                logging.debug(f"({self.name}) Failed to stop instance. ResourceNotFound moving on.")
 
     def get_status(self, log_status=False):
 
@@ -140,12 +171,10 @@ class GoogleInstance(CloudInstance):
 
     def get_compute_price(self):
         price = self.gcp_compute_price_old_json()
-        logging.info(f"Compute price/hour for {self.name} is {price}")
         return price
 
     def get_storage_price(self):
         price = self.gcp_storage_price_old_json()
-        logging.info(f"Storage price for {self.name} is {price}")
         return price
 
     def gcp_compute_price_new_api(self):

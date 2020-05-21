@@ -147,17 +147,15 @@ class AmazonPlatform(CloudPlatform):
 
         # Generate destination file path
         dest_path = os.path.join(self.final_output_dir, os.path.basename(report_path))
-        logging.info("Destinatinon path for report: %s" % dest_path)
 
         # Transfer report file to bucket
-        cmd = "aws s3 cp $( [ -d %s ] && echo --recursive ) %s %s" % \
-               (report_path, report_path, dest_path)
+        # cmd = "aws s3 cp $( [ -d %s ] && echo --recursive ) %s %s" % \
+        #        (report_path, report_path, dest_path)
+        options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
+        cmd = "gsutil %s cp -r '%s' '%s'" % (options_fast, report_path, dest_path)
         err_msg = "Could not transfer final report to the final output directory!"
-        env_var = {
-            "AWS_ACCESS_KEY_ID": self.identity,
-            "AWS_SECRET_ACCESS_KEY": self.secret
-        }
-        Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var)
+        logging.debug(f"Publish report cmd: {cmd}")
+        Process.run_local_cmd(cmd, err_msg=err_msg)
 
     def push_log(self, log_path):
 
@@ -165,14 +163,12 @@ class AmazonPlatform(CloudPlatform):
         dest_path = os.path.join(self.final_output_dir,  os.path.basename(log_path))
 
         # Transfer report file to bucket
-        cmd = "aws s3 cp $( [ -d %s ] && echo --recursive ) %s %s" % \
-               (log_path, log_path, dest_path)
+        # cmd = "aws s3 cp $( [ -d %s ] && echo --recursive ) %s %s" % \
+        #        (log_path, log_path, dest_path)
+        options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
+        cmd = "gsutil %s cp -r '%s' '%s'" % (options_fast, log_path, dest_path)
         err_msg = "Could not transfer final log to the final output directory!"
-        env_var = {
-            "AWS_ACCESS_KEY_ID": self.identity,
-            "AWS_SECRET_ACCESS_KEY": self.secret
-        }
-        Process.run_local_cmd(cmd, err_msg=err_msg, env_var=env_var)
+        Process.run_local_cmd(cmd, err_msg=err_msg)
 
     def clean_up(self):
 
@@ -198,26 +194,32 @@ class AmazonPlatform(CloudPlatform):
 
     def __aws_request(self, method, *args, **kwargs):
         """ Function for handling AWS requests and rate limit issues """
-        # retry command up to 20 times
-        for i in range(20):
+        # retry command up to 8 times
+        for i in range(8):
             try:
                 return method(*args, **kwargs)
             except Exception as e:
-                if self.__handle_rate_limit_error(e, method, i+1):
+                if self.__handle_api_error(e, method, i+1):
                     continue
                 raise RuntimeError(str(e))
         raise RuntimeError("Exceeded number of retries for function %s" % method.__name__)
 
-    def __handle_rate_limit_error(self, e, method, count):
+    def __handle_api_error(self, e, method, count):
         exception_string = str(e)
-        logging.debug("[AMAZONPLATFORM] Handling issues with rate limits")
-        logging.debug(f"Print out of exception {exception_string}")
-        if 'MaxSpotInstanceCountExceeded' in exception_string or 'InstanceLimitExceeded' in exception_string:
-            logging.info("Maximum number of spot instances exceeded.")
+        logging.debug(f"({self.name}) [AMAZONINSTANCE] Handling issues with api")
+        logging.debug(f"({self.name}) Handling API exception: {exception_string}")
+        if 'MaxSpotInstanceCountExceeded' in exception_string or 'InsufficientInstanceCapacity' in exception_string or 'InstanceLimitExceeded' in exception_string:
+            logging.info(f"({self.name}) Maximum number of spot instances exceeded.")
             return False
-        if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string:
-            logging.debug(f"Rate Limit Exceeded during request {method.__name__}. Sleeping for {10*count} seconds before retrying.")
-            time.sleep(10*count)
+        if 'RequestLimitExceeded' in exception_string or 'Rate limit exceeded' in exception_string or 'ThrottlingException' in exception_string or 'RequestResourceCountExceeded' in exception_string:
+            sleep_time = self.get_api_sleep(count)
+            logging.debug(f"({self.name}) Rate Limit Exceeded during request {method.__name__}. Sleeping for {sleep_time} seconds before retrying.")
+            time.sleep(sleep_time)
+            return True
+        if 'Job did not complete in 180 seconds' in exception_string or 'Timed out' in exception_string:
+            sleep_time = self.get_api_sleep(count)
+            logging.debug(f"({self.name}) Libcloud command timed out sleeping for {sleep_time} seconds before retrying.")
+            time.sleep(sleep_time)
             return True
         return False
 
@@ -289,7 +291,7 @@ class AmazonPlatform(CloudPlatform):
 
         client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1', config=self.boto_config)
         spot_pricing_data = {}
-        start_time = datetime.today() - timedelta(days=2)
+        start_time = datetime.today() - timedelta(hours=6)
         next_token = ''
 
         while True:
@@ -305,7 +307,7 @@ class AmazonPlatform(CloudPlatform):
             next_token = spot_pricing_result['NextToken']
 
         for key in spot_pricing_data:
-            spot_pricing_data[key] = statistics.mean([float(x) for x in spot_pricing_data[key]]) * 1.10
+            spot_pricing_data[key] = statistics.mean([float(x) for x in spot_pricing_data[key]]) * 1.30
         storage_price = self.__get_ebs_price(region)
 
         for inst_type in instance_types:

@@ -4,6 +4,8 @@ import abc
 import subprocess as sp
 import time
 import socket
+import re
+import random
 from collections import OrderedDict
 
 from System.Platform import Process
@@ -16,6 +18,8 @@ class Instance(object, metaclass=abc.ABCMeta):
     DESTROYING  = 2  # Instance is being destroyed
     AVAILABLE   = 3  # Available for running processes
     TERMINATED  = 4  # Destroyed instance
+
+    API_SLEEP_CAP = 200
 
     STATUSES    = ["OFF", "CREATING", "DESTROYING", "AVAILABLE", "TERMINATED"]
 
@@ -158,23 +162,29 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
             # Get the current instance status
             status = self.get_status()
 
-            # If status is OFF then the instance was destroyed
-            if status == CloudInstance.OFF or status == CloudInstance.TERMINATED:
-                self.__add_history_event("DESTROY")
-                break
-
-            # If status is not DESTROYING then we destroy the instance
-            elif status != CloudInstance.DESTROYING:
-                self.destroy_instance()
+            if status != CloudInstance.DESTROYING:
+                try:
+                    self.destroy_instance()
+                except Exception as e:
+                    if 'notFound' in str(e):
+                        self.node = None
+                        self.__add_history_event("DESTROY")
+                        logging.debug(f"({self.name}) Failed to destroy instance. ResourceNotFound... moving on.")
+                        break
 
                 # Allocate resources on the platform for current instance
                 self.platform.deallocate_resources(self.nr_cpus, self.mem, self.disk_space)
 
-            # Wait for 10 seconds before checking again for status
-            time.sleep(10)
+            # If status is OFF then the instance was destroyed
+            if status == CloudInstance.OFF or status == CloudInstance.TERMINATED:
+                self.node = None
+                self.__add_history_event("DESTROY")
+                break
+
+            # Wait for 30 seconds before checking again for status
+            time.sleep(30)
 
     def recreate(self):
-
         # Check if we recreated too many times already
         if self.recreation_count > self.default_num_cmd_retries:
             logging.debug("(%s) Instance successfully created but "
@@ -185,12 +195,14 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
                                " became available after multiple tries!" %
                                self.name)
 
-        # Recreate instance
-        self.destroy()
-        self.create()
-
         # Increment the recreation count
         self.recreation_count += 1
+
+        # Recreate instance
+        logging.debug(f"({self.name}) Destroying before recreating.")
+        self.destroy()
+        logging.info(f"({self.name}) Recreating instance. Try #{self.recreation_count}/{self.default_num_cmd_retries}")
+        self.create()
 
     def start(self):
 
@@ -212,7 +224,12 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
     def stop(self):
 
         # Stop instance
-        self.stop_instance()
+        try:
+            self.stop_instance()
+        except Exception as e:
+            exception_string = str(e)
+            if 'notFound' in exception_string:
+                logging.debug(f"({self.name}) Failed to stop instance. ResourceNotFound moving on.")
 
         # Add history event
         self.__add_history_event("STOP")
@@ -311,7 +328,6 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
         if self.handle_failure(proc_name, proc_obj):
             stdout, stderr = proc_obj.get_output()
             logging.warning(f"({self.name}) Process '{proc_name}' failed but we will retry it!")
-            logging.warning(f"({self.name}) Process '{proc_name}' had the following issue: {stderr}")
             cmd = proc_obj.get_command()
             # alter aws s3 cmd to try recursive vs. non-recursive
             if 'aws s3 cp' in cmd:
@@ -321,7 +337,7 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
                     cmd = cmd.replace('aws s3 cp', 'aws s3 cp --recursive')
             if 'ssh' in stderr:
                 # issue with ssh connection, sleep for 10 seconds in case the server was having trouble with connections/commands
-                time.sleep(10)
+                time.sleep(30)
             self.run(job_name=proc_name,
                      cmd=cmd,
                      num_retries=proc_obj.get_num_retries()-1,
@@ -333,6 +349,7 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
 
         # Log the output
         stdout, stderr = proc_obj.get_output()
+        stderr = re.sub(r'@(.|\n)*attacks.', '', stderr)  # remove man-in-middle err
         logging.debug(f"({self.name}) The following output/error was received:"
                         f"\n\nSTDOUT:\n{stdout}"
                         f"\n\nSTDERR:\n{stderr}")
@@ -377,12 +394,9 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
 
                 # Calculate time delta in hours
                 time_delta = (event["timestamp"] - instance_is_on) / 3600.0
-                logging.info(f"Compute Cost calc for {self.name} is {time_delta} * {compute_cost}")
 
                 # Add cost since last start-up
                 total_compute_cost += time_delta * compute_cost
-
-                logging.info(f"Total Compute Cost for {self.name} is {total_compute_cost}")
 
                 # Mark the instance shut down and no compute cost present
                 instance_is_on = None
@@ -399,12 +413,9 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
 
                 # Calculate time delta
                 time_delta = (event["timestamp"] - storage_is_present) / 3600.0
-                logging.info(f"Storage Cost calc for {self.name} is {time_delta} * {storage_cost}")
 
                 # Add cost since last start-up
                 total_storage_cost += time_delta * storage_cost
-
-                logging.info(f"Total Storage Cost for {self.name} is {total_storage_cost}")
 
                 # Mark the storage are removed and no storage cost present
                 storage_is_present = None
@@ -428,7 +439,7 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
             # Increment the cycle count
             cycle_count += 1
 
-            # Wait for 15 seconds before checking the SSH server and status again
+            # Wait for 30 seconds before checking the SSH server and status again
             time.sleep(30)
 
             status = self.get_status(log_status=True)
@@ -439,7 +450,7 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
                 break
 
             # Check if ssh server is accessible
-            if self.__check_ssh():
+            if self.check_ssh():
                 needs_recreate = False
                 break
 
@@ -452,7 +463,11 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
             self.ssh_ready = True
             logging.debug(f'({self.name}) Instance can be accessed through SSH!')
 
-    def __check_ssh(self):
+    def get_api_sleep(self, attempt):
+        temp = min(CloudInstance.API_SLEEP_CAP, 4 * 2 ** attempt)
+        return temp / 2 + random.randrange(0, temp/2)
+
+    def check_ssh(self):
 
         # If the instance is off, the ssh is definitely not ready
         if self.external_IP is None:
@@ -540,4 +555,16 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def stop_instance(self):
+        pass
+
+    @abc.abstractmethod
+    def get_status(self, log_status=False):
+        pass
+
+    @abc.abstractmethod
+    def get_compute_price(self):
+        pass
+
+    @abc.abstractmethod
+    def get_storage_price(self):
         pass

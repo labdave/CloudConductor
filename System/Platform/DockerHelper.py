@@ -67,20 +67,23 @@ class DockerHelper(object):
             if size:
                 return int(size)*4/(1024**3.0)
 
-            # this should handle everything that doesn't exist on docker hub ( way less efficient )
-            # Return file size in gigabytes
-            cmd = "sudo docker image inspect %s --format='{{.Size}}'" % image_name
+            if self.proc:
+                # this should handle everything that doesn't exist on docker hub ( way less efficient )
+                # Return file size in gigabytes
+                cmd = "sudo docker image inspect %s --format='{{.Size}}'" % image_name
 
-            # Run command and return job name
-            job_name = "get_size_%s" % image_name if job_name is None else job_name
-            self.proc.run(job_name, cmd, **kwargs)
+                # Run command and return job name
+                job_name = "get_size_%s" % image_name if job_name is None else job_name
+                self.proc.run(job_name, cmd, **kwargs)
 
-            # Try to return file size in gigabytes
-            out, err = self.proc.wait_process(job_name)
-            # Iterate over all files if multiple files (can happen if wildcard)
-            bytes = [int(x.split()[0]) for x in out.split("\n") if x != ""]
-            # Add them up and divide by billion bytes
-            return sum(bytes)/(1024**3.0)
+                # Try to return file size in gigabytes
+                out, err = self.proc.wait_process(job_name)
+                # Iterate over all files if multiple files (can happen if wildcard)
+                bytes = [int(x.split()[0]) for x in out.split("\n") if x != ""]
+                # Add them up and divide by billion bytes
+                return sum(bytes)/(1024**3.0)
+            else:
+                return 0
 
         except BaseException as e:
             logging.error("Unable to check docker image size: %s" % image_name)

@@ -46,7 +46,7 @@ class AmazonSpotInstance(AmazonInstance):
                 return can_retry
 
         # Get the status from the cloud
-        curr_status = self.get_status()
+        curr_status = self.get_status(log_status=True)
 
         # Re-run any command (except create) if instance is up and cmd can be retried
         if curr_status == CloudInstance.AVAILABLE:
@@ -97,7 +97,7 @@ class AmazonSpotInstance(AmazonInstance):
             return can_retry
 
         # Check if the problem is that we cannot SSH in the instance
-        elif proc_obj.returncode == 255 and not super(AmazonSpotInstance, self).__check_ssh():
+        elif proc_obj.returncode == 255 and not self.check_ssh():
             logging.warning("(%s) SSH connection cannot be established! Resetting..." % self.name)
             self.reset()
             return can_retry
@@ -115,7 +115,7 @@ class AmazonSpotInstance(AmazonInstance):
 
         # Incrementing the reset count and checking if it reached the threshold
         self.reset_count += 1
-        logging.info(f"This is reset attempt #{self.reset_count}. Max retries is {self.max_resets} attempts.")
+        logging.info(f"({self.name}) This is reset attempt #{self.reset_count}. Max retries is {self.max_resets} attempts.")
         if self.reset_count > self.max_resets:
             logging.warning("(%s) Instance failed! Instance preempted and has reached the maximum number of resets (num resets: %s). "
                             "Resetting as standard instance." % (self.name, self.max_resets))
@@ -126,33 +126,41 @@ class AmazonSpotInstance(AmazonInstance):
 
         # Restart the instance if it is preemptible and is not required to be destroyed
         if self.is_preemptible and not force_destroy and status != CloudInstance.TERMINATED:
+            try:
+                # Restart the instance
+                while status != CloudInstance.OFF and status != CloudInstance.TERMINATED and status != CloudInstance.AVAILABLE:
+                    logging.warning("(%s) Waiting for 30 seconds for instance to stop" % self.name)
+                    time.sleep(30)
+                    status = self.get_status(log_status=True)
 
-            # Restart the instance
-            while not status != CloudInstance.OFF and status != CloudInstance.TERMINATED:
-                logging.warning("(%s) Waiting for 30 seconds for instance to stop" % self.name)
-                time.sleep(30)
-                status = self.get_status()
-            
-            if status == CloudInstance.OFF:
-                self.start()
-                # Instance restart complete
-                logging.debug("(%s) Instance restarted, continue running processes!" % self.name)
-            elif status == CloudInstance.TERMINATED:
-                 # Deallocate resources on the platform for current instance
-                self.platform.deallocate_resources(self.nr_cpus, self.mem, self.disk_space)
+                if status == CloudInstance.AVAILABLE:
+                    # Instance restart complete
+                    logging.debug("(%s) Instance is running, continue running processes!" % self.name)
+                if status == CloudInstance.OFF:
+                    self.start()
+                    # Instance restart complete
+                    logging.debug("(%s) Instance restarted, continue running processes!" % self.name)
+                if status == CloudInstance.TERMINATED:
+                    force_destroy = True
+                    logging.debug(f"({self.name}) Failed to stop instance. ResourceNotFound... recreating.")
 
-                # Recreate the instance
-                self.recreate()
+                    # Recreate the instance
+                    self.recreate()
 
-                # Instance recreation complete
-                logging.debug("(%s) Instance recreated, rerunning all processes!" % self.name)
+                    # Instance recreation complete
+                    logging.debug("(%s) Instance recreated, rerunning all processes!" % self.name)
+            except Exception as e:
+                if 'notFound' in str(e):
+                    force_destroy = True
+                    logging.debug(f"({self.name}) Failed to stop instance. ResourceNotFound... recreating.")
+
+                    # Recreate the instance
+                    self.recreate()
+
+                    # Instance recreation complete
+                    logging.debug("(%s) Instance recreated, rerunning all processes!" % self.name)
 
         else:
-            logging.info(f"({self.name}) Recreating instance!!! ")
-            self.destroy_instance()
-            # Deallocate resources on the platform for current instance
-            self.platform.deallocate_resources(self.nr_cpus, self.mem, self.disk_space)
-
             # Recreate the instance
             self.recreate()
 
@@ -184,7 +192,7 @@ class AmazonSpotInstance(AmazonInstance):
         add_to_checkpoint_queue = False
         fail_to_checkpoint = False
         checkpoint_commands = [i[0] for i in self.checkpoints]  # create array of just the commands
-        logging.debug("CHECKPOINT COMMANDS: %s" % str(checkpoint_commands))
+        logging.debug(f"({self.name}) CHECKPOINT COMMANDS: {str(checkpoint_commands)}")
         cleanup_output = False
         for proc_name, proc_obj in list(self.processes.items()):
 
@@ -238,8 +246,7 @@ class AmazonSpotInstance(AmazonInstance):
             self.processes[proc_to_rerun].set_to_rerun()
 
         # Log which commands will be rerun
-        logging.debug("Commands to be rerun: (%s) " % str(
-            [proc_name for proc_name, proc_obj in list(self.processes.items()) if proc_obj.needs_rerun()]))
+        logging.debug(f"({self.name}) Commands to be rerun: ({str([proc_name for proc_name, proc_obj in list(self.processes.items()) if proc_obj.needs_rerun()])}) ")
 
         # Rerunning all the commands that need to be rerun
         for proc_name, proc_obj in list(self.processes.items()):
@@ -251,10 +258,10 @@ class AmazonSpotInstance(AmazonInstance):
 
     def __remove_wrk_out_dir(self):
 
-        logging.debug("(%s) CLEARING OUTPUT for checkpoint cleanup, clearing %s." % (self.name, self.wrk_out_dir))
+        logging.debug(f"({self.name}) CLEARING OUTPUT for checkpoint cleanup, clearing {self.wrk_out_dir}.")
 
         # Generate the removal command. HAS to be 'sudo' to be able to remove files created by any user.
-        cmd = "sudo rm -rf %s*" % self.wrk_out_dir
+        cmd = f"sudo rm -rf {self.wrk_out_dir}*"
 
         # Clean the working output directory
         self.run("cleanup_work_output", cmd)

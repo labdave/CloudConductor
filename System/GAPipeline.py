@@ -2,6 +2,7 @@ import logging
 import importlib
 import json
 import os
+import time
 from collections import OrderedDict
 
 from System.Graph import Graph, Scheduler
@@ -49,8 +50,7 @@ class GAPipeline(object):
         # Task scheduler for running jobs
         self.scheduler = None
 
-        # Helper processor for handling platform operations
-        self.helper_processor   = None
+        # Helper classes for handling platform operations
         self.storage_helper     = None
         self.docker_helper      = None
 
@@ -102,11 +102,9 @@ class GAPipeline(object):
             raise SystemError("One or more errors have been encountered during validation. "
                               "See the above logs for more information")
 
-        # Create helper processor and storage/docker helpers for checking input files
-        self.helper_processor   = self.platform.get_instance(2, 6, 200, is_helper=True)
-
-        self.storage_helper     = StorageHelper(self.helper_processor)
-        self.docker_helper      = DockerHelper(self.helper_processor)
+        # Create storage/docker helpers for checking input files
+        self.storage_helper     = StorageHelper(None)
+        self.docker_helper      = DockerHelper(None)
 
         # Validate all pipeline inputs can be found on platform
         input_validator = InputValidator(self.resource_kit, self.sample_data, self.storage_helper, self.docker_helper)
@@ -125,13 +123,8 @@ class GAPipeline(object):
 
         # Remove temporary output on success
         if rm_tmp_output_on_success:
-            final_tmp_dir = os.path.join(self.platform.get_final_output_dir(), "tmp")
-            try:
-                self.storage_helper.rm(path=final_tmp_dir, job_name="rm_tmp_output", wait=True)
-            except BaseException as e:
-                logging.error("Unable to remove tmp output directory: %s" % final_tmp_dir)
-                if str(e) != "":
-                    logging.error("Received the following err message:\n%s" % e)
+            workspace = self.datastore.get_task_workspace()
+            self.storage_helper.rm(path=workspace.get_tmp_output_dir(), job_name="rm_tmp_output", wait=True)
 
     def save_progress(self):
         pass
@@ -160,16 +153,6 @@ class GAPipeline(object):
             raise
 
     def clean_up(self):
-        # Destroy the helper processor if it exists
-        if self.helper_processor is not None:
-            try:
-                logging.debug("Destroying helper processor...")
-                self.helper_processor.destroy()
-            except BaseException as e:
-                logging.error("Unable to destroy helper processor '%s'!" % self.helper_processor.get_name())
-                if str(e) != "":
-                    logging.error("Received the follwoing err message:\n%s" % e)
-
         # Cleaning up the platform (let the platform decide what that means)
         if self.platform is not None:
             self.platform.clean_up()
@@ -178,15 +161,6 @@ class GAPipeline(object):
 
         # Create a pipeline report that summarizes features of pipeline
         report = GAPReport(self.pipeline_id, err, err_msg, git_version)
-
-        # Register helper runtime data
-        if self.helper_processor is not None:
-            report.set_start_time(self.helper_processor.get_start_time())
-            report.set_total_runtime(self.helper_processor.get_runtime())
-            report.register_task(task_name="Helper",
-                                 start_time=self.helper_processor.get_start_time(),
-                                 run_time=self.helper_processor.get_runtime(),
-                                 cost=self.helper_processor.compute_cost())
 
         # Register runtime data for pipeline tasks
         if self.scheduler is not None:
@@ -198,10 +172,12 @@ class GAPipeline(object):
                 run_time    = task_worker.get_runtime()
                 cost        = task_worker.get_cost()
                 start_time  = task_worker.get_start_time()
+                end_time    = task_worker.get_stop_time()
                 cmd         = task_worker.get_cmd()
                 task_data   = {"parent_task" : task_name.split(".")[0]}
                 report.register_task(task_name=task_name,
                                      start_time=start_time,
+                                     end_time=end_time,
                                      run_time=run_time,
                                      cost=cost,
                                      cmd=cmd,
@@ -239,9 +215,6 @@ class GAPReport(object):
         # Git commit version
         self.git_version = git_version
 
-        # Total runtime
-        self.total_runtime = 0
-
         # Time of pipeline start
         self.start_time = None
 
@@ -266,6 +239,17 @@ class GAPReport(object):
         return cost
 
     @property
+    def total_runtime(self):
+        start_time = time.time()
+        end_time = time.time()
+        for task in self.tasks:
+            if task["start_time"] and task["start_time"] < start_time:
+                start_time = task["start_time"]
+            if task["end_time"] and task["end_time"] > end_time:
+                end_time = task["end_time"]
+        return end_time - start_time
+
+    @property
     def total_output_size(self):
         size = 0
         for output_file in self.output_files:
@@ -283,10 +267,7 @@ class GAPReport(object):
     def set_start_time(self, start_time):
         self.start_time = start_time
 
-    def set_total_runtime(self, total_runtime):
-        self.total_runtime = total_runtime
-
-    def register_task(self, task_name, start_time, run_time, cost, cmd=None, task_data=None):
+    def register_task(self, task_name, start_time, end_time, run_time, cost, cmd=None, task_data=None):
         # Register information about a specific processor in the report
 
         # Make start time relative to pipeline start time
@@ -296,6 +277,7 @@ class GAPReport(object):
         proc_data = {
             "name" : task_name,
             "start_time" : start_time,
+            "end_time": end_time,
             "runtime(sec)" : run_time,
             "cost" : cost,
             "cmd"   : cmd

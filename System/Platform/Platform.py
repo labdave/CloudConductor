@@ -4,6 +4,7 @@ import uuid
 import threading
 import os
 import time
+import random
 from pathlib import Path
 
 from cryptography.hazmat.primitives import serialization
@@ -16,6 +17,8 @@ from System import CC_MAIN_DIR
 
 class Platform(object, metaclass=abc.ABCMeta):
     CONFIG_SPEC = f"{CC_MAIN_DIR}/System/Platform/Platform.validate"
+
+    API_SLEEP_CAP = 200
 
     def __init__(self, name, platform_config_file, final_output_dir):
 
@@ -191,17 +194,11 @@ class CloudPlatform(Platform, metaclass=abc.ABCMeta):
         # Obtain task_id that will be used
         task_id = kwargs.pop("task_id", "NONAME")
 
-        # Identify if the instance is a helper instance
-        is_helper = kwargs.pop("is_helper", False)
-
         # Generate a unique instance name and associate it to the current request
         while True:
 
             # Generate a (new) unique instance name
-            if is_helper:
-                inst_name = f'helper-{self.name[:20]}-{self.generate_unique_id()}'
-            else:
-                inst_name = f'inst-{self.name[:20]}-{task_id[:25]}-{self.generate_unique_id()}'
+            inst_name = f'inst-{self.name[:20]}-{task_id[:25]}-{self.generate_unique_id()}'
 
             # Standardize instance type
             inst_name, nr_cpus, mem, disk_space = self.standardize_instance(inst_name, nr_cpus, mem, disk_space)
@@ -240,9 +237,7 @@ class CloudPlatform(Platform, metaclass=abc.ABCMeta):
 
                     # Mark as allocated and start creating
                     allocated = True
-                    if is_helper:
-                        logging.debug(f'({inst_name}) Creating helper instance!')
-                    elif task_id is not None:
+                    if task_id is not None:
                         logging.debug(f'({inst_name}) Creating instance for task "{task_id}"!')
                     else:
                         logging.debug(f'({inst_name}) Creating instance!')
@@ -318,6 +313,10 @@ class CloudPlatform(Platform, metaclass=abc.ABCMeta):
             self.cpu -= nr_cpus
             self.mem -= mem
             self.disk_space -= disk_space
+
+    def get_api_sleep(self, attempt):
+        temp = min(CloudPlatform.API_SLEEP_CAP, 4 * 2 ** attempt)
+        return temp / 2 + random.randrange(0, temp/2)
 
     def __check_instance(self, inst_name, nr_cpus, mem, disk_space):
         # Check that nr_cpus, mem, disk space are under max
