@@ -1,5 +1,6 @@
 from Modules import Merger
 
+#debug
 # Module created using CC_module_helper.py
 class Dellylumpydestruct_anno_merger(Merger):
 	def __init__(self, module_id, is_docker=False):
