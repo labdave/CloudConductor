@@ -280,7 +280,7 @@ class KubernetesJob(Instance):
             env_variables.append(client.V1EnvVar(name='AWS_SECRET_ACCESS_KEY', value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='cloud-conductor-config', key='aws_access'))))
 
         storage_image = 'gcr.io/cloud-builders/gsutil'
-        storage_tasks = ['load_input', 'save_output', 'mkdir_', 'grant_']
+        storage_tasks = ['load_input', 'save_output', 'mkdir_', 'grant_', 'return_logs']
 
         for k, v in self.processes.items():
             # if the process is for storage (i.e. mkdir, etc.)

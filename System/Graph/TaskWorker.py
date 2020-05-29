@@ -248,6 +248,9 @@ class TaskWorker(Thread):
 
             # wait for all processes if processor runs them in a batch
             if self.proc.batch_processing:
+                # add return logs to the commands before running
+                self.module_executor.save_logs()
+                # wait for all processes
                 self.proc.wait()
 
             # Indicate that task finished without any errors
@@ -307,7 +310,7 @@ class TaskWorker(Thread):
         # Try to return task log
         try:
             # Unlock processor if it's been locked so logs can be returned
-            if self.module_executor is not None and not self.__cancelled:
+            if self.module_executor is not None and not self.__cancelled and not self.proc.batch_processing:
                 self.module_executor.save_logs()
         except BaseException as e:
             logging.error("Unable to return logs for task '%s'!" % self.task.get_ID())
