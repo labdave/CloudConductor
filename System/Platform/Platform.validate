@@ -12,7 +12,7 @@
     INST_MIN_DISK_SPACE     = integer(default=10)
 
     identity                = string
-    secret                  = string(default=None)
+    secret                  = string(default='')
 
     region                  = string(default=None)
     zone                    = string(default=None)

@@ -63,6 +63,8 @@ class Platform(object, metaclass=abc.ABCMeta):
         # Save extra variables
         self.extra = self.config.get("extra", {})
 
+        self.lockable = True
+
     def get_max_nr_cpus(self):
         return self.NR_CPUS["MAX"]
 
@@ -94,6 +96,10 @@ class Platform(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def validate(self):
+        pass
+
+    @abc.abstractmethod
+    def get_disk_image_size(self):
         pass
 
     @abc.abstractmethod
@@ -340,10 +346,6 @@ class CloudPlatform(Platform, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_random_zone(self):
-        pass
-
-    @abc.abstractmethod
-    def get_disk_image_size(self):
         pass
 
     @abc.abstractmethod

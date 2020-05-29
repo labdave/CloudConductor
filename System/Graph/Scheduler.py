@@ -3,6 +3,7 @@ import time
 
 from System.Graph import TaskWorker
 
+
 class Scheduler(object):
 
     def __init__(self, task_graph, datastore, platform):
@@ -81,7 +82,8 @@ class Scheduler(object):
     def __finalize(self):
 
         # Prevent any new processors from being created on platform
-        self.platform.lock()
+        if self.platform.lockable:
+            self.platform.lock()
 
         # Cancel any still-running jobs
         self.__cancel_unfinished_tasks()

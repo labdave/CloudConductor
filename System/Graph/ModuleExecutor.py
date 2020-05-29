@@ -27,7 +27,7 @@ class ModuleExecutor(object):
         # Pull docker image if necessary
         if self.docker_image is not None:
             docker_image_name = self.docker_image.get_image_name().split("/")[0]
-            docker_image_name = docker_image_name.replace(":","_")
+            docker_image_name = docker_image_name.replace(":", "_")
             job_name = "docker_pull_%s" % docker_image_name
             self.docker_helper.pull(self.docker_image.get_image_name(), job_name=job_name)
             job_names.append(job_name)
@@ -90,7 +90,7 @@ class ModuleExecutor(object):
                 job_names.append(job_name)
 
                 # If loading_counter is batch_size, clear out queue
-                if loading_counter >= batch_size:
+                if loading_counter >= batch_size and not self.processor.batch_processing:
                     logging.debug("Batch size reached on task {0}".format(
                         self.task_id))
                     # Wait for all processes to finish
@@ -104,8 +104,9 @@ class ModuleExecutor(object):
             logging.debug("Updated path: %s" % task_input.get_path())
 
         # Wait for all processes to finish
-        for job_name in job_names:
-            self.processor.wait_process(job_name)
+        if not self.processor.batch_processing:
+            for job_name in job_names:
+                self.processor.wait_process(job_name)
 
         # Recursively give every permission to all files we just added
         logging.info("(%s) Final workspace perm. update for task '%s'..." % (self.processor.name, self.task_id))
@@ -170,8 +171,9 @@ class ModuleExecutor(object):
             # Update path of output file to reflect new location
             job_names.append(job_name)
             output_file.update_path(new_dir=dest_dir)
-            logging.debug("(%s) Transferring file '%s' from old path '%s' to new path '%s' ('%s')" % (
-                self.task_id, output_file.get_type(), curr_path, output_file.get_path(), output_file.get_transferrable_path()))
+            if not self.processor.batch_processing:
+                logging.debug("(%s) Transferring file '%s' from old path '%s' to new path '%s' ('%s')" % (
+                    self.task_id, output_file.get_type(), curr_path, output_file.get_path(), output_file.get_transferrable_path()))
 
             count += 1
 

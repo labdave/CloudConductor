@@ -220,7 +220,7 @@ class TaskWorker(Thread):
                     self.module.process_cmd_output(out, err)
 
                     if not self.module.is_resumable:
-                        self.proc.add_checkpoint(False) # mark a checkpoint after the command(s) have been run
+                        self.proc.add_checkpoint(False)  # mark a checkpoint after the command(s) have been run
 
                 else:
 
@@ -236,14 +236,19 @@ class TaskWorker(Thread):
                     if not self.module.is_resumable:
                         self.proc.add_checkpoint(False)  # mark a checkpoint after the command has been run
 
-            # Set the status to finalized
-            self.set_status(self.FINALIZING)
+            if not self.proc.batch_processing:
+                # Set the status to finalized
+                self.set_status(self.FINALIZING)
 
             # Save output files in workspace output dirs (if any)
             output_files = self.datastore.get_task_output_files(self.task.get_ID())
             final_output_types = self.task.get_final_output_keys()
             if len(output_files) > 0:
                 self.module_executor.save_output(output_files, final_output_types)
+
+            # wait for all processes if processor runs them in a batch
+            if self.proc.batch_processing:
+                self.proc.wait()
 
             # Indicate that task finished without any errors
             if not self.__cancelled:

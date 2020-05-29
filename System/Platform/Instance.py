@@ -33,7 +33,7 @@ class Instance(object, metaclass=abc.ABCMeta):
 
         # Obtain identify and secret from platform
         self.identity = kwargs.pop("identity")
-        self.secret = kwargs.pop("secret")
+        self.secret = kwargs.pop("secret", '')
 
         # Initialize the workspace directories
         self.wrk_dir = "/data"
@@ -54,19 +54,22 @@ class Instance(object, metaclass=abc.ABCMeta):
         # Initialize the checkpoints of the instance
         self.checkpoints = []
 
+        self.batch_processing = False
+
     def get_name(self):
         return self.name
 
     def get_runtime(self):
         return self.get_stop_time() - self.get_start_time()
 
-    def wait(self):
-        raise NotImplementedError("Make a system to wait for all processes")
-
     # ABSTRACT METHODS TO BE IMPLEMENTED BY INHERITING CLASSES
 
     @abc.abstractmethod
     def run(self):
+        pass
+
+    @abc.abstractmethod
+    def wait(self):
         pass
 
     @abc.abstractmethod
@@ -359,6 +362,11 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
 
     def handle_failure(self, proc_name, proc_obj):
         return self.default_num_cmd_retries != 0 and proc_obj.get_num_retries() > 0
+
+    def wait(self):
+        for key, value in self.processes.items():
+            logging.debug(f"({self.name}) Starting execution for task {key}")
+            self.wait_process(key)
 
     def compute_cost(self):
         # Compute running cost of current task processor

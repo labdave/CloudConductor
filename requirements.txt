@@ -4,5 +4,5 @@ configobj
 apache-libcloud
 google-cloud-pubsub
 boto3
-kube-api
 Astrology-Aries
+kubernetes
