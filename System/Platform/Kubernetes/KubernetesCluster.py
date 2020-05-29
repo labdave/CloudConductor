@@ -6,6 +6,7 @@ import os
 from System.Platform import Process
 from System.Platform import Process
 from System.Platform.Platform import Platform
+from threading import Thread
 
 from System.Platform.Kubernetes import KubernetesJob
 from System.Platform.Kubernetes.utils import api_request
@@ -105,6 +106,7 @@ class KubernetesCluster(Platform):
         return job_name, nr_cpus, mem, disk_space
 
     def get_disk_image_size(self):
+        # no disk images for Kubernetes. return 0
         return 0
 
     def publish_report(self, report_path):
@@ -136,5 +138,18 @@ class KubernetesCluster(Platform):
         Process.run_local_cmd(cmd, err_msg="Could not transfer final log to the final output directory!")
 
     def clean_up(self):
-        # Clear all jobs using self.jobs
-        pass
+        # Initialize the list of threads
+        destroy_threads = []
+
+        # Launch the destroy process for each instance
+        for name, job_obj in self.jobs.items():
+            if job_obj is None:
+                continue
+
+            thr = Thread(target=job_obj.destroy, daemon=True)
+            thr.start()
+            destroy_threads.append(thr)
+
+        # Wait for all threads to finish
+        for _thread in destroy_threads:
+            _thread.join()
