@@ -156,7 +156,7 @@ class KubernetesJob(Instance):
             job_status = self.get_status()
             if isinstance(job_status, dict) and not job_status.get("active"):
                 monitoring = False
-                self.stop_time = time.mktime(job_status['completion_time'].timetuple())
+                self.stop_time = job_status['completion_time'].timestamp()
                 if job_status.get("succeeded"):
                     logging.info(f"({self.name}) Process complete!")
                 if job_status.get("failed"):
@@ -179,7 +179,7 @@ class KubernetesJob(Instance):
             logging.debug(f"({self.name}) Job Status: {job_status}")
         if job_status:
             if self.start_time == 0:
-                self.start_time = time.mktime(job_status['start_time'].timetuple())
+                self.start_time = job_status['start_time'].timestamp()
             return job_status
         return s
 
@@ -187,7 +187,18 @@ class KubernetesJob(Instance):
         pass
 
     def compute_cost(self):
-        return 0
+        # calculate run time and convert to hours
+        run_time = (self.get_stop_time() - self.get_start_time()) / 3600.0
+
+        # get pricing
+        compute_price = self.get_compute_price()
+        storage_price = self.get_storage_price()
+
+        # calculate totals
+        total_compute_cost = run_time * compute_price
+        total_storage_cost = run_time * storage_price
+
+        return total_compute_cost + total_storage_cost
 
     def get_compute_price(self):
         return 0
