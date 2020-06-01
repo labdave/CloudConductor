@@ -31,6 +31,9 @@ class KubernetesCluster(Platform):
         self.gcp_secret_configured = "gcp_secret_configured" in self.extra and self.extra["gcp_secret_configured"]
         self.aws_secret_configured = "aws_secret_configured" in self.extra and self.extra["aws_secret_configured"]
 
+        self.region = self.config["region"]
+        self.zone = self.config.get("zone", None)
+
     def get_instance(self, nr_cpus, mem, disk_space, **kwargs):
         """Initialize new job and register with platform"""
 
@@ -55,7 +58,9 @@ class KubernetesCluster(Platform):
             "cmd_retries": self.cmd_retries,
 
             "platform": self,
-            "preemptible": preemptible
+            "preemptible": preemptible,
+            "region": self.region,
+            "zone": self.zone
         })
 
         # Also add the extra information

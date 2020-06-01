@@ -18,24 +18,25 @@ class KubernetesJob(Instance):
         super(KubernetesJob, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
 
         self.NODE_POOLS = {
-            "cc2-highmem-pool" :  {"max_cpu": 2, "max_mem": 13},
-            "cc4-highmem-pool" :  {"max_cpu": 4, "max_mem": 26},
-            "cc8-highmem-pool" :  {"max_cpu": 8, "max_mem": 52},
-            "cc16-highmem-pool" :  {"max_cpu": 16, "max_mem": 104},
-            "cc32-highmem-pool" :  {"max_cpu": 32, "max_mem": 208},
+            "cc2-highmem-pool" :  {"max_cpu": 2, "max_mem": 13, "inst_type": "n1-highmem-2"},
+            "cc4-highmem-pool" :  {"max_cpu": 4, "max_mem": 26, "inst_type": "n1-highmem-4"},
+            "cc8-highmem-pool" :  {"max_cpu": 8, "max_mem": 52, "inst_type": "n1-highmem-8"},
+            "cc16-highmem-pool" :  {"max_cpu": 16, "max_mem": 104, "inst_type": "n1-highmem-16"},
+            "cc32-highmem-pool" :  {"max_cpu": 32, "max_mem": 208, "inst_type": "n1-highmem-32"}
         }
 
         self.NODE_POOLS_PREEMPTIBLE = {
-            "cc2-highmem-preemptible-pool" :  {"max_cpu": 2, "max_mem": 13},
-            "cc4-highmem-preemptible-pool" :  {"max_cpu": 4, "max_mem": 26},
-            "cc8-highmem-preemptible-pool" :  {"max_cpu": 8, "max_mem": 52},
-            "cc16-highmem-preemptible-pool" :  {"max_cpu": 16, "max_mem": 104},
-            "cc32-highmem-preemptible-pool" :  {"max_cpu": 32, "max_mem": 208},
+            "cc2-highmem-preemptible-pool" :  {"max_cpu": 2, "max_mem": 13, "inst_type": "n1-highmem-2"},
+            "cc4-highmem-preemptible-pool" :  {"max_cpu": 4, "max_mem": 26, "inst_type": "n1-highmem-4"},
+            "cc8-highmem-preemptible-pool" :  {"max_cpu": 8, "max_mem": 52, "inst_type": "n1-highmem-8"},
+            "cc16-highmem-preemptible-pool" :  {"max_cpu": 16, "max_mem": 104, "inst_type": "n1-highmem-16"},
+            "cc32-highmem-preemptible-pool" :  {"max_cpu": 32, "max_mem": 208, "inst_type": "n1-highmem-32"}
         }
 
         self.task_prefix_filter = ['mkdir_wrk_dir', 'docker_pull']
 
         self.namespace = 'cloud-conductor'
+        self.nodepool_info = None
 
         self.batch_processing = True
         self.job_def = None
@@ -49,20 +50,29 @@ class KubernetesJob(Instance):
         self.platform = kwargs.pop("platform")
         self.preemptible = kwargs.pop("preemptible", False)
 
+        # Obtain location specific information
+        self.region = kwargs.pop("region")
+        self.zone = kwargs.pop("zone")
+
         self.batch_api = self.platform.batch_api
         self.core_api = self.platform.core_api
 
         self.start_time = 0
         self.stop_time = 0
 
-    def get_nodepool_label(self):
+        self.storage_price = float(kwargs.pop("storage_price"))
+        self.k8s_provider = kwargs.pop("provider")
+
+        self.node_label, self.nodepool_info = self.get_nodepool_info()
+
+    def get_nodepool_info(self):
         node_pool_dict = self.NODE_POOLS
         if self.preemptible:
             node_pool_dict = self.NODE_POOLS_PREEMPTIBLE
 
         for k, v in node_pool_dict.items():
             if v['max_cpu'] >= self.nr_cpus and v['max_mem'] >= self.mem:
-                return k
+                return k, v
 
     def run(self, job_name, cmd, num_retries=None, docker_image=None):
         logging.debug(f"({self.name}) Adding {job_name} to the task list.")
@@ -201,10 +211,26 @@ class KubernetesJob(Instance):
         return total_compute_cost + total_storage_cost
 
     def get_compute_price(self):
-        return 0
+        if self.k8s_provider == 'EKS':
+            pricing_url = f"https://banzaicloud.com/cloudinfo/api/v1/providers/amazon/services/eks/regions/{self.region}/products"
+            if self.zone is None:
+                self.zone = self.region+'a'
+        else:
+            pricing_url = f"https://banzaicloud.com/cloudinfo/api/v1/providers/google/services/gke/regions/{self.region}/products"
+            if self.zone is None:
+                self.zone = self.region+'-a'
+
+        products = requests.get(pricing_url).json()
+        product_info = next((x for x in products['products'] if x['type'] == self.nodepool_info["inst_type"]), None)
+
+        if product_info:
+            return product_info['onDemandPrice'] if not self.preemptible else product_info['spotPrice'][0]['price']
+        else:
+            logging.warning(f"Unable to retrieve pricing info for the instance type: {self.nodepool_info['inst_type']}")
+            return 0
 
     def get_storage_price(self):
-        return 0
+        return self.storage_price
 
     def __create_volume_claim(self):
         # create the persistent volume claim for the task
@@ -252,7 +278,7 @@ class KubernetesJob(Instance):
         )
 
         # place the job in the appropriate node pool
-        node_label_dict = {'poolName': str(self.get_nodepool_label())}
+        node_label_dict = {'poolName': str(self.node_label)}
 
 
         # build volumes

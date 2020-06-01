@@ -100,10 +100,12 @@ class Instance(object, metaclass=abc.ABCMeta):
     def compute_cost(self):
         pass
 
+    @staticmethod
     @abc.abstractmethod
     def get_compute_price(self):
         pass
 
+    @staticmethod
     @abc.abstractmethod
     def get_storage_price(self):
         pass
