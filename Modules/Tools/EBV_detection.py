@@ -13,6 +13,7 @@ class EBV_detection(Module):
         # Module creator needs to define which arguments have is_resource=True
         # Module creator needs to rename arguments as required by CC
         self.add_argument("bam",                        is_required=True)
+        self.add_argument("sample_id",                  is_required=True)
         self.add_argument("nr_cpus",                    default_value=8)
         self.add_argument("mem",                        default_value=20.0)
         self.add_argument("f",                          default_value=4)
@@ -25,10 +26,11 @@ class EBV_detection(Module):
     def define_output(self):
         # Module creator needs to define what the outputs are
         # based on the output keys provided during module creation
-        paired_ebv_sam  = self.generate_unique_file_name("ebv_paired_Aligned.out.sam")
-        single_ebv_sam  = self.generate_unique_file_name("ebv_single_Aligned.out.sam")
-        paired_ebv_logf = self.generate_unique_file_name("ebv_paired_Log.final.out")
-        single_ebv_logf = self.generate_unique_file_name("ebv_single_Log.final.out")
+        sample_id       = self.get_argument("sample_id")
+        paired_ebv_sam  = self.generate_unique_file_name(sample_id+"_ebv_paired_Aligned.out.sam")
+        single_ebv_sam  = self.generate_unique_file_name(sample_id+"_ebv_single_Aligned.out.sam")
+        paired_ebv_logf = self.generate_unique_file_name(sample_id+"_ebv_paired_Log.final.out")
+        single_ebv_logf = self.generate_unique_file_name(sample_id+"_ebv_single_Log.final.out")
         #log_file        
         self.add_output("paired_ebv_sam",       paired_ebv_sam)
         self.add_output("single_ebv_sam",       single_ebv_sam)

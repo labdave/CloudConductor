@@ -5,7 +5,7 @@ class Dellylumpydestructmerger(Merger):
 	def __init__(self, module_id, is_docker=False):
 		super(Dellylumpydestructmerger, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
-		self.output_keys = ["all_merged_vcf", "all_merged_cons_vcf", "tmp_all_bed"]
+		self.output_keys = ["all_merged_vcf", "all_merged_cons_vcf"] 
 
 
 	def define_input(self):
@@ -22,15 +22,8 @@ class Dellylumpydestructmerger(Merger):
 		# based on the output keys provided during module creation
 		all_merged_vcf			= self.generate_unique_file_name("all.merged.vcf")
 		all_merged_cons_vcf		= all_merged_vcf.replace('.vcf', '_cons.vcf')
-		tmp_bed					= all_merged_vcf+'.tmp.bed'
-		tmp1_bed				= all_merged_vcf+'.tmp1.bed'
-		tmp_all_bed				= all_merged_vcf+'.tmp.all.bed'
 		self.add_output("all_merged_vcf",			all_merged_vcf)
 		self.add_output("all_merged_cons_vcf",		all_merged_cons_vcf)
-		self.add_output("tmp_bed",					tmp_bed)
-		self.add_output("tmp1_bed",					tmp1_bed)
-		self.add_output("tmp_all_bed",				tmp_all_bed)
-
 
 
 	def define_command(self):
