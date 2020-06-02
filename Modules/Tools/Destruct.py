@@ -11,8 +11,8 @@ class Destruct(Module):
 	def define_input(self):
 		# Module creator needs to define which arguments have is_resource=True
 		# Module creator needs to rename arguments as required by CC
-		self.add_argument("bam",			is_required=True)
-		self.add_argument("sample_id",					is_required=True)
+		self.add_argument("filtered_bam",	is_required=True)
+		self.add_argument("sample_id",		is_required=True)
 		self.add_argument("nr_cpus",		default_value=2)
 		self.add_argument("mem",			default_value=10.0)
 		self.add_argument("destruct",		is_required=True, is_resource=True)
@@ -22,7 +22,7 @@ class Destruct(Module):
 	def define_output(self):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
-		sample_id		= self.get_argument("sample_id")
+		sample_id				= self.get_argument("sample_id")
 		breaks					= self.generate_unique_file_name("{}.breaks.tsv".format(sample_id))
 		break_libs				= self.generate_unique_file_name("{}.break_libs.tsv".format(sample_id))
 		break_reads				= self.generate_unique_file_name("{}.break_reads.tsv".format(sample_id))
@@ -33,7 +33,7 @@ class Destruct(Module):
 
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC
-		bam						= self.get_argument("bam")
+		bam						= self.get_argument("filtered_bam")
 		destruct				= self.get_argument("destruct")
 		lib_ids					= self.get_argument("lib_ids")
 		submit					= self.get_argument("submit")
