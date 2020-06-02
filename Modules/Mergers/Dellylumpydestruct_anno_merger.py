@@ -16,6 +16,7 @@ class Dellylumpydestruct_anno_merger(Merger):
 		self.add_argument("bed",					is_resource=True)
 		self.add_argument("dac_gap_blacklist",		is_resource=True)
 		self.add_argument("repeat_blacklist",		is_resource=True)
+		self.add_argument("segmental_blacklist",	is_resource=True)
 		self.add_argument("level1_bp",				is_resource=True)
 		self.add_argument("gtf",					is_resource=True)
 		self.add_argument("chr_names",				is_resource=True)
@@ -38,6 +39,7 @@ class Dellylumpydestruct_anno_merger(Merger):
 		bed								= self.get_argument("bed")
 		dac_gap_blacklist				= self.get_argument("dac_gap_blacklist")
 		repeat_blacklist				= self.get_argument("repeat_blacklist")
+		segmental_blacklist				= self.get_argument("segmental_blacklist")
 		level1_bp						= self.get_argument("level1_bp")
 		gtf								= self.get_argument("gtf")
 		chr_names						= self.get_argument("chr_names")
@@ -54,7 +56,7 @@ class Dellylumpydestruct_anno_merger(Merger):
 		cmd += " -i {0} -c {1} -o {2}".format(all_merged_cons_vcf, bed, anno_vcf)
 		cmd += " -t /data/tmp_folder -g {0} -r {1}".format(dac_gap_blacklist, repeat_blacklist)
 		cmd += " -l {0} -G {1} -C {2}".format(level1_bp, gtf, chr_names)
-		cmd += " -p {0} -F {1}".format(paper_freq_pairs, chr_filter)
+		cmd += " -p {0} -F {1} -s {2}".format(paper_freq_pairs, chr_filter, segmental_blacklist)
 
 		# add logging
 		cmd += " !LOG3!"
