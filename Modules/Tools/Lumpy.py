@@ -11,7 +11,8 @@ class Lumpy(Module):
 	def define_input(self):
 		# Module creator needs to define which arguments have is_resource=True
 		# Module creator needs to rename arguments as required by CC
-		self.add_argument("bam",						is_required=True)
+		self.add_argument("filtered_bam",				is_required=True)
+		self.add_argument("filtered_bam_bai",			is_required=True)
 		self.add_argument("sample_id",					is_required=True)
 		self.add_argument("nr_cpus",					default_value=2)
 		self.add_argument("mem",						default_value=10.0)
@@ -34,7 +35,7 @@ class Lumpy(Module):
 
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC
-		bam						= self.get_argument("bam")
+		bam						= self.get_argument("filtered_bam")
 		read_length				= self.get_argument("read_length")
 		discordant_z			= self.get_argument("discordant_z")
 		back_distance			= self.get_argument("back_distance")
