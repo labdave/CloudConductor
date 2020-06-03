@@ -25,6 +25,8 @@ class Filter_chrom_reads(Module):
 		temp2_bam				= filtered_bam.replace('.bam', '.temp2.bam')
 		self.add_output("filtered_bam",		filtered_bam)
 		self.add_output("filtered_bam_bai",	filtered_bam+'.bai')
+		self.add_output("temp1_bam",		temp1_bam)
+		self.add_output("temp2_bam",		temp2_bam)
 
 
 	def define_command(self):
