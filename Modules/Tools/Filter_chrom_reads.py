@@ -21,6 +21,8 @@ class Filter_chrom_reads(Module):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
 		filtered_bam			= self.generate_unique_file_name(".filtered.bam")
+		temp1_bam				= filtered_bam.replace('.bam', '.temp1.bam')
+		temp2_bam				= filtered_bam.replace('.bam', '.temp2.bam')
 		self.add_output("filtered_bam",		filtered_bam)
 		self.add_output("filtered_bam_bai",	filtered_bam+'.bai')
 
@@ -33,13 +35,15 @@ class Filter_chrom_reads(Module):
 
 		# get output
 		filtered_bam			= self.get_output("filtered_bam")
+		temp1_bam				= self.get_output("temp1_bam")
+		temp2_bam				= self.get_output("temp2_bam")
 
 		# add module
 		cmd = "bash /usr/local/bin/filter_chrom_reads.sh"
 
 		# add arguments
-		cmd += " {0} {1} {2} {3}".format(
-			bam, threads, F, filtered_bam)
+		cmd += " {0} {1} {2} {3} {4} {5}".format(
+			bam, threads, F, filtered_bam, temp1_bam, temp2_bam)
 
 		# add logging
 		cmd += " !LOG3!"
