@@ -5,7 +5,7 @@ class Filter_chrom_reads(Module):
 	def __init__(self, module_id, is_docker=False):
 		super(Filter_chrom_reads, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
-		self.output_keys = ["filtered_bam"]
+		self.output_keys = ["filtered_bam", "filtered_bam_bai"]
 
 
 	def define_input(self):
@@ -22,6 +22,7 @@ class Filter_chrom_reads(Module):
 		# based on the output keys provided during module creation
 		filtered_bam			= self.generate_unique_file_name(".filtered.bam")
 		self.add_output("filtered_bam",		filtered_bam)
+		self.add_output("filtered_bam_bai",	filtered_bam+'.bai')
 
 
 	def define_command(self):
