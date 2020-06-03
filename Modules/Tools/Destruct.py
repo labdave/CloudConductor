@@ -11,13 +11,14 @@ class Destruct(Module):
 	def define_input(self):
 		# Module creator needs to define which arguments have is_resource=True
 		# Module creator needs to rename arguments as required by CC
-		self.add_argument("filtered_bam",	is_required=True)
-		self.add_argument("sample_id",		is_required=True)
-		self.add_argument("nr_cpus",		default_value=2)
-		self.add_argument("mem",			default_value=10.0)
-		self.add_argument("destruct",		is_required=True, is_resource=True)
-		self.add_argument("lib_ids",		default_value="sample")
-		self.add_argument("submit",			default_value="local")
+		self.add_argument("filtered_bam",		is_required=True)
+		self.add_argument("filtered_bam_bai",	is_required=True)
+		self.add_argument("sample_id",			is_required=True)
+		self.add_argument("nr_cpus",			default_value=2)
+		self.add_argument("mem",				default_value=10.0)
+		self.add_argument("destruct",			is_required=True, is_resource=True)
+		self.add_argument("lib_ids",			default_value="sample")
+		self.add_argument("submit",				default_value="local")
 
 	def define_output(self):
 		# Module creator needs to define what the outputs are

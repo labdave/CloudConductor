@@ -12,6 +12,7 @@ class Lumpy(Module):
 		# Module creator needs to define which arguments have is_resource=True
 		# Module creator needs to rename arguments as required by CC
 		self.add_argument("filtered_bam",				is_required=True)
+		self.add_argument("filtered_bam_bai",			is_required=True)
 		self.add_argument("sample_id",					is_required=True)
 		self.add_argument("nr_cpus",					default_value=2)
 		self.add_argument("mem",						default_value=10.0)

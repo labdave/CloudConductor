@@ -7,14 +7,14 @@ class Delly(Module):
 
 
     def define_input(self):
-        self.add_argument("filtered_bam",   is_required=True)
-        self.add_argument("bam_idx",        is_required=True)
-        self.add_argument("sample_id",      is_required=True)
-        self.add_argument("delly",          is_required=True, is_resource=True)
-        self.add_argument("ref",            is_required=True, is_resource=True)
-        self.add_argument("exclude_list",   is_resource=True)
-        self.add_argument("nr_cpus",        is_required=True, default_value=2)
-        self.add_argument("mem",            is_required=True, default_value=13)
+        self.add_argument("filtered_bam",       is_required=True)
+        self.add_argument("filtered_bam_bai",   is_required=True)
+        self.add_argument("sample_id",          is_required=True)
+        self.add_argument("delly",              is_required=True, is_resource=True)
+        self.add_argument("ref",                is_required=True, is_resource=True)
+        self.add_argument("exclude_list",       is_resource=True)
+        self.add_argument("nr_cpus",            is_required=True, default_value=2)
+        self.add_argument("mem",                is_required=True, default_value=13)
 
 
     def define_output(self):
