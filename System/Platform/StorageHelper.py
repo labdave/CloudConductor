@@ -203,8 +203,12 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
     @staticmethod
     def mv(src_path, dest_dir):
         # Move a file from one directory to another
+        if ":" not in src_path:
+            check_exists = f'[ -z "$(ls -A -- "{src_path.replace("/*", "/")}")" ] || '
+        else:
+            check_exists = ''
         options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
-        return f"sudo gsutil {options_fast} cp -r {src_path} {dest_dir}"
+        return f'{check_exists}sudo gsutil {options_fast} cp -r {src_path} {dest_dir}'
 
     @staticmethod
     def mkdir(dir_path):

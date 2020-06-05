@@ -217,7 +217,12 @@ class TaskWorker(Thread):
                         self.__check_cancelled()
 
                     # Post-process only last command output if necessary
-                    self.module.process_cmd_output(out, err)
+                    if self.module.does_process_output:
+                        # wait for all processes if processor runs them in a batch
+                        if self.proc.batch_processing:
+                            # wait for all processes
+                            out, err = self.proc.wait(return_last_task_log=True)
+                        self.module.process_cmd_output(out, err)
 
                     if not self.module.is_resumable:
                         self.proc.add_checkpoint(False)  # mark a checkpoint after the command(s) have been run
@@ -231,7 +236,12 @@ class TaskWorker(Thread):
                     self.__check_cancelled()
 
                     # Post-process command output if necessary
-                    self.module.process_cmd_output(out, err)
+                    if self.module.does_process_output:
+                        # wait for all processes if processor runs them in a batch
+                        if self.proc.batch_processing:
+                            # wait for all processes
+                            out, err = self.proc.wait(return_last_task_log=True)
+                        self.module.process_cmd_output(out, err)
 
                     if not self.module.is_resumable:
                         self.proc.add_checkpoint(False)  # mark a checkpoint after the command has been run
@@ -253,6 +263,9 @@ class TaskWorker(Thread):
                 # wait for all processes
                 self.proc.wait()
 
+                # Set the status to finalized
+                self.set_status(self.FINALIZING)
+
             # Indicate that task finished without any errors
             if not self.__cancelled:
                 with self.status_lock:
@@ -266,7 +279,7 @@ class TaskWorker(Thread):
             else:
                 # Raise exception if job failed for any reason other than cancellation
                 self.set_status(self.FINALIZING)
-                logging.error("Task '%s' failed!" % self.task.get_ID())
+                logging.error(f"Task '{self.task.get_ID()}' failed!")
                 raise
         finally:
             # Return logs and destroy processor if they exist
@@ -288,8 +301,9 @@ class TaskWorker(Thread):
         self.__cancelled = True
 
         if self.proc is not None:
-            # Prevent further commands from being run on processor
-            self.proc.stop()
+            if self.proc.stoppable:
+                # Prevent further commands from being run on processor
+                self.proc.stop()
             # Start garbage collector thread to destroy processor
             self.garbage_collector = GarbageCollector(proc=self.proc)
             self.garbage_collector.start()

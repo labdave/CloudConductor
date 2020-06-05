@@ -6,6 +6,7 @@ import ast
 import re
 
 from System.Platform.Instance import Instance
+from System.Platform import Platform
 from System.Platform.Kubernetes.utils import api_request
 from collections import OrderedDict
 
@@ -16,6 +17,15 @@ class KubernetesJob(Instance):
 
     def __init__(self, name, nr_cpus, mem, disk_space, **kwargs):
         super(KubernetesJob, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
+
+        self.stoppable = False
+        self.job_count = 1
+        self.inst_name = name
+        self.job_containers = []
+
+        # amount to subtract from max cpu / max mem for monitoring or general k8s overhead pods
+        self.cpu_reserve = 0.1
+        self.mem_reserve = 2
 
         self.NODE_POOLS = {
             "cc2-highmem-pool" :  {"max_cpu": 2, "max_mem": 13, "inst_type": "n1-highmem-2"},
@@ -37,11 +47,13 @@ class KubernetesJob(Instance):
 
         self.namespace = 'cloud-conductor'
         self.nodepool_info = None
+        self.volume_name = None
 
         self.batch_processing = True
         self.job_def = None
         self.pvc_name = ''
         self.task_pvc = None
+        self.monitoring = False
 
         # define how long the job lasts after completion
         self.termination_seconds = 600
@@ -81,6 +93,9 @@ class KubernetesJob(Instance):
             if prefix in job_name:
                 return
 
+        # strip out docker brackets
+        # cmd = re.sub(r"{ (.*[\s\S]+);}", r"\1", cmd)
+
         # Checking if logging is required
         if "!LOG" in cmd:
 
@@ -90,7 +105,7 @@ class KubernetesJob(Instance):
                 log_file = os.path.join(self.wrk_log_dir, log_file)
 
             # Generating the logging pipes
-            log_cmd_all     = f" >>{log_file}"
+            log_cmd_all     = f" 2>&1 | tee -a {log_file}"
 
             # Replacing the placeholders with the logging pipes
             cmd = re.sub(r"!LOG.*!", log_cmd_all, cmd)
@@ -110,44 +125,54 @@ class KubernetesJob(Instance):
     def destroy(self):
         # Destroy the job
         # only want to destroy a job if it's active
-        status = self.get_status()
-        if status and isinstance(status, dict) and status.get("active"):
-            delete_response = api_request(self.batch_api.delete_namespaced_job, self.name, self.namespace)
+        if self.job_def:
+            status = self.get_status()
+            if status and isinstance(status, dict) and status.get("active"):
+                delete_response = api_request(self.batch_api.delete_namespaced_job, self.name, self.namespace)
+
+                # Save the status if the job is no longer active
+                delete_status = delete_response.get("status", None)
+                if delete_status and delete_status == 'Failure':
+                    logging.warning(f"({self.name}) Failed to destroy Kubernetes Job. Message: {delete_response.get('message', '')}")
+                elif delete_status and not isinstance(delete_status, dict):
+                    delete_status = ast.literal_eval(delete_status)
+                elif delete_status and isinstance(delete_status, dict) or delete_status.get("failed") or delete_status.get("succeeded"):
+                    logging.debug(f"({self.name}) Kubernetes job successfully destroyed.")
+                    self.stop_time = time.time()
+
+        # stop monitoring the job
+        self.monitoring = False
+
+        if self.pvc_name:
+            # Destroy the persistent volume claim
+            pvc_response = api_request(self.core_api.delete_namespaced_persistent_volume_claim, self.pvc_name, self.namespace)
 
             # Save the status if the job is no longer active
-            delete_status = delete_response.get("status", None)
-            if not isinstance(delete_status, dict):
-                delete_status = ast.literal_eval(delete_status)
-            if delete_status and isinstance(delete_status, dict) or delete_status == 'Failure' or delete_status.get("failed") or delete_status.get("succeeded"):
-                logging.debug(f"({self.name}) Kubernetes job successfully destroyed.")
-            else:
-                raise RuntimeError(f"({self.name}) Failure to destroy the Kubernetes Job on the cluster!")
-
-        # Destroy the persistent volume claim
-        pvc_response = api_request(self.core_api.delete_namespaced_persistent_volume_claim, self.pvc_name, self.namespace)
-
-        # Save the status if the job is no longer active
-        pvc_status = pvc_response.get("status", None)
-        if not isinstance(pvc_status, dict):
-            pvc_status = ast.literal_eval(pvc_status)
-        if pvc_status and isinstance(pvc_status, dict):
-            logging.debug(f"({self.name}) Persistent Volume Claim successfully destroyed.")
-        else:
-            raise RuntimeError(f"({self.name}) Failure to destroy the Persistent Volume Claim on the cluster!")     
+            pvc_status = pvc_response.get("status", None)
+            if pvc_status and pvc_status == 'Failure':
+                logging.warning(f"({self.name}) Failed to destroy Persistent Volume Claim. Message: {pvc_response.get('message', '')}")
+            elif pvc_status and not isinstance(pvc_status, dict):
+                pvc_status = ast.literal_eval(pvc_status)
+            elif pvc_status and isinstance(pvc_status, dict):
+                logging.debug(f"({self.name}) Persistent Volume Claim successfully destroyed.")
 
     def wait_process(self, proc_name):
         # Kubernetes Job waits until all tasks have been assigned to run
         return '', ''
 
-    def wait(self):
+    def wait(self, return_last_task_log=False):
         # launch kubernetes job with all processes
-        logging.debug(f"({self.name}) Starting creation of Kubernetes job.")
+        if self.job_count == 1:
+            logging.debug(f"({self.name}) Starting creation of Kubernetes job.")
+        else:
+            logging.debug(f"({self.name}) Starting creation of Kubernetes followup job.")
 
-        # create the persistent volume claim for the job
-        self.__create_volume_claim()
+        # create the persistent volume claim for the job if one doesn't already exist
+        if not self.pvc_name:
+            self.__create_volume_claim()
 
         # create the job definition
-        self.__create_job_def()
+        self.job_def = self.__create_job_def()
 
         try:
             creation_response = api_request(self.batch_api.create_namespaced_job, self.namespace, self.job_def)
@@ -156,20 +181,25 @@ class KubernetesJob(Instance):
                 logging.debug(f"({self.name}) Kubernetes job successfully created! Begin monitoring.")
             else:
                 raise RuntimeError(f"({self.name}) Failure to create the job on the cluster")
-        except:
+        except Exception as e:
             raise RuntimeError(f"({self.name}) Failure to create the job on the cluster")
 
         # begin monitoring job for completion/failure
-        monitoring = True
-        while monitoring:
+        self.monitoring = True
+        while self.monitoring:
             time.sleep(30)
-            job_status = self.get_status()
+            job_status = self.get_status(log_status=True)
             if isinstance(job_status, dict) and not job_status.get("active"):
-                monitoring = False
-                self.stop_time = job_status['completion_time'].timestamp()
+                self.monitoring = False
                 if job_status.get("succeeded"):
+                    self.stop_time = job_status['completion_time'].timestamp()
                     logging.info(f"({self.name}) Process complete!")
+                    if return_last_task_log:
+                        logging.debug("Returning logs from last process.")
+                        logs = self.__get_container_log(self.job_containers[len(self.job_containers)-1].name)
+                        return logs, ''
                 if job_status.get("failed"):
+                    self.stop_time = job_status['conditions'][0]['last_transition_time'].timestamp()
                     raise RuntimeError(f"({self.name}) Instance failed!")
 
     def finalize(self):
@@ -182,13 +212,13 @@ class KubernetesJob(Instance):
         return self.stop_time
 
     def get_status(self, log_status=False):
-        s = api_request(self.batch_api.read_namespaced_job_status, self.name, self.namespace)
+        s = api_request(self.batch_api.read_namespaced_job_status, self.inst_name, self.namespace)
         # Save the status if the job is no longer active
         job_status = s.get("status", dict())
         if log_status:
             logging.debug(f"({self.name}) Job Status: {job_status}")
         if job_status:
-            if self.start_time == 0:
+            if self.start_time == 0 and job_status['start_time']:
                 self.start_time = job_status['start_time'].timestamp()
             return job_status
         return s
@@ -213,12 +243,8 @@ class KubernetesJob(Instance):
     def get_compute_price(self):
         if self.k8s_provider == 'EKS':
             pricing_url = f"https://banzaicloud.com/cloudinfo/api/v1/providers/amazon/services/eks/regions/{self.region}/products"
-            if self.zone is None:
-                self.zone = self.region+'a'
         else:
             pricing_url = f"https://banzaicloud.com/cloudinfo/api/v1/providers/google/services/gke/regions/{self.region}/products"
-            if self.zone is None:
-                self.zone = self.region+'-a'
 
         products = requests.get(pricing_url).json()
         product_info = next((x for x in products['products'] if x['type'] == self.nodepool_info["inst_type"]), None)
@@ -249,42 +275,53 @@ class KubernetesJob(Instance):
         else:
             raise RuntimeError(f"({self.name}) Failure to create a Persistent Volume Claim on the cluster")
 
-    def __create_job_def(self):
+    def __create_job_def(self, rerun=False):
         # initialize the job def body
-        self.job_def = client.V1Job(kind="Job")
-        self.job_def.metadata = client.V1ObjectMeta(namespace=self.namespace, name=self.name)
+        self.inst_name = self.name
+        if self.job_count > 1:
+            self.inst_name = self.inst_name + '-' + str(self.job_count)
+        if not rerun:
+            self.job_count += 1
+        job_def = client.V1Job(kind="Job")
+        job_def.metadata = client.V1ObjectMeta(namespace=self.namespace, name=self.inst_name)
 
         # initialize job pieces
+        self.job_containers = []
         volume_mounts = []
         volumes = []
         containers = []
         init_containers = []
         env_variables = []
 
-        volume_name = self.name+'-pd'
+        if not self.volume_name:
+            # use the task name so it can be used across multiple jobs
+            self.volume_name = self.name+'-pd'
+
         # build volume mounts
         volume_mounts = []
         volume_mounts.append(
             client.V1VolumeMount(
                 mount_path=self.wrk_dir,
-                name=volume_name
+                name=self.volume_name
             )
         )
 
+        cpu_request_max = self.nodepool_info['max_cpu'] - self.cpu_reserve
+        mem_request_max = self.nodepool_info['max_mem'] - self.mem_reserve
+
         # define resource limits/requests
         resource_def = client.V1ResourceRequirements(
-            limits={'cpu': self.nr_cpus, 'memory': str(self.mem)+'G'},
-            requests={'cpu': self.nr_cpus*.8, 'memory': str(self.mem-1)+'G'}
+            limits={'cpu': cpu_request_max, 'memory': str(mem_request_max)+'G'},
+            requests={'cpu': cpu_request_max*.8, 'memory': str(mem_request_max-1)+'G'}
         )
 
         # place the job in the appropriate node pool
         node_label_dict = {'poolName': str(self.node_label)}
 
-
         # build volumes
         volumes.append(
             client.V1Volume(
-                name=volume_name,
+                name=self.volume_name,
                 persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
                     claim_name=self.pvc_name
                 )
@@ -321,7 +358,7 @@ class KubernetesJob(Instance):
 
         for k, v in self.processes.items():
             # if the process is for storage (i.e. mkdir, etc.)
-            if any(x in k for x in storage_tasks):
+            if any(x in k for x in storage_tasks) or not v['docker_image']:
                 container_image = storage_image
             else:
                 container_image = v['docker_image']
@@ -333,15 +370,18 @@ class KubernetesJob(Instance):
             if "gsutil" in args:
                 args = "gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS && " + args
 
-            # format the container name
+            # format the container name and roll call to logging
             container_name = k.replace("_", "-").replace(".", "-").lower()
+            formatted_container_name = container_name[:57] + '-' + Platform.generate_unique_id(id_len=5)
+
+            args = f"echo STARTING TASK {container_name} && " + args
 
             containers.append(client.V1Container(
                     # lifecycle=client.V1Lifecycle(post_start=post_start_handler),
                     image=container_image,
                     command=["/bin/sh", "-c"],
                     args=[args],
-                    name=container_name,
+                    name=formatted_container_name,
                     volume_mounts=volume_mounts,
                     env=env_variables,
                     resources=resource_def,
@@ -350,8 +390,10 @@ class KubernetesJob(Instance):
             )
 
         job_spec = dict(
-            backoff_limit=0
+            backoff_limit=self.default_num_cmd_retries
         )
+
+        self.job_containers = containers
 
         # Run jobs in order using init_containers
         # See https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
@@ -364,6 +406,9 @@ class KubernetesJob(Instance):
 
         # define the pod spec
         job_template = client.V1PodTemplateSpec()
+        job_labels = {}
+        job_labels[self.inst_name] = 'CC-Job'
+        job_template.metadata = client.V1ObjectMeta(labels=job_labels)
         job_template.spec = client.V1PodSpec(
             init_containers=init_containers,
             containers=containers,
@@ -373,4 +418,22 @@ class KubernetesJob(Instance):
             node_selector=node_label_dict
         )
 
-        self.job_def.spec = client.V1JobSpec(template=job_template, **job_spec)
+        job_def.spec = client.V1JobSpec(template=job_template, **job_spec)
+
+        return job_def
+
+    def __get_container_log(self, container_name):
+        """ Returns the logs for the specified container name in the currently running job """
+        response = api_request(self.core_api.list_namespaced_pod, namespace=self.namespace, label_selector=self.inst_name, watch=False, pretty='true')
+        if response.get("error"):
+            logging.warning(f"Failed to retrieve logs for container {container_name} in job {self.inst_name}")
+            return ""
+        # Loop through all the pods to find the pods for the job
+        for pod in response.get("items"):
+            if pod.get("metadata", {}).get("labels", {}).get("job-name") == self.inst_name:
+                pod_name = pod.get("metadata", {}).get("name", '')
+                if pod_name:
+                    response = api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=container_name, follow=False, pretty='true')
+                    return response
+        logging.warning(f"Failed to retrieve logs for container {container_name} in job {self.inst_name}")
+        return ""

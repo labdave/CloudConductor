@@ -137,9 +137,9 @@ class ModuleExecutor(object):
 
         for output_file in outputs:
             if output_file.get_type() in final_output_types:
-                dest_dir = self.final_output_dir
+                dest_dir = self.final_output_dir+'/'
             else:
-                dest_dir = self.final_tmp_dir
+                dest_dir = self.final_tmp_dir+'/'
 
             # Calculate output file size
             job_name = "get_size_%s_%s_%s" % (self.task_id, output_file.get_type(), count)

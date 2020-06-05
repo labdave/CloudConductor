@@ -33,6 +33,8 @@ class Module(object, metaclass=abc.ABCMeta):
         self.input_keys = list(self.arguments.keys())
         self.output_keys = None
 
+        self.does_process_output = False
+
         # Module output file directory
         self.output_dir = "/data/output/"
 
@@ -52,7 +54,7 @@ class Module(object, metaclass=abc.ABCMeta):
 
         # Check if the argument key is present or not
         if key in self.arguments:
-            logging.warning("In module %s, the input argument '%s' is already defined!"
+            logging.warning("In module %s, the input argument '%s' is already defined! "
                             "We will overwrite its information with the new information." % (self.module_id, key))
 
             # Get the value of the old argument

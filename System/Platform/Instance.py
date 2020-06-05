@@ -69,7 +69,7 @@ class Instance(object, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def wait(self):
+    def wait(self, return_last_task_log=False):
         pass
 
     @abc.abstractmethod
@@ -116,6 +116,8 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
     def __init__(self, name, nr_cpus, mem, disk_space, **kwargs):
 
         super(CloudInstance, self).__init__(name, nr_cpus, mem, disk_space, **kwargs)
+
+        self.stoppable = True
 
         # Obtain location specific information
         self.region = kwargs.pop("region")
@@ -365,7 +367,7 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
     def handle_failure(self, proc_name, proc_obj):
         return self.default_num_cmd_retries != 0 and proc_obj.get_num_retries() > 0
 
-    def wait(self):
+    def wait(self, return_last_task_log=False):
         for key, value in self.processes.items():
             logging.debug(f"({self.name}) Starting execution for task {key}")
             self.wait_process(key)

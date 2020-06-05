@@ -146,6 +146,7 @@ class GetNumReadsFastQC(_QCReportReader):
     def __init__(self, module_id, is_docker=False):
         super(GetNumReadsFastQC, self).__init__(module_id, is_docker)
         self.output_keys = ["nr_reads"]
+        self.does_process_output = True
 
     def define_input(self):
         super(GetNumReadsFastQC, self).define_input()
@@ -183,7 +184,7 @@ class GetNumReadsFastQC(_QCReportReader):
 
         # Update num reads
         self.set_output("nr_reads", num_reads)
-        logging.debug("Dis how many reads we got: %s" % num_reads)
+        logging.debug("This is how many reads we got: %s" % num_reads)
 
 
 class GetNumReadsTrimmomatic(_QCReportReader):
@@ -191,6 +192,7 @@ class GetNumReadsTrimmomatic(_QCReportReader):
     def __init__(self, module_id, is_docker=False):
         super(GetNumReadsTrimmomatic, self).__init__(module_id, is_docker)
         self.output_keys = ["nr_reads"]
+        self.does_process_output = True
 
     def define_output(self):
         self.add_output("nr_reads", 0, is_path=False)
