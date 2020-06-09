@@ -140,11 +140,6 @@ class ModuleExecutor(object):
             else:
                 dest_dir = tmp_output_dir
 
-            # Calculate output file size
-            job_name = "get_size_%s_%s_%s" % (self.task_id, output_file.get_type(), count)
-            file_size = self.storage_helper.get_file_size(output_file.get_path(), job_name=job_name)
-            output_file.set_size(file_size)
-
             # Check if there already exists a file with the same name on the bucket
             destination_path = "{0}/{1}/".format(dest_dir.rstrip("/"), output_file.get_filename())
             if destination_path in output_filepaths:
@@ -172,6 +167,11 @@ class ModuleExecutor(object):
             output_file.update_path(new_dir=dest_dir)
             logging.debug("(%s) Transferring file '%s' from old path '%s' to new path '%s' ('%s')" % (
                 self.task_id, output_file.get_type(), curr_path, output_file.get_path(), output_file.get_transferrable_path()))
+
+            # Calculate output file size
+            job_name = "get_size_%s_%s_%s" % (self.task_id, output_file.get_type(), count)
+            file_size = self.storage_helper.get_file_size(output_file.get_path(), job_name=job_name)
+            output_file.set_size(file_size)
 
             count += 1
 
