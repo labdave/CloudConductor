@@ -54,6 +54,11 @@ class AmazonInstance(CloudInstance):
 
         self.instance_type_list = self.platform.get_instance_type_list()
 
+        # Set additional SSH options
+        self.set_ssh_option("SendEnv", "AWS_ACCESS_KEY_ID")
+        self.set_ssh_option("SendEnv", "AWS_SECRET_ACCESS_KEY")
+        self.set_ssh_option("SendEnv", "GOOGLE_APPLICATION_CREDENTIALS")
+
     def get_instance_size(self):
         '''Select optimal instance type for provided region, number of cpus, and memory allocation'''
         selected_instance_type = None
@@ -194,80 +199,6 @@ class AmazonInstance(CloudInstance):
 
     def stop_instance(self):
         self.__aws_request(self.driver.stop_node, self.node)
-
-    def run(self, job_name, cmd, **kwargs):
-
-        # Obtain possible arguments
-        docker_image = kwargs.get("docker_image", None)
-        num_retries = kwargs.get("num_retries", self.default_num_cmd_retries)
-        docker_entrypoint = kwargs.get("docker_entrypoint", None)
-
-        # Checking if logging is required
-        if "!LOG" in cmd:
-
-            # Generate name of log file
-            log_file = f"{job_name}.log"
-            if self.wrk_log_dir is not None:
-                log_file = os.path.join(self.wrk_log_dir, log_file)
-
-            # Generating all the logging pipes
-            log_cmd_null    = " >>/dev/null 2>&1 "
-            log_cmd_stdout  = f" >>{log_file}"
-            log_cmd_stderr  = f" 2>>{log_file}"
-            log_cmd_all     = f" >>{log_file} 2>&1"
-
-            # Replacing the placeholders with the logging pipes
-            cmd = cmd.replace("!LOG0!", log_cmd_null)
-            cmd = cmd.replace("!LOG1!", log_cmd_stdout)
-            cmd = cmd.replace("!LOG2!", log_cmd_stderr)
-            cmd = cmd.replace("!LOG3!", log_cmd_all)
-
-        # Save original command
-        original_cmd = cmd
-
-        # Run in docker image if specified
-        if docker_image is not None:
-            if docker_entrypoint is not None:
-                cmd = f"sudo docker run --entrypoint '{docker_entrypoint}' --rm --user root " \
-                      f"-v {self.wrk_dir}:{self.wrk_dir} {docker_image} {cmd}"
-            else:
-                cmd = f"sudo docker run --entrypoint '/bin/bash' --rm --user root " \
-                      f"-v {self.wrk_dir}:{self.wrk_dir} {docker_image} -c '{cmd}'"
-
-        # Modify quotation marks to be able to send through SSH
-        cmd = cmd.replace("'", "'\"'\"'")
-
-        # Wrap the command around ssh
-        cmd = f"ssh -i {self.ssh_private_key} " \
-              f"-o CheckHostIP=no -o StrictHostKeyChecking=no " \
-              f"-o SendEnv=AWS_ACCESS_KEY_ID " \
-              f"-o SendEnv=AWS_SECRET_ACCESS_KEY " \
-              f"-o SendEnv=GOOGLE_APPLICATION_CREDENTIALS " \
-              f"-o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o TCPKeepAlive=yes "\
-              f"{self.ssh_connection_user}@{self.external_IP} -- '{cmd}'"
-
-        # Run command using subprocess popen and add Popen object to self.processes
-        logging.info("(%s) Process '%s' started!" % (self.name, job_name))
-        logging.debug("(%s) Process '%s' has the following command:\n    %s" % (self.name, job_name, original_cmd))
-
-        # Generating process arguments
-        kwargs = {
-
-            # Add Popen specific arguments
-            "shell": True,
-            "stdout": sp.PIPE,
-            "stderr": sp.PIPE,
-            "close_fds": True,
-
-            # Add CloudConductor specific arguments
-            "original_cmd": original_cmd,
-            "num_retries": num_retries,
-            "docker_image": docker_image,
-            "docker_entrypoint": docker_entrypoint
-        }
-
-        # Add process to list of processes
-        self.processes[job_name] = Process(cmd, **kwargs)
 
     def get_status(self, log_status=False):
 

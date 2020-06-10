@@ -35,9 +35,16 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Obtain the mother platform object
         self.platform = kwargs.pop("platform")
 
-        # Obtain the CloudConductor SSH private key from platform
+        # Obtain the CloudConductor SSH private key from platform and setup other options
         self.ssh_private_key = kwargs.pop("ssh_private_key")
         self.ssh_connection_user = kwargs.pop("ssh_connection_user")
+        self.ssh_options = {
+            "CheckHostIP": "no",
+            "StrictHostKeyChecking": "no",
+            "ServerAliveInterval": 30,
+            "ServerAliveCountMax": 10,
+            "TCPKeepAlive": "yes"
+        }
 
         # Obtain identify and secret from platform
         self.identity = kwargs.pop("identity")
@@ -234,8 +241,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         cmd = cmd.replace("'", "'\"'\"'")
 
         # Wrap the command around ssh
-        cmd = f"ssh -i {self.ssh_private_key} " \
-            f"-o CheckHostIP=no -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o TCPKeepAlive=yes " \
+        cmd = f"ssh -i {self.ssh_private_key} {self.generate_ssh_options()} " \
             f"{self.ssh_connection_user}@{self.external_IP} -- '{cmd}'"
 
         # Run command using subprocess popen and add Popen object to self.processes
@@ -417,6 +423,19 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
     def get_api_sleep(self, attempt):
         temp = min(CloudInstance.API_SLEEP_CAP, 4 * 2 ** attempt)
         return temp / 2 + random.randrange(0, temp/2)
+
+    def set_ssh_option(self, key, value):
+        self.ssh_options[key] = value
+
+    def get_ssh_option(self, key):
+        return self.ssh_options.get(key, None)
+
+    def remove_ssh_option(self, key):
+        if key in self.ssh_options:
+            del self.ssh_options[key]
+
+    def generate_ssh_options(self):
+        return " ".join([f"-o {k}={v}" for k, v in self.ssh_options.items()])
 
     def check_ssh(self):
 
