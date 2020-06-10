@@ -171,6 +171,7 @@ class ModuleExecutor(object):
             # Calculate output file size
             job_name = "get_size_%s_%s_%s" % (self.task_id, output_file.get_type(), count)
             file_size = self.storage_helper.get_file_size(output_file.get_path(), job_name=job_name)
+            logging.debug("(%s) Size of output file '%s' is %sGB" % (self.task_id, output_file.get_path(), file_size))
             output_file.set_size(file_size)
 
             count += 1
