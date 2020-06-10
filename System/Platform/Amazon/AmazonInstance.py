@@ -243,6 +243,17 @@ class AmazonInstance(CloudInstance):
             return self.instance_type["storagePrice"]
         return 0
 
+    def generate_docker_env(self):
+        env_vars = [
+            "RCLONE_CONFIG_GS_TYPE='google cloud storage'",
+            "RCLONE_CONFIG_GS_SERVICE_ACCOUNT_FILE=\$GOOGLE_SA",
+            "RCLONE_CONFIG_S3_TYPE='s3'",
+            "RCLONE_CONFIG_S3_ACCESS_KEY_ID=\$AWS_ACCESS_KEY_ID",
+            "RCLONE_CONFIG_S3_SECRET_ACCESS_KEY=\$AWS_SECRET_ACCESS_KEY"
+        ]
+
+        return " ".join([f"-e {e}" for e in env_vars])
+
     def list_nodes(self, instance_type=None):
         inst_type_filter = None if not instance_type else {'instance-type': instance_type}
         node_list = self.__aws_request(self.driver.list_nodes, ex_filters=inst_type_filter)

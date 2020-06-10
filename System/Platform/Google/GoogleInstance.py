@@ -195,6 +195,17 @@ class GoogleInstance(CloudInstance):
         price = self.gcp_storage_price_old_json()
         return price
 
+    def generate_docker_env(self):
+        env_vars = [
+            "RCLONE_CONFIG_GS_TYPE='google cloud storage'",
+            "RCLONE_CONFIG_GS_SERVICE_ACCOUNT_FILE=\$GOOGLE_SA",
+            "RCLONE_CONFIG_S3_TYPE='s3'",
+            "RCLONE_CONFIG_S3_ACCESS_KEY_ID=\$AWS_ACCESS_KEY_ID",
+            "RCLONE_CONFIG_S3_SECRET_ACCESS_KEY=\$AWS_SECRET_ACCESS_KEY"
+        ]
+
+        return " ".join([f"-e {e}" for e in env_vars])
+
     def gcp_compute_price_new_api(self):
         compute_cost = 0
         ram_cost = 0

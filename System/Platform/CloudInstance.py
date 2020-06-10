@@ -232,10 +232,10 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         if docker_image is not None:
             if docker_entrypoint is not None:
                 cmd = f"sudo docker run --entrypoint '{docker_entrypoint}' --rm --user root " \
-                      f"-v {self.wrk_dir}:{self.wrk_dir} {docker_image} {cmd}"
+                      f"{self.generate_docker_env()} -v {self.wrk_dir}:{self.wrk_dir} {docker_image} {cmd}"
             else:
                 cmd = f"sudo docker run --entrypoint '/bin/bash' --rm --user root " \
-                      f"-v {self.wrk_dir}:{self.wrk_dir} {docker_image} -c '{cmd}'"
+                      f"{self.generate_docker_env()} -v {self.wrk_dir}:{self.wrk_dir} {docker_image} -c '{cmd}'"
 
         # Modify quotation marks to be able to send through SSH
         cmd = cmd.replace("'", "'\"'\"'")
@@ -436,6 +436,9 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
     def generate_ssh_options(self):
         return " ".join([f"-o {k}={v}" for k, v in self.ssh_options.items()])
+
+    def generate_docker_env(self):
+        return ''
 
     def check_ssh(self):
 
