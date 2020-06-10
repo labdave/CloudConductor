@@ -191,7 +191,12 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Increment the recreation count
         self.reset_count += 1
 
-    def run(self, job_name, cmd, num_retries=None, docker_image=None):
+    def run(self, job_name, cmd, **kwargs):
+
+        # Obtain possible arguments
+        docker_image = kwargs.get("docker_image", None)
+        num_retries = kwargs.get("num_retries", self.default_num_cmd_retries)
+        docker_entrypoint = kwargs.get("docker_entrypoint", None)
 
         # Checking if logging is required
         if "!LOG" in cmd:
@@ -218,8 +223,12 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
         # Run in docker image if specified
         if docker_image is not None:
-            cmd = f"sudo docker run --rm --user root -v {self.wrk_dir}:{self.wrk_dir} --entrypoint '/bin/bash' {docker_image} " \
-                f"-c '{cmd}'"
+            if docker_entrypoint is not None:
+                cmd = f"sudo docker run --entrypoint '{docker_entrypoint}' --rm --user root " \
+                      f"-v {self.wrk_dir}:{self.wrk_dir} {docker_image} {cmd}"
+            else:
+                cmd = f"sudo docker run --entrypoint '/bin/bash' --rm --user root " \
+                      f"-v {self.wrk_dir}:{self.wrk_dir} {docker_image} -c '{cmd}'"
 
         # Modify quotation marks to be able to send through SSH
         cmd = cmd.replace("'", "'\"'\"'")
@@ -244,8 +253,9 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
             # Add CloudConductor specific arguments
             "original_cmd": original_cmd,
-            "num_retries": self.default_num_cmd_retries if num_retries is None else num_retries,
-            "docker_image": docker_image
+            "num_retries": num_retries,
+            "docker_image": docker_image,
+            "docker_entrypoint": docker_entrypoint
         }
 
         # Add process to list of processes
