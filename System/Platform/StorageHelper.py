@@ -27,6 +27,11 @@ class StorageHelper(object):
         # Optionally add logging
         cmd = f"{cmd} !LOG3!" if log else cmd
 
+        # Add correct docker image and entrypoint if not local
+        if cmd_generator.PROTOCOL != "Local":
+            kwargs["docker_image"] = "rclone/rclone:1.52"
+            kwargs["docker_entrypoint"] = "rclone"
+
         # Run command and return job name
         self.proc.run(job_name, cmd, **kwargs)
         if wait:
@@ -203,9 +208,22 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
 
     @staticmethod
     def mv(src_path, dest_dir):
-        # Move a file from one directory to another
-        options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
-        return f"sudo gsutil {options_fast} cp -r {src_path} {dest_dir}"
+
+        # Check if it is directory
+        is_directory = StorageFolder(src_path).exists()
+
+        # Convert to Rclone remote structure
+        src_path.replace("gs://", "gs:")
+        dest_dir.replace("gs://", "gs:")
+
+        if src_path.endswith("*"):
+            basedir, basename = src_path.rsplit("/", 1)
+            return f"--include {basename} copy {basedir} {dest_dir}"
+        elif is_directory:
+            newdir = src_path.rsplit("/", 1)[-1]
+            return f"copy {src_path} {dest_dir}/{newdir}"
+        else:
+            return f"copy {src_path} {dest_dir}"
 
     @staticmethod
     def mkdir(dir_path):
@@ -228,9 +246,22 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
 
     @staticmethod
     def mv(src_path, dest_dir):
-        # Move a file from one directory to another
-        options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
-        return f"sudo gsutil {options_fast} cp -r {src_path} {dest_dir}"
+
+        # Check if it is directory
+        is_directory = StorageFolder(src_path).exists()
+
+        # Convert to Rclone remote structure
+        src_path.replace("s3://", "s3:")
+        dest_dir.replace("s3://", "s3:")
+
+        if src_path.endswith("*"):
+            basedir, basename = src_path.rsplit("/", 1)
+            return f"--include {basename} copy {basedir} {dest_dir}"
+        elif is_directory:
+            newdir = src_path.rsplit("/", 1)[-1]
+            return f"copy {src_path} {dest_dir}/{newdir}"
+        else:
+            return f"copy {src_path} {dest_dir}"
 
     @staticmethod
     def mkdir(dir_path):
