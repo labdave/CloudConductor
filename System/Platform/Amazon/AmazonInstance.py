@@ -57,7 +57,6 @@ class AmazonInstance(CloudInstance):
         # Set additional SSH options
         self.set_ssh_option("SendEnv", "AWS_ACCESS_KEY_ID")
         self.set_ssh_option("SendEnv", "AWS_SECRET_ACCESS_KEY")
-        self.set_ssh_option("SendEnv", "GOOGLE_APPLICATION_CREDENTIALS")
 
     def get_instance_size(self):
         '''Select optimal instance type for provided region, number of cpus, and memory allocation'''
@@ -135,6 +134,10 @@ class AmazonInstance(CloudInstance):
             cmd = f'gcloud auth activate-service-account --key-file /home/{self.ssh_connection_user}/GCP.json'
             self.run("authenticate_google", cmd)
             self.wait_process("authenticate_google")
+
+            # Setup Google SA path
+            os.environ["GOOGLE_SA"] = f"/home/{self.ssh_connection_user}/GCP.json"
+            self.set_ssh_option('SendEnv', 'GOOGLE_SA')
 
         else:
             logging.warning("(%s) Google JSON key not provided! "

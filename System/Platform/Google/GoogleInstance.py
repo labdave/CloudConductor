@@ -1,6 +1,7 @@
 import logging
 import requests
 import time
+import os
 
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
@@ -8,6 +9,7 @@ from libcloud.common.google import ResourceNotFoundError
 from libcloud.common.types import LibcloudError
 
 from System.Platform import CloudInstance
+from System.Platform import Process
 
 
 class GoogleInstance(CloudInstance):
@@ -33,6 +35,10 @@ class GoogleInstance(CloudInstance):
 
         # Initialize the node variable
         self.node = None
+
+        # Set AWS credentials as SSH options
+        self.set_ssh_option("SendEnv", "AWS_ACCESS_KEY_ID")
+        self.set_ssh_option("SendEnv", "AWS_SECRET_ACCESS_KEY")
 
     def create_instance(self):
 
@@ -104,6 +110,18 @@ class GoogleInstance(CloudInstance):
         # for some reason destroying nodes can sometimes timeout. stopping the instance first is the suggested solution
         self.driver.stop_node(self.node)
         self.driver.destroy_node(self.node)
+
+    def post_startup(self):
+
+        # Transfer SA key to instance
+        cmd = f'scp -i {self.ssh_private_key} -o CheckHostIP=no -o StrictHostKeyChecking=no {self.identity} ' \
+              f'{self.ssh_connection_user}@{self.external_IP}:GCP.json'
+
+        Process.run_local_cmd(cmd, err_msg="Could not authenticate Google SDK on instance!")
+
+        # Setup Google SA path
+        os.environ["GOOGLE_SA"] = f"/home/{self.ssh_connection_user}/GCP.json"
+        self.set_ssh_option('SendEnv', 'GOOGLE_SA')
 
     def start_instance(self):
         try:

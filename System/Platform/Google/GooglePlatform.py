@@ -26,7 +26,9 @@ class GooglePlatform(CloudPlatform):
         # Obtain the service account and the project ID
         self.service_account, self.project_id = self.parse_service_account_json()
 
-        self.extra = self.config.get("extra", {})
+        # Obtain AWS credentials
+        self.aws_access_key = self.extra.get('aws_access_key', '')
+        self.aws_secret_key = self.extra.get('aws_secret_key', '')
 
         # Initialize libcloud driver
         self.driver = None
@@ -66,6 +68,10 @@ class GooglePlatform(CloudPlatform):
         return GoogleInstance
 
     def authenticate_platform(self):
+
+        # Setup AWS credentials
+        os.environ['AWS_ACCESS_KEY_ID'] = self.aws_access_key
+        os.environ['AWS_SECRET_ACCESS_KEY'] = self.aws_secret_key
 
         # Retry all HTTP requests
         os.environ['LIBCLOUD_RETRY_FAILED_HTTP_REQUESTS'] = "True"
