@@ -291,7 +291,8 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             self.run(job_name=proc_name,
                      cmd=cmd,
                      num_retries=proc_obj.get_num_retries()-1,
-                     docker_image=proc_obj.get_docker_image())
+                     docker_image=proc_obj.get_docker_image(),
+                     docker_entrypoint=proc_obj.get_docker_entrypoint())
             return self.wait_process(proc_name)
 
         # Process still failing and cannot be retried anymore
