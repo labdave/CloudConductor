@@ -4,6 +4,7 @@ import logging
 import base64
 import random
 import json
+import csv
 from threading import Thread
 
 from System import CC_MAIN_DIR
@@ -27,8 +28,7 @@ class GooglePlatform(CloudPlatform):
         self.service_account, self.project_id = self.parse_service_account_json()
 
         # Obtain AWS credentials
-        self.aws_access_key = self.extra.get('aws_access_key', '')
-        self.aws_secret_key = self.extra.get('aws_secret_key', '')
+        self.aws_csv = self.extra.get('aws_csv', None)
 
         # Initialize libcloud driver
         self.driver = None
@@ -44,6 +44,19 @@ class GooglePlatform(CloudPlatform):
         project_id = service_account_data["project_id"]
 
         return service_account, project_id
+
+    def parse_aws_identity_file(self):
+
+        if self.aws_csv is None:
+            return None, None
+
+        # Parse service account file
+        with open(self.aws_csv) as csv_inp:
+            aws_dict = csv.DictReader(csv_inp)
+
+            for row in aws_dict:
+                return row["Access key ID"], row["Secret access key"]
+        return None, None
 
     def get_random_zone(self):
 
@@ -70,8 +83,7 @@ class GooglePlatform(CloudPlatform):
     def authenticate_platform(self):
 
         # Setup AWS credentials
-        os.environ['AWS_ACCESS_KEY_ID'] = self.aws_access_key
-        os.environ['AWS_SECRET_ACCESS_KEY'] = self.aws_secret_key
+        os.environ['AWS_ACCESS_KEY_ID'], os.environ['AWS_SECRET_ACCESS_KEY'] = self.parse_aws_identity_file()
 
         # Retry all HTTP requests
         os.environ['LIBCLOUD_RETRY_FAILED_HTTP_REQUESTS'] = "True"
