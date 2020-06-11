@@ -93,14 +93,20 @@ class StorageHelper(object):
                 _file = StorageFile(path)
                 _folder = StorageFolder(path)
 
+                logging.debug(f'GOOGLE credentials: {os.environ["GOOGLE_APPLICATION_CREDENTIALS"]}')
+
                 if _file.exists():
+                    logging.error(f"File exists!! '{path}'!")
                     _size = _file.size
+                    logging.error(f"File size: '{path}': {_size} bytes")
                 elif _folder.exists():
                     _size = _folder.size
                 else:
+                    logging.warning(f"Cannot get size of '{path}' as it does not exist!")
                     _size = 0
 
             # Convert to GB
+            logging.error(f"Computed size: {float(_size)/2**30}GB!")
             return float(_size)/2**30
 
         except BaseException as e:
