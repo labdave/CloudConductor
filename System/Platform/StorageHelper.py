@@ -213,8 +213,8 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
         is_directory = StorageFolder(src_path).exists()
 
         # Convert to Rclone remote structure
-        src_path.replace("gs://", "gs:")
-        dest_dir.replace("gs://", "gs:")
+        src_path = src_path.replace("gs://", "gs:")
+        dest_dir = dest_dir.replace("gs://", "gs:")
 
         if src_path.endswith("*"):
             basedir, basename = src_path.rsplit("/", 1)
@@ -251,8 +251,8 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
         is_directory = StorageFolder(src_path).exists()
 
         # Convert to Rclone remote structure
-        src_path.replace("s3://", "s3:")
-        dest_dir.replace("s3://", "s3:")
+        src_path = src_path.replace("s3://", "s3:")
+        dest_dir = dest_dir.replace("s3://", "s3:")
 
         if src_path.endswith("*"):
             basedir, basename = src_path.rsplit("/", 1)
