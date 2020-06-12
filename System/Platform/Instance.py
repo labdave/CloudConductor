@@ -551,6 +551,9 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
     def post_startup(self):
         pass
 
+    def finalize(self):
+        pass
+
     # ABSTRACT METHODS TO BE IMPLEMENTED BY INHERITING CLASSES
 
     @abc.abstractmethod

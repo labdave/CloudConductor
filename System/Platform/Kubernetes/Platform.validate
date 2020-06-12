@@ -44,10 +44,6 @@
         "identity": {
             "type": "string"
         },
-        "secret": {
-            "type": "string",
-            "default": ""
-        },
         "region": {
             "type": "string",
             "default": ""
@@ -60,43 +56,71 @@
             "type": "number",
             "default": 3
         },
-        "ssh_connection_user": {
-            "type": "string",
-            "default": "ubuntu"
+        "gcp_secret_configured": {
+            "type": "boolean",
+            "default": false
         },
-        "disk_image": {
+        "aws_secret_configured": {
+            "type": "boolean",
+            "default": false
+        },
+        "preemptible": {
+            "type": "boolean",
+            "default": false
+        },
+        "provider": {
             "type": "string",
             "default": ""
         },
-        "extra": {
-            "properties": {
-                "security_group": {
-                    "type": "string",
-                    "default": ""
+        "storage_price": {
+            "type": "number",
+            "default": 0
+        },
+        "cpu_reserve": {
+            "type": "number",
+            "default": 0
+        },
+        "mem_reserve": {
+            "type": "number",
+            "default": 0
+        },
+        "pools": {
+            "items": {
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "max_cpu": {
+                        "type": "number"
+                    },
+                    "max_mem": {
+                        "type": "number"
+                    },
+                    "inst_type": {
+                        "type": "string"
+                    },
+                    "preemptible": {
+                        "type": "boolean",
+                        "default": false
+                    }
                 },
-                "google_json": {
-                    "type": "string",
-                    "default": ""
-                },
-                "aws_csv": {
-                    "type": "string",
-                    "default": ""
-                },
-                "instance_type_list": {
-                    "type": "array",
-                    "default": []
-                },
-                "preemptible": {
-                    "type": "boolean",
-                    "default": false
-                }
+                "required": [
+                    "name",
+                    "max_cpu",
+                    "max_mem",
+                    "inst_type"
+                ],
+                "type": "object"
             },
-            "type": "object"
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true
         }
     },
     "required": [
         "identity",
-        "platform_name"
+        "platform_name",
+        "pools"
     ],
     "type": "object"
 }

@@ -3,7 +3,7 @@ import requests
 import time
 import os
 
-from System.Platform import Process
+from System import CC_MAIN_DIR
 from System.Platform import Process
 from System.Platform.Platform import Platform
 from threading import Thread
@@ -15,9 +15,10 @@ from kubernetes import config, client
 
 
 class KubernetesCluster(Platform):
+    CONFIG_SPEC = f"{CC_MAIN_DIR}/System/Platform/Kubernetes/Platform.validate"
 
     def __init__(self, name, platform_config_file, final_output_dir):
-        super(KubernetesCluster, self).__init__(name, platform_config_file, final_output_dir)
+        super(KubernetesCluster, self).__init__(name, platform_config_file, final_output_dir, config_spec=self.CONFIG_SPEC)
 
         self.jobs = {}
 
@@ -27,12 +28,17 @@ class KubernetesCluster(Platform):
         self.batch_api = None
         self.core_api = None
 
-        self.service_provider = self.extra.get("provider", 'GKE')
-        self.gcp_secret_configured = "gcp_secret_configured" in self.extra and self.extra["gcp_secret_configured"]
-        self.aws_secret_configured = "aws_secret_configured" in self.extra and self.extra["aws_secret_configured"]
+        self.service_provider = self.config.get("provider", 'GKE')
+        self.gcp_secret_configured = "gcp_secret_configured" in self.config and self.config["gcp_secret_configured"]
+        self.aws_secret_configured = "aws_secret_configured" in self.config and self.config["aws_secret_configured"]
 
         self.region = self.config["region"]
         self.zone = self.config.get("zone", None)
+
+        self.cpu_reserve = self.config.get("cpu_reserve", 0.1)
+        self.mem_reserve = self.config.get("mem_reserve", 1)
+        self.pools = self.config.get("pools", [])
+        self.storage_price = self.config.get("storage_price", 0)
 
     def get_instance(self, nr_cpus, mem, disk_space, **kwargs):
         """Initialize new job and register with platform"""
@@ -50,21 +56,26 @@ class KubernetesCluster(Platform):
         # Standardize instance type
         job_name, nr_cpus, mem, disk_space = self.standardize_instance(job_name, nr_cpus, mem, disk_space)
 
-        preemptible = "preemptible" in self.extra and self.extra["preemptible"]
+        preemptible = "preemptible" in self.config and self.config["preemptible"]
 
         # Load job kwargs with platform variables
         kwargs.update({
             "identity": self.identity,
             "cmd_retries": self.cmd_retries,
 
-            "platform": self,
             "preemptible": preemptible,
+            "provider": self.service_provider,
             "region": self.region,
-            "zone": self.zone
+            "zone": self.zone,
+            "pools": self.pools,
+            "cpu_reserve": self.cpu_reserve,
+            "mem_reserve": self.mem_reserve,
+            "storage_price": self.storage_price,
+            "gcp_secret_configured": self.gcp_secret_configured,
+            "aws_secret_configured": self.aws_secret_configured,
+            "batch_api": self.batch_api,
+            "core_api": self.core_api
         })
-
-        # Also add the extra information
-        kwargs.update(self.extra)
 
         # Initialize new instance
         try:

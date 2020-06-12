@@ -23,26 +23,6 @@ class KubernetesJob(Instance):
         self.inst_name = name
         self.job_containers = []
 
-        # amount to subtract from max cpu / max mem for monitoring or general k8s overhead pods
-        self.cpu_reserve = 0.1
-        self.mem_reserve = 2
-
-        self.NODE_POOLS = {
-            "cc2-highmem-pool" :  {"max_cpu": 2, "max_mem": 13, "inst_type": "n1-highmem-2"},
-            "cc4-highmem-pool" :  {"max_cpu": 4, "max_mem": 26, "inst_type": "n1-highmem-4"},
-            "cc8-highmem-pool" :  {"max_cpu": 8, "max_mem": 52, "inst_type": "n1-highmem-8"},
-            "cc16-highmem-pool" :  {"max_cpu": 16, "max_mem": 104, "inst_type": "n1-highmem-16"},
-            "cc32-highmem-pool" :  {"max_cpu": 32, "max_mem": 208, "inst_type": "n1-highmem-32"}
-        }
-
-        self.NODE_POOLS_PREEMPTIBLE = {
-            "cc2-highmem-preemptible-pool" :  {"max_cpu": 2, "max_mem": 13, "inst_type": "n1-highmem-2"},
-            "cc4-highmem-preemptible-pool" :  {"max_cpu": 4, "max_mem": 26, "inst_type": "n1-highmem-4"},
-            "cc8-highmem-preemptible-pool" :  {"max_cpu": 8, "max_mem": 52, "inst_type": "n1-highmem-8"},
-            "cc16-highmem-preemptible-pool" :  {"max_cpu": 16, "max_mem": 104, "inst_type": "n1-highmem-16"},
-            "cc32-highmem-preemptible-pool" :  {"max_cpu": 32, "max_mem": 208, "inst_type": "n1-highmem-32"}
-        }
-
         self.task_prefix_filter = ['mkdir_wrk_dir', 'docker_pull']
 
         self.namespace = 'cloud-conductor'
@@ -54,37 +34,47 @@ class KubernetesJob(Instance):
         self.pvc_name = ''
         self.task_pvc = None
         self.monitoring = False
+        self.start_time = 0
+        self.stop_time = 0
 
         # define how long the job lasts after completion
         self.termination_seconds = 600
-
-        # Obtain the mother platform object
-        self.platform = kwargs.pop("platform")
-        self.preemptible = kwargs.pop("preemptible", False)
 
         # Obtain location specific information
         self.region = kwargs.pop("region")
         self.zone = kwargs.pop("zone")
 
-        self.batch_api = self.platform.batch_api
-        self.core_api = self.platform.core_api
+        # Get API clients
+        self.batch_api = kwargs.pop("batch_api")
+        self.core_api = kwargs.pop("core_api")
 
-        self.start_time = 0
-        self.stop_time = 0
-
-        self.storage_price = float(kwargs.pop("storage_price"))
+        # Get platform/cluster specific data
+        self.storage_price = kwargs.pop("storage_price")
         self.k8s_provider = kwargs.pop("provider")
+
+        self.preemptible = kwargs.pop("preemptible", False)
+
+        all_pools = kwargs.pop("pools", [])
+
+        self.node_pools = [x for x in all_pools if not x["preemptible"]]
+        self.preemptbible_node_pools = [x for x in all_pools if x["preemptible"]]
+
+        # amount to subtract from max cpu / max mem for monitoring or general k8s overhead pods
+        self.cpu_reserve = kwargs.pop("cpu_reserve", 0)
+        self.mem_reserve = kwargs.pop("mem_reserve", 0)
+        self.gcp_secret_configured = kwargs.pop("gcp_secret_configured", 0)
+        self.aws_secret_configured = kwargs.pop("aws_secret_configured", 0)
 
         self.node_label, self.nodepool_info = self.get_nodepool_info()
 
     def get_nodepool_info(self):
-        node_pool_dict = self.NODE_POOLS
-        if self.preemptible:
-            node_pool_dict = self.NODE_POOLS_PREEMPTIBLE
+        node_pool_dict = self.node_pools
+        if self.preemptible and self.preemptbible_node_pools:
+            node_pool_dict = self.preemptbible_node_pools
 
-        for k, v in node_pool_dict.items():
-            if v['max_cpu'] >= self.nr_cpus and v['max_mem'] >= self.mem:
-                return k, v
+        for pool in node_pool_dict:
+            if pool['max_cpu'] >= self.nr_cpus and pool['max_mem'] >= self.mem:
+                return pool['name'], pool
 
     def run(self, job_name, cmd, num_retries=None, docker_image=None):
         logging.debug(f"({self.name}) Adding {job_name} to the task list.")
@@ -104,11 +94,17 @@ class KubernetesJob(Instance):
             if self.wrk_log_dir is not None:
                 log_file = os.path.join(self.wrk_log_dir, log_file)
 
-            # Generating the logging pipes
-            log_cmd_all     = f" 2>&1 | tee -a {log_file}"
+            # Generating all the logging pipes
+            log_cmd_null    = " >>/dev/null 2>&1 "
+            log_cmd_stdout  = f" >>{log_file}"
+            log_cmd_stderr  = f" 2>>{log_file}"
+            log_cmd_all     = f" >>{log_file} 2>&1"
 
             # Replacing the placeholders with the logging pipes
-            cmd = re.sub(r"!LOG.*!", log_cmd_all, cmd)
+            cmd = cmd.replace("!LOG0!", log_cmd_null)
+            cmd = cmd.replace("!LOG1!", log_cmd_stdout)
+            cmd = cmd.replace("!LOG2!", log_cmd_stderr)
+            cmd = cmd.replace("!LOG3!", log_cmd_all)
 
         # Save original command
         original_cmd = cmd
@@ -138,8 +134,8 @@ class KubernetesJob(Instance):
                     delete_status = ast.literal_eval(delete_status)
                 elif delete_status and isinstance(delete_status, dict) or delete_status.get("failed") or delete_status.get("succeeded"):
                     logging.debug(f"({self.name}) Kubernetes job successfully destroyed.")
-                    self.stop_time = time.time()
 
+        self.stop_time = time.time()
         # stop monitoring the job
         self.monitoring = False
 
@@ -198,7 +194,9 @@ class KubernetesJob(Instance):
                         logging.debug("Returning logs from last process.")
                         logs = self.__get_container_log(self.job_containers[len(self.job_containers)-1].name)
                         return logs, ''
-                if job_status.get("failed"):
+                elif job_status.get("failed"):
+                    # check for this last ( only when job is no longer active ) because our job is allowed to fail multiple times
+                    # job_status will hold the number of times it has failed
                     self.stop_time = job_status['conditions'][0]['last_transition_time'].timestamp()
                     raise RuntimeError(f"({self.name}) Instance failed!")
 
@@ -329,7 +327,7 @@ class KubernetesJob(Instance):
         )
 
         # incorporate configured secrets
-        if self.platform.gcp_secret_configured:
+        if self.gcp_secret_configured:
             volume_mounts.append(
                 client.V1VolumeMount(
                     mount_path="/etc/cloud_conductor/gcp.json",
@@ -349,7 +347,7 @@ class KubernetesJob(Instance):
             )
             env_variables.append(client.V1EnvVar(name='GOOGLE_APPLICATION_CREDENTIALS', value='/etc/cloud_conductor/gcp.json'))
 
-        if self.platform.aws_secret_configured:
+        if self.aws_secret_configured:
             env_variables.append(client.V1EnvVar(name='AWS_ACCESS_KEY_ID', value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='cloud-conductor-config', key='aws_id'))))
             env_variables.append(client.V1EnvVar(name='AWS_SECRET_ACCESS_KEY', value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='cloud-conductor-config', key='aws_access'))))
 
@@ -366,6 +364,7 @@ class KubernetesJob(Instance):
             if not isinstance(args, list):
                 args = [v['original_cmd'].replace("sudo ", "")]
             args = " && ".join(args)
+            args = args.replace("\n", " ")
 
             if "gsutil" in args:
                 args = "gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS && " + args
@@ -385,7 +384,7 @@ class KubernetesJob(Instance):
                     volume_mounts=volume_mounts,
                     env=env_variables,
                     resources=resource_def,
-                    image_pull_policy='Always'
+                    image_pull_policy='IfNotPresent'
                 )
             )
 

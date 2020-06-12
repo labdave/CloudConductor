@@ -1,9 +1,31 @@
 import json
 import logging
 
-from jsonschema import Draft4Validator
+from jsonschema import Draft4Validator, validators
 
 from Config.Parsers import BaseParser
+
+
+def extend_with_default(validator_class):
+    validate_properties = validator_class.VALIDATORS["properties"]
+
+    def set_defaults(validator, properties, instance, schema):
+        for property_, subschema in properties.items():
+            if "default" in subschema:
+                instance.setdefault(property_, subschema["default"])
+
+        for error in validate_properties(
+            validator, properties, instance, schema,
+        ):
+            yield error
+
+    return validators.extend(
+        validator_class, {"properties": set_defaults},
+    )
+
+
+DefaultValidatingDraft4Validator = extend_with_default(Draft4Validator)
+
 
 class JsonParser(BaseParser):
     # Class for parsing information from a JSON config file
@@ -19,7 +41,7 @@ class JsonParser(BaseParser):
         spec = self.parse_json(self.config_spec_file)
 
         # create validator object
-        validator = Draft4Validator(spec)
+        validator = DefaultValidatingDraft4Validator(spec)
 
         # validate config against schema and throw errors if invalid
         try:
@@ -31,6 +53,21 @@ class JsonParser(BaseParser):
             for error in sorted(errors):
                 logging.error(error.message)
             raise
+
+    def extend_with_default(self, validator_class):
+        validate_properties = validator_class.VALIDATORS["properties"]
+
+        def set_defaults(self, validator, properties, instance, schema):
+            for property, subschema in properties.iteritems():
+                if "default" in subschema:
+                    instance.setdefault(property, subschema["default"])
+
+            for error in validate_properties(validator, properties, instance, schema):
+                yield error
+
+            return validators.extend(
+                validator_class, {"properties" : set_defaults},
+            )
 
     @staticmethod
     def parse_json(json_file):

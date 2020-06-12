@@ -4,6 +4,7 @@ import logging
 import json
 import copy
 import collections
+import time
 from kubernetes.client.rest import ApiException
 logger = logging.getLogger(__name__)
 
@@ -23,19 +24,31 @@ def api_request(api_func, *args, **kwargs):
             headers, the header of the ApiException
 
     """
-    try:
-        response = api_func(*args, **kwargs)
-        # Convert the response to dictionary if possible
-        if hasattr(response, "to_dict"):
-            response = response.to_dict()
-    except ApiException as e:
-        logger.debug("Exception when calling %s: %s" % (api_func.__name__, e))
-        response = {
-            "status": e.status,
-            "error": e.reason,
-            "headers": stringify(e.headers),
-        }
-        response.update(json.loads(e.body))
+    for i in range(8):
+        try:
+            response = api_func(*args, **kwargs)
+            # Convert the response to dictionary if possible
+            if hasattr(response, "to_dict"):
+                response = response.to_dict()
+            break
+        except ApiException as e:
+            logger.debug("Exception when calling %s: %s" % (api_func.__name__, e))
+            response = {
+                "status": e.status,
+                "error": e.reason,
+                "headers": stringify(e.headers),
+            }
+            response.update(json.loads(e.body))
+            break
+        except ConnectionResetError as e:
+            time.sleep(10)
+            logger.debug("Exception when calling %s: %s" % (api_func.__name__, e))
+            logger.debug("Will retry the request.")
+            response = {
+                "status": "Failed",
+                "error": e,
+            }
+            continue
     return response
 
 

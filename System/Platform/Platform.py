@@ -16,21 +16,16 @@ from System import CC_MAIN_DIR
 
 
 class Platform(object, metaclass=abc.ABCMeta):
-    CONFIG_SPEC = f"{CC_MAIN_DIR}/System/Platform/Platform.validate"
-
     API_SLEEP_CAP = 200
 
-    def __init__(self, name, platform_config_file, final_output_dir):
+    def __init__(self, name, platform_config_file, final_output_dir, config_spec=f"{CC_MAIN_DIR}/System/Platform/Platform.validate"):
 
         # Platform name
         self.name = name
 
         # Initialize platform config
-        config_parser       = ConfigParser(platform_config_file, self.CONFIG_SPEC)
+        config_parser       = ConfigParser(platform_config_file, config_spec)
         self.config         = config_parser.get_config()
-
-        # Only consider the specs related to the current platform
-        self.config = self.config[self.__class__.__name__]
 
         # Obtain the constants from the platform config
         self.NR_CPUS = {
