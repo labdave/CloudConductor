@@ -425,7 +425,13 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         return temp / 2 + random.randrange(0, temp/2)
 
     def set_ssh_option(self, key, value):
-        self.ssh_options[key] = value
+        if key in self.ssh_options:
+            if isinstance(self.ssh_options[key], list):
+                self.ssh_options[key].append(value)
+            else:
+                self.ssh_options[key] = [self.ssh_options[key], value]
+        else:
+            self.ssh_options[key] = value
 
     def get_ssh_option(self, key):
         return self.ssh_options.get(key, None)
@@ -435,7 +441,16 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             del self.ssh_options[key]
 
     def generate_ssh_options(self):
-        return " ".join([f"-o {k}={v}" for k, v in self.ssh_options.items()])
+        opts = []
+
+        # Generate list of options
+        for k, v in self.ssh_options.items():
+            if isinstance(v, list):
+                opts.extend(f"-o {k}={_v}" for _v in v)
+            else:
+                opts.append(f"-o {k}={v}")
+
+        return " ".join(opts)
 
     def generate_docker_env(self):
         return ''
