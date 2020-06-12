@@ -166,19 +166,21 @@ class ModuleExecutor(object):
             job_names.append(job_name)
             output_file.update_path(new_dir=dest_dir)
             logging.debug("(%s) Transferring file '%s' from old path '%s' to new path '%s' ('%s')" % (
-                self.task_id, output_file.get_type(), curr_path, output_file.get_path(), output_file.get_transferrable_path()))
-
-            # Calculate output file size
-            job_name = "get_size_%s_%s_%s" % (self.task_id, output_file.get_type(), count)
-            file_size = self.storage_helper.get_file_size(output_file.get_path(), job_name=job_name)
-            logging.debug("(%s) Size of output file '%s' is %sGB" % (self.task_id, output_file.get_path(), file_size))
-            output_file.set_size(file_size)
+                self.task_id, output_file.get_type(), curr_path, output_file.get_path(),
+                output_file.get_transferrable_path()))
 
             count += 1
 
         # Wait for transfers to complete
         for job_name in job_names:
             self.processor.wait_process(job_name)
+
+        # Calculate output file size
+        for output_file in outputs:
+            job_name = "get_size_%s_%s" % (self.task_id, output_file.get_type())
+            file_size = self.storage_helper.get_file_size(output_file.get_path(), job_name=job_name)
+            logging.debug("(%s) Size of output file '%s' is %sGB" % (self.task_id, output_file.get_path(), file_size))
+            output_file.set_size(file_size)
 
     def save_logs(self):
         # Move log files to final output log directory
