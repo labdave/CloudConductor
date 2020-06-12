@@ -163,7 +163,7 @@ class AmazonInstance(CloudInstance):
         while not instance_started and counter > 0:
             try:
                 logging.info(f"Attempting to restart instance {self.name}")
-                instance_started = self.__aws_request(self.driver.start_node, self.node)
+                instance_started = self.__aws_request(self.driver.ex_start_node, self.node)
             except Exception as e:
                 exception_string = str(e)
                 if 'IncorrectInstanceState' in exception_string:
@@ -201,7 +201,7 @@ class AmazonInstance(CloudInstance):
         return self.node.public_ips[0]
 
     def stop_instance(self):
-        self.__aws_request(self.driver.stop_node, self.node)
+        self.__aws_request(self.driver.ex_stop_node, self.node)
 
     def get_status(self, log_status=False):
 

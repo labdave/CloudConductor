@@ -113,6 +113,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                 try:
                     self.destroy_instance()
                 except Exception as e:
+                    logging.error(f"Received the following error: {str(e)}")
                     if 'notFound' in str(e):
                         self.node = None
                         self.__add_history_event("DESTROY")
@@ -175,6 +176,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             self.stop_instance()
         except Exception as e:
             exception_string = str(e)
+            logging.error(f"Received the following error: {exception_string}")
             if 'notFound' in exception_string:
                 logging.debug(f"({self.name}) Failed to stop instance. ResourceNotFound moving on.")
 

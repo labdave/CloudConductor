@@ -108,7 +108,7 @@ class GoogleInstance(CloudInstance):
 
     def destroy_instance(self):
         # for some reason destroying nodes can sometimes timeout. stopping the instance first is the suggested solution
-        self.driver.stop_node(self.node)
+        self.driver.ex_stop_node(self.node)
         self.driver.destroy_node(self.node)
 
     def post_startup(self):
@@ -125,7 +125,7 @@ class GoogleInstance(CloudInstance):
 
     def start_instance(self):
         try:
-            self.driver.start_node(self.node)
+            self.driver.ex_start_node(self.node)
         except ResourceNotFoundError:
             logging.info(f"({self.name}) Instance not found. Recreating a new instance.")
             self.recreate()
@@ -158,7 +158,7 @@ class GoogleInstance(CloudInstance):
 
     def stop_instance(self):
         try:
-            self.driver.stop_node(self.node)
+            self.driver.ex_stop_node(self.node)
         except Exception as e:
             exception_string = str(e)
             if 'notFound' in exception_string:
