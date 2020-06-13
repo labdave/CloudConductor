@@ -24,3 +24,4 @@
     disk_image              = string
 
     [[extra]]
+        preemptible         = boolean(default=False)
