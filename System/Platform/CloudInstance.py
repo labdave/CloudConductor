@@ -243,10 +243,10 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Run in docker image if specified
         if docker_image is not None:
             if docker_entrypoint is not None:
-                cmd = f"sudo docker run --entrypoint '{docker_entrypoint}' --rm --user root " \
+                cmd = f"sudo docker run --entrypoint '{docker_entrypoint}' --rm --user root -v /home:/home " \
                       f"{self.generate_docker_env()} -v {self.wrk_dir}:{self.wrk_dir} {docker_image} {cmd}"
             else:
-                cmd = f"sudo docker run --entrypoint '/bin/bash' --rm --user root " \
+                cmd = f"sudo docker run --entrypoint '/bin/bash' --rm --user root -v /home:/home " \
                       f"{self.generate_docker_env()} -v {self.wrk_dir}:{self.wrk_dir} {docker_image} -c '{cmd}'"
 
         # Modify quotation marks to be able to send through SSH
