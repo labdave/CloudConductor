@@ -224,6 +224,9 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
     @staticmethod
     def mv(src_path, dest_dir):
 
+        # Check if it is remote directory
+        is_directory = StorageFolder(src_path).exists()
+
         # Convert to Rclone remote structure
         src_path = src_path.replace("gs://", "gs:")
         dest_dir = dest_dir.replace("gs://", "gs:")
@@ -231,8 +234,8 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
         if src_path.endswith("*"):
             basedir, basename = src_path.rsplit("/", 1)
             return f"--include {basename} copy {basedir} {dest_dir}"
-        elif StorageFolder(src_path).exists():
-            newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
+        elif is_directory:
+            newdir = src_path.rsplit("/", 1)[-1]
             return f"copy {src_path} {dest_dir}/{newdir}"
         else:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
@@ -260,6 +263,9 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
     @staticmethod
     def mv(src_path, dest_dir):
 
+        # Check if it is remote directory
+        is_directory = StorageFolder(src_path).exists()
+
         # Convert to Rclone remote structure
         src_path = src_path.replace("s3://", "s3:")
         dest_dir = dest_dir.replace("s3://", "s3:")
@@ -267,8 +273,8 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
         if src_path.endswith("*"):
             basedir, basename = src_path.rsplit("/", 1)
             return f"--include {basename} copy {basedir} {dest_dir}"
-        elif StorageFolder(src_path).exists():
-            newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
+        elif is_directory:
+            newdir = src_path.rsplit("/", 1)[-1]
             return f"copy {src_path} {dest_dir}/{newdir}"
         else:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
