@@ -322,7 +322,8 @@ class TaskWorker(Thread):
 
         # Set size of desired disk
         disk_size = int(math.ceil(input_multiplier * input_size))
-        input_size = disk_size
+        logging.debug(f"({self.task.get_ID()}) Calculated Input size: {disk_size}."
+                      f" Input Multiplier: {input_multiplier}")
 
         # Make sure platform can create a disk that size
         min_disk_size = self.platform.get_min_disk_space()
@@ -334,13 +335,15 @@ class TaskWorker(Thread):
         # Must be at least as big as minimum disk size + disk image
         disk_size = disk_size + disk_image_size + min_disk_size
 
-        logging.debug(f"({self.task.get_ID()}) Calculated Input size: {input_size}, Disk Image Size: {disk_image_size}")
-
         # And smaller than max disk size
         if disk_size > max_disk_size:
             logging.warning("(%s) Current task disk size (%s GB) exceeds the maximum disk size enforced "
                             "by the platform (%s GB). Disk size will be set to the platform maximum!")
             disk_size = max_disk_size
+
+        logging.debug(f"({self.task.get_ID()}) Min Disk Size: {min_disk_size}. Disk Image Size: {disk_image_size}. "
+                      f"Total (including input): {disk_size}")
+
         return disk_size
 
     def __check_cancelled(self):

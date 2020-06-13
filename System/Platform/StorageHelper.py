@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 
 from Aries.storage import StorageFile, StoragePrefix, StorageFolder
 
@@ -97,15 +98,34 @@ class StorageHelper(object):
             else:
                 _file = StorageFile(path)
                 _folder = StorageFolder(path)
+                _size = 0
 
-                if _file.exists():
-                    _size = _file.size
-                elif _folder.exists():
-                    _size = _folder.size
-                else:
-                    _size = 0
+                logging.debug(f'GOOGLE credentials: {os.environ["GOOGLE_APPLICATION_CREDENTIALS"]}')
+
+                found = False
+                trial_count = 0
+                while not found:
+
+                    if trial_count > 10:
+                        logging.error(f"Cannot get size of '{path}' as it doesn't exist after multiple trials!")
+                        break
+
+                    time.sleep(trial_count)
+
+                    if _file.exists():
+                        logging.error(f"File exists!! '{path}'!")
+                        _size = _file.size
+                        found = True
+                        logging.error(f"File size: '{path}': {_size} bytes")
+                    elif _folder.exists():
+                        _size = _folder.size
+                        found = True
+                    else:
+                        trial_count += 1
+                        logging.warning(f"Cannot get size of '{path}' as it does not exist! Trial {trial_count}/10")
 
             # Convert to GB
+            logging.error(f"Computed size: {float(_size)/2**30}GB!")
             return float(_size)/2**30
 
         except BaseException as e:
