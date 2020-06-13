@@ -99,6 +99,16 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Run post_startup_tasks
         self.post_startup()
 
+        # Allow all SendEnv to be accepted by instance
+        envs = self.get_ssh_option("SendEnv")
+        if envs is not None:
+            if isinstance(envs, list):
+                envs = " ".join(envs)
+
+            cmd = f'sudo /bin/bash -c \'echo "AcceptEnv {envs}" >> /etc/ssh/sshd_config; service sshd restart\''
+            self.run("configure_ssh", cmd)
+            self.wait_process("configure_ssh")
+
         # Return an instance of self
         return self
 
