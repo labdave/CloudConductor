@@ -247,6 +247,7 @@ class AmazonInstance(CloudInstance):
         env_vars = [
             "RCLONE_CONFIG_GS_TYPE='google cloud storage'",
             "RCLONE_CONFIG_GS_SERVICE_ACCOUNT_FILE=$GOOGLE_SA",
+            "RCLONE_CONFIG_GS_OBJECT_ACL='projectPrivate'",
             "RCLONE_CONFIG_S3_TYPE='s3'",
             "RCLONE_CONFIG_S3_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID",
             "RCLONE_CONFIG_S3_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
