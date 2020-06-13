@@ -205,7 +205,7 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
         # Move a file from one directory to another
         if ":" not in src_path:
             # checks if dir/file exists, if it does not it exits with an error code
-            check_exists = f'[ -z "$(ls -A -- "{src_path.replace("/*", "/")}")" ] && exit 1 || '
+            check_exists = f'[ -z "$(ls -A -- "{src_path.replace("/*", "/")}")" ] || '
         else:
             check_exists = ''
         options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
