@@ -231,6 +231,9 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
         if src_path.endswith("*"):
             basedir, basename = src_path.rsplit("/", 1)
             return f"--include {basename} copy {basedir} {dest_dir}"
+        elif StorageFolder(src_path).exists():
+            newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
+            return f"copy {src_path} {dest_dir}/{newdir}"
         else:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
             return f"copy {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}')"
@@ -264,6 +267,9 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
         if src_path.endswith("*"):
             basedir, basename = src_path.rsplit("/", 1)
             return f"--include {basename} copy {basedir} {dest_dir}"
+        elif StorageFolder(src_path).exists():
+            newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
+            return f"copy {src_path} {dest_dir}/{newdir}"
         else:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
             return f"copy {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}')"
