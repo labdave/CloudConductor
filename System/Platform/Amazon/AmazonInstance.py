@@ -363,12 +363,16 @@ class AmazonInstance(CloudInstance):
 
     def __cancel_spot_instance_request(self):
         client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1', config=self.boto_config)
-        spot_requests = self.__aws_request(client.describe_spot_instance_requests, Filters=[{'Name': 'instance-id', 'Values': [self.node.id]}], MaxResults=5)
+        instance_info = self.__aws_request(client.describe_instances, InstanceIds=[self.node.id])
 
-        if spot_requests and spot_requests['SpotInstanceRequests']:
-            request_id = spot_requests['SpotInstanceRequests'][0]['SpotInstanceRequestId']
+        if instance_info and instance_info['Reservations']:
+            instance_info = instance_info['Reservations'][0]['Instances'][0]
+            request_id = instance_info['SpotInstanceRequestId']
             logging.debug(f"({self.name} Attempting to cancel spot instance {request_id}")
             response = client.cancel_spot_instance_requests(SpotInstanceRequestIds=[request_id])
             logging.debug(f"({self.name} Cancel spot instance response {str(response)}")
             if response and response['CancelledSpotInstanceRequests']:
                 return response['CancelledSpotInstanceRequests'][0]['SpotInstanceRequestId'] == request_id
+            else:
+                return False
+        return
