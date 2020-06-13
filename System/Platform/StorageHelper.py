@@ -235,7 +235,7 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
             basedir, basename = src_path.rsplit("/", 1)
             return f"--include {basename} copy {basedir} {dest_dir}"
         elif is_directory:
-            newdir = src_path.rsplit("/", 1)[-1]
+            newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
             return f"copy {src_path} {dest_dir}/{newdir}"
         else:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
@@ -274,7 +274,7 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
             basedir, basename = src_path.rsplit("/", 1)
             return f"--include {basename} copy {basedir} {dest_dir}"
         elif is_directory:
-            newdir = src_path.rsplit("/", 1)[-1]
+            newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
             return f"copy {src_path} {dest_dir}/{newdir}"
         else:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
