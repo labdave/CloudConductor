@@ -5,7 +5,7 @@ class Destruct(Module):
 	def __init__(self, module_id, is_docker=False):
 		super(Destruct, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
-		self.output_keys = ["breaks", "break_libs", "break_reads", "log"]
+		self.output_keys = ["breaks", "break_libs", "break_reads"]  #, "log"]
 
 
 	def define_input(self):
@@ -30,7 +30,7 @@ class Destruct(Module):
 		self.add_output("breaks",			breaks)
 		self.add_output("break_libs",		break_libs)
 		self.add_output("break_reads",		break_reads)
-		self.add_output("log",				"/tmp/log/latest/pipeline.log")
+		# self.add_output("log",				"/tmp/log/latest/pipeline.log")
 
 
 	def define_command(self):
