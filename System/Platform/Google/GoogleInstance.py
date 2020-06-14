@@ -1,6 +1,7 @@
 import logging
 import requests
 import time
+import os
 
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
@@ -8,6 +9,7 @@ from libcloud.common.google import ResourceNotFoundError
 from libcloud.common.types import LibcloudError
 
 from System.Platform import CloudInstance
+from System.Platform import Process
 
 
 class GoogleInstance(CloudInstance):
@@ -33,6 +35,10 @@ class GoogleInstance(CloudInstance):
 
         # Initialize the node variable
         self.node = None
+
+        # Set AWS credentials as SSH options
+        self.set_ssh_option("SendEnv", "AWS_ACCESS_KEY_ID")
+        self.set_ssh_option("SendEnv", "AWS_SECRET_ACCESS_KEY")
 
     def create_instance(self):
 
@@ -102,12 +108,24 @@ class GoogleInstance(CloudInstance):
 
     def destroy_instance(self):
         # for some reason destroying nodes can sometimes timeout. stopping the instance first is the suggested solution
-        self.driver.stop_node(self.node)
+        self.driver.ex_stop_node(self.node)
         self.driver.destroy_node(self.node)
+
+    def post_startup(self):
+
+        # Transfer SA key to instance
+        cmd = f'scp -i {self.ssh_private_key} -o CheckHostIP=no -o StrictHostKeyChecking=no {self.identity} ' \
+              f'{self.ssh_connection_user}@{self.external_IP}:GCP.json'
+
+        Process.run_local_cmd(cmd, err_msg="Could not authenticate Google SDK on instance!")
+
+        # Setup Google SA path
+        os.environ["GOOGLE_SA"] = f"/home/{self.ssh_connection_user}/GCP.json"
+        self.set_ssh_option('SendEnv', 'GOOGLE_SA')
 
     def start_instance(self):
         try:
-            self.driver.start_node(self.node)
+            self.driver.ex_start_node(self.node)
         except ResourceNotFoundError:
             logging.info(f"({self.name}) Instance not found. Recreating a new instance.")
             self.recreate()
@@ -140,7 +158,7 @@ class GoogleInstance(CloudInstance):
 
     def stop_instance(self):
         try:
-            self.driver.stop_node(self.node)
+            self.driver.ex_stop_node(self.node)
         except Exception as e:
             exception_string = str(e)
             if 'notFound' in exception_string:
@@ -176,6 +194,18 @@ class GoogleInstance(CloudInstance):
     def get_storage_price(self):
         price = self.gcp_storage_price_old_json()
         return price
+
+    def generate_docker_env(self):
+        env_vars = [
+            "RCLONE_CONFIG_GS_TYPE='google cloud storage'",
+            "RCLONE_CONFIG_GS_SERVICE_ACCOUNT_FILE=$GOOGLE_SA",
+            "RCLONE_CONFIG_GS_OBJECT_ACL='projectPrivate'",
+            "RCLONE_CONFIG_S3_TYPE='s3'",
+            "RCLONE_CONFIG_S3_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID",
+            "RCLONE_CONFIG_S3_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
+        ]
+
+        return " ".join([f"-e {e}" for e in env_vars])
 
     def gcp_compute_price_new_api(self):
         compute_cost = 0

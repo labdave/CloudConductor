@@ -32,7 +32,7 @@ class GooglePreemptibleInstance(GoogleInstance):
         # Check if we receive public key error
         if "permission denied (publickey)." in proc_obj.err.lower():
             self.reset(force_destroy=True)
-            return can_retry
+            return can_retry and not proc_obj.is_complete()
 
         if proc_obj.returncode == 255:
             logging.warning("(%s) Waiting for 60 seconds to make sure instance wasn't preempted..." % self.name)
@@ -42,7 +42,7 @@ class GooglePreemptibleInstance(GoogleInstance):
             if "connection reset by" in proc_obj.err.lower() \
                     or "connection closed by" in proc_obj.err.lower():
                 self.reset(force_destroy=True)
-                return can_retry
+                return can_retry and not proc_obj.is_complete()
 
         # Get the status from the cloud
         curr_status = self.get_status(log_status=True)
@@ -55,7 +55,7 @@ class GooglePreemptibleInstance(GoogleInstance):
                 return can_retry
 
             # Retry command if retries are left and command isn't 'create'
-            return can_retry and proc_name != "create"
+            return can_retry and proc_name != "create" and not proc_obj.is_complete()
 
         # Re-run destroy command if instance is creating and cmd has enough retries
         elif curr_status == CloudInstance.CREATING:
@@ -66,7 +66,7 @@ class GooglePreemptibleInstance(GoogleInstance):
 
             # Instance is destroying itself and we know why (we killed it programmatically)
             if proc_name == "destroy":
-                return can_retry
+                return can_retry and not proc_obj.is_complete()
 
             # Reset instance and re-run command if it failed and we're not sure why the instance is destroying itself (e.g. preemption)
             elif "destroy" not in self.processes and proc_name not in ["create", "destroy"]:
@@ -93,13 +93,13 @@ class GooglePreemptibleInstance(GoogleInstance):
         if needs_reset and self.is_preemptible:
             logging.warning("(%s) Instance preempted! Resetting..." % self.name)
             self.reset()
-            return can_retry
+            return can_retry and not proc_obj.is_complete()
 
         # Check if the problem is that we cannot SSH in the instance
         elif proc_obj.returncode == 255 and not self.check_ssh():
             logging.warning("(%s) SSH connection cannot be established! Resetting..." % self.name)
             self.reset()
-            return can_retry
+            return can_retry and not proc_obj.is_complete()
 
         # Raise error if command failed, has no retries, and wasn't caused by preemption
         else:
@@ -167,7 +167,8 @@ class GooglePreemptibleInstance(GoogleInstance):
                 # Run and wait for the command to finish
                 self.run(job_name=proc_name,
                          cmd=proc_obj.get_command(),
-                         docker_image=proc_obj.get_docker_image())
+                         docker_image=proc_obj.get_docker_image(),
+                         docker_entrypoint=proc_obj.get_docker_entrypoint())
                 self.wait_process(proc_name)
 
             # Exit function as the rest of the code is related to an instance that was not destroyed
@@ -237,10 +238,11 @@ class GooglePreemptibleInstance(GoogleInstance):
 
         # Rerunning all the commands that need to be rerun
         for proc_name, proc_obj in list(self.processes.items()):
-            if proc_obj.needs_rerun():
+            if proc_obj.needs_rerun() and not proc_obj.is_complete():
                 self.run(job_name=proc_name,
                          cmd=proc_obj.get_command(),
-                         docker_image=proc_obj.get_docker_image())
+                         docker_image=proc_obj.get_docker_image(),
+                         docker_entrypoint=proc_obj.get_docker_entrypoint())
                 self.wait_process(proc_name)
 
     def __remove_wrk_out_dir(self):

@@ -35,9 +35,16 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Obtain the mother platform object
         self.platform = kwargs.pop("platform")
 
-        # Obtain the CloudConductor SSH private key from platform
+        # Obtain the CloudConductor SSH private key from platform and setup other options
         self.ssh_private_key = kwargs.pop("ssh_private_key")
         self.ssh_connection_user = kwargs.pop("ssh_connection_user")
+        self.ssh_options = {
+            "CheckHostIP": "no",
+            "StrictHostKeyChecking": "no",
+            "ServerAliveInterval": 30,
+            "ServerAliveCountMax": 10,
+            "TCPKeepAlive": "yes"
+        }
 
         # Obtain identify and secret from platform
         self.identity = kwargs.pop("identity")
@@ -92,6 +99,16 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Run post_startup_tasks
         self.post_startup()
 
+        # Allow all SendEnv to be accepted by instance
+        envs = self.get_ssh_option("SendEnv")
+        if envs is not None:
+            if isinstance(envs, list):
+                envs = " ".join(envs)
+
+            cmd = f'sudo /bin/bash -c \'echo "AcceptEnv {envs}" >> /etc/ssh/sshd_config; service sshd restart\''
+            self.run("configure_ssh", cmd)
+            self.wait_process("configure_ssh")
+
         # Return an instance of self
         return self
 
@@ -106,6 +123,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
                 try:
                     self.destroy_instance()
                 except Exception as e:
+                    logging.error(f"Received the following error: {str(e)}")
                     if 'notFound' in str(e):
                         self.node = None
                         self.__add_history_event("DESTROY")
@@ -168,6 +186,7 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
             self.stop_instance()
         except Exception as e:
             exception_string = str(e)
+            logging.error(f"Received the following error: {exception_string}")
             if 'notFound' in exception_string:
                 logging.debug(f"({self.name}) Failed to stop instance. ResourceNotFound moving on.")
 
@@ -191,7 +210,12 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
         # Increment the recreation count
         self.reset_count += 1
 
-    def run(self, job_name, cmd, num_retries=None, docker_image=None):
+    def run(self, job_name, cmd, **kwargs):
+
+        # Obtain possible arguments
+        docker_image = kwargs.get("docker_image", None)
+        num_retries = kwargs.get("num_retries", self.default_num_cmd_retries)
+        docker_entrypoint = kwargs.get("docker_entrypoint", None)
 
         # Checking if logging is required
         if "!LOG" in cmd:
@@ -218,15 +242,18 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
         # Run in docker image if specified
         if docker_image is not None:
-            cmd = f"sudo docker run --rm --user root -v {self.wrk_dir}:{self.wrk_dir} --entrypoint '/bin/bash' {docker_image} " \
-                f"-c '{cmd}'"
+            if docker_entrypoint is not None:
+                cmd = f"sudo docker run --entrypoint '{docker_entrypoint}' --rm --user root -v /home:/home " \
+                      f"{self.generate_docker_env()} -v {self.wrk_dir}:{self.wrk_dir} {docker_image} {cmd}"
+            else:
+                cmd = f"sudo docker run --entrypoint '/bin/bash' --rm --user root -v /home:/home " \
+                      f"{self.generate_docker_env()} -v {self.wrk_dir}:{self.wrk_dir} {docker_image} -c '{cmd}'"
 
         # Modify quotation marks to be able to send through SSH
         cmd = cmd.replace("'", "'\"'\"'")
 
         # Wrap the command around ssh
-        cmd = f"ssh -i {self.ssh_private_key} " \
-            f"-o CheckHostIP=no -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o TCPKeepAlive=yes " \
+        cmd = f"ssh -i {self.ssh_private_key} {self.generate_ssh_options()} " \
             f"{self.ssh_connection_user}@{self.external_IP} -- '{cmd}'"
 
         # Run command using subprocess popen and add Popen object to self.processes
@@ -244,8 +271,9 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
             # Add CloudConductor specific arguments
             "original_cmd": original_cmd,
-            "num_retries": self.default_num_cmd_retries if num_retries is None else num_retries,
-            "docker_image": docker_image
+            "num_retries": num_retries,
+            "docker_image": docker_image,
+            "docker_entrypoint": docker_entrypoint
         }
 
         # Add process to list of processes
@@ -266,36 +294,45 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
         # Retry process if it can be retried
         if self.handle_failure(proc_name, proc_obj):
+            if not proc_obj.is_complete():
+                stdout, stderr = proc_obj.get_output()
+                logging.warning(f"({self.name}) Process '{proc_name}' failed but we will retry it!")
+                cmd = proc_obj.get_command()
+                # alter aws s3 cmd to try recursive vs. non-recursive
+                if 'aws s3 cp' in cmd:
+                    if '--recursive' in cmd:
+                        cmd = cmd.replace('--recursive', '')
+                    else:
+                        cmd = cmd.replace('aws s3 cp', 'aws s3 cp --recursive')
+                if 'ssh' in stderr:
+                    # issue with ssh connection, sleep for 10 seconds in case the server was having trouble with connections/commands
+                    time.sleep(30)
+                self.run(job_name=proc_name,
+                        cmd=cmd,
+                        num_retries=proc_obj.get_num_retries()-1,
+                        docker_image=proc_obj.get_docker_image(),
+                        docker_entrypoint=proc_obj.get_docker_entrypoint())
+                return self.wait_process(proc_name)
+            else:
+                # process is complete
+                return proc_obj.get_output()
+
+        # Process still failing and cannot be retried anymore or it has completed
+        if not proc_obj.is_complete():
+            logging.error(f"({self.name}) Process '{proc_name}' failed!")
+
+            # Log the output
             stdout, stderr = proc_obj.get_output()
-            logging.warning(f"({self.name}) Process '{proc_name}' failed but we will retry it!")
-            cmd = proc_obj.get_command()
-            # alter aws s3 cmd to try recursive vs. non-recursive
-            if 'aws s3 cp' in cmd:
-                if '--recursive' in cmd:
-                    cmd = cmd.replace('--recursive', '')
-                else:
-                    cmd = cmd.replace('aws s3 cp', 'aws s3 cp --recursive')
-            if 'ssh' in stderr:
-                # issue with ssh connection, sleep for 10 seconds in case the server was having trouble with connections/commands
-                time.sleep(30)
-            self.run(job_name=proc_name,
-                     cmd=cmd,
-                     num_retries=proc_obj.get_num_retries()-1,
-                     docker_image=proc_obj.get_docker_image())
-            return self.wait_process(proc_name)
+            stderr = re.sub(r'@(.|\n)*attacks.', '', stderr)  # remove man-in-middle err
+            logging.debug(f"({self.name}) The following output/error was received:"
+                            f"\n\nSTDOUT:\n{stdout}"
+                            f"\n\nSTDERR:\n{stderr}")
 
-        # Process still failing and cannot be retried anymore
-        logging.error(f"({self.name}) Process '{proc_name}' failed!")
-
-        # Log the output
-        stdout, stderr = proc_obj.get_output()
-        stderr = re.sub(r'@(.|\n)*attacks.', '', stderr)  # remove man-in-middle err
-        logging.debug(f"({self.name}) The following output/error was received:"
-                        f"\n\nSTDOUT:\n{stdout}"
-                        f"\n\nSTDERR:\n{stderr}")
-
-        # Raise an error
-        raise RuntimeError(f"({self.name}) Instance failed at process '{proc_name}'!")
+            # Raise an error
+            raise RuntimeError(f"({self.name}) Instance failed at process '{proc_name}'!")
+        else:
+                # process is complete
+                return proc_obj.get_output()
 
     def handle_failure(self, proc_name, proc_obj):
         return self.default_num_cmd_retries != 0 and proc_obj.get_num_retries() > 0
@@ -406,6 +443,37 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
     def get_api_sleep(self, attempt):
         temp = min(CloudInstance.API_SLEEP_CAP, 4 * 2 ** attempt)
         return temp / 2 + random.randrange(0, temp/2)
+
+    def set_ssh_option(self, key, value):
+        if key in self.ssh_options:
+            if isinstance(self.ssh_options[key], list):
+                self.ssh_options[key].append(value)
+            else:
+                self.ssh_options[key] = [self.ssh_options[key], value]
+        else:
+            self.ssh_options[key] = value
+
+    def get_ssh_option(self, key):
+        return self.ssh_options.get(key, None)
+
+    def remove_ssh_option(self, key):
+        if key in self.ssh_options:
+            del self.ssh_options[key]
+
+    def generate_ssh_options(self):
+        opts = []
+
+        # Generate list of options
+        for k, v in self.ssh_options.items():
+            if isinstance(v, list):
+                opts.extend(f"-o {k}={_v}" for _v in v)
+            else:
+                opts.append(f"-o {k}={v}")
+
+        return " ".join(opts)
+
+    def generate_docker_env(self):
+        return ''
 
     def check_ssh(self):
 

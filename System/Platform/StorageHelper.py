@@ -28,6 +28,11 @@ class StorageHelper(object):
         # Optionally add logging
         cmd = f"{cmd} !LOG3!" if log else cmd
 
+        # Add correct docker image and entrypoint if not local
+        if cmd_generator.PROTOCOL != "Local":
+            kwargs["docker_image"] = "rclone/rclone:1.52"
+            kwargs["docker_entrypoint"] = "rclone"
+
         # Run command and return job name
         self.proc.run(job_name, cmd, **kwargs)
         if wait:
@@ -95,8 +100,6 @@ class StorageHelper(object):
                 _folder = StorageFolder(path)
                 _size = 0
 
-                logging.debug(f'GOOGLE credentials: {os.environ["GOOGLE_APPLICATION_CREDENTIALS"]}')
-
                 found = False
                 trial_count = 0
                 while not found:
@@ -108,10 +111,8 @@ class StorageHelper(object):
                     time.sleep(trial_count)
 
                     if _file.exists():
-                        logging.error(f"File exists!! '{path}'!")
                         _size = _file.size
                         found = True
-                        logging.error(f"File size: '{path}': {_size} bytes")
                     elif _folder.exists():
                         _size = _folder.size
                         found = True
@@ -120,7 +121,6 @@ class StorageHelper(object):
                         logging.warning(f"Cannot get size of '{path}' as it does not exist! Trial {trial_count}/10")
 
             # Convert to GB
-            logging.error(f"Computed size: {float(_size)/2**30}GB!")
             return float(_size)/2**30
 
         except BaseException as e:
@@ -223,9 +223,23 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
 
     @staticmethod
     def mv(src_path, dest_dir):
-        # Move a file from one directory to another
-        options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
-        return f"sudo gsutil {options_fast} cp -r {src_path} {dest_dir}"
+
+        # Check if it is remote directory
+        is_directory = StorageFolder(src_path).exists()
+
+        # Convert to Rclone remote structure
+        src_path = src_path.replace("gs://", "gs:")
+        dest_dir = dest_dir.replace("gs://", "gs:")
+
+        if src_path.endswith("*"):
+            basedir, basename = src_path.rsplit("/", 1)
+            return f"--include {basename} copy {basedir} {dest_dir}"
+        elif is_directory:
+            newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
+            return f"copy {src_path} {dest_dir}/{newdir}"
+        else:
+            newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
+            return f"copy {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}')"
 
     @staticmethod
     def mkdir(dir_path):
@@ -248,9 +262,23 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
 
     @staticmethod
     def mv(src_path, dest_dir):
-        # Move a file from one directory to another
-        options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
-        return f"sudo gsutil {options_fast} cp -r {src_path} {dest_dir}"
+
+        # Check if it is remote directory
+        is_directory = StorageFolder(src_path).exists()
+
+        # Convert to Rclone remote structure
+        src_path = src_path.replace("s3://", "s3:")
+        dest_dir = dest_dir.replace("s3://", "s3:")
+
+        if src_path.endswith("*"):
+            basedir, basename = src_path.rsplit("/", 1)
+            return f"--include {basename} copy {basedir} {dest_dir}"
+        elif is_directory:
+            newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
+            return f"copy {src_path} {dest_dir}/{newdir}"
+        else:
+            newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
+            return f"copy {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}')"
 
     @staticmethod
     def mkdir(dir_path):
