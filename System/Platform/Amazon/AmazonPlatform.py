@@ -93,6 +93,10 @@ class AmazonPlatform(CloudPlatform):
 
     def authenticate_platform(self):
 
+        # Setup AWS credentials
+        os.environ['AWS_ACCESS_KEY_ID'] = self.identity
+        os.environ['AWS_SECRET_ACCESS_KEY'] = self.secret
+
         # Retry all HTTP requests
         os.environ['LIBCLOUD_RETRY_FAILED_HTTP_REQUESTS'] = "True"
 

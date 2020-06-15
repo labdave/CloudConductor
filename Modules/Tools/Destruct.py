@@ -5,7 +5,7 @@ class Destruct(Module):
 	def __init__(self, module_id, is_docker=False):
 		super(Destruct, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
-		self.output_keys = ["breaks", "break_libs", "break_reads"]
+		self.output_keys = ["breaks", "break_libs", "break_reads"]  #, "log"]
 
 
 	def define_input(self):
@@ -30,6 +30,7 @@ class Destruct(Module):
 		self.add_output("breaks",			breaks)
 		self.add_output("break_libs",		break_libs)
 		self.add_output("break_reads",		break_reads)
+		# self.add_output("log",				"/tmp/log/latest/pipeline.log")
 
 
 	def define_command(self):
@@ -38,7 +39,8 @@ class Destruct(Module):
 		destruct				= self.get_argument("destruct")
 		lib_ids					= self.get_argument("lib_ids")
 		submit					= self.get_argument("submit")
-		
+		nr_cpus					= self.get_argument("nr_cpus")
+
 		# get output
 		breaks					= self.get_output("breaks")
 		break_libs				= self.get_output("break_libs")
@@ -51,7 +53,7 @@ class Destruct(Module):
 		cmd += " run /usr/local/bin/destruct_ref/ {0} {1} {2} --bam_files {3}".format(
 			breaks, break_libs, break_reads, bam)
 
-		cmd += " --lib_ids {0} --submit {1}".format(lib_ids, submit)
+		cmd += " --lib_ids {0} --submit {1} --maxjobs {2}".format(lib_ids, submit, nr_cpus)
 
 		# add logging
 		cmd += " !LOG3!"

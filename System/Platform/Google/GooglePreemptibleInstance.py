@@ -168,7 +168,8 @@ class GooglePreemptibleInstance(GoogleInstance):
                 # Run and wait for the command to finish
                 self.run(job_name=proc_name,
                          cmd=proc_obj.get_command(),
-                         docker_image=proc_obj.get_docker_image())
+                         docker_image=proc_obj.get_docker_image(),
+                         docker_entrypoint=proc_obj.get_docker_entrypoint())
                 self.wait_process(proc_name)
 
             # Exit function as the rest of the code is related to an instance that was not destroyed
@@ -241,7 +242,8 @@ class GooglePreemptibleInstance(GoogleInstance):
             if proc_obj.needs_rerun():
                 self.run(job_name=proc_name,
                          cmd=proc_obj.get_command(),
-                         docker_image=proc_obj.get_docker_image())
+                         docker_image=proc_obj.get_docker_image(),
+                         docker_entrypoint=proc_obj.get_docker_entrypoint())
                 self.wait_process(proc_name)
 
     def __remove_wrk_out_dir(self):

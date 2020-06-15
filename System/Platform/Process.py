@@ -11,6 +11,7 @@ class Process(sp.Popen):
         self.command = kwargs.pop("original_cmd", True)
         self.num_retries = kwargs.pop("num_retries", 0)
         self.docker_image = kwargs.pop("docker_image", None)
+        self.docker_entrypoint = kwargs.pop("docker_entrypoint", None)
 
         # Initialize process status
         self.complete = False
@@ -57,6 +58,9 @@ class Process(sp.Popen):
 
     def get_docker_image(self):
         return self.docker_image
+
+    def get_docker_entrypoint(self):
+        return self.docker_entrypoint
 
     def get_output(self):
         return self.out, self.err
