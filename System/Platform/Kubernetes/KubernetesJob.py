@@ -76,7 +76,12 @@ class KubernetesJob(Instance):
             if pool['max_cpu'] >= self.nr_cpus and pool['max_mem'] >= self.mem:
                 return pool['name'], pool
 
-    def run(self, job_name, cmd, num_retries=None, docker_image=None):
+    def run(self, job_name, cmd, **kwargs):
+
+        docker_image = kwargs.get("docker_image", None)
+        num_retries = kwargs.get("num_retries", self.default_num_cmd_retries)
+        docker_entrypoint = kwargs.get("docker_entrypoint", None)
+
         logging.debug(f"({self.name}) Adding {job_name} to the task list.")
 
         for prefix in self.task_prefix_filter:
@@ -114,7 +119,8 @@ class KubernetesJob(Instance):
             # Add CloudConductor specific arguments
             "original_cmd": original_cmd,
             "num_retries": self.default_num_cmd_retries if num_retries is None else num_retries,
-            "docker_image": docker_image
+            "docker_image": docker_image,
+            "docker_entrypoint": docker_entrypoint
         }
         self.processes[job_name] = task
 
@@ -135,7 +141,8 @@ class KubernetesJob(Instance):
                 elif delete_status and isinstance(delete_status, dict) or delete_status.get("failed") or delete_status.get("succeeded"):
                     logging.debug(f"({self.name}) Kubernetes job successfully destroyed.")
 
-        self.stop_time = time.time()
+        if self.start_time > 0:
+            self.stop_time = time.time()
         # stop monitoring the job
         self.monitoring = False
 
@@ -346,13 +353,21 @@ class KubernetesJob(Instance):
                 )
             )
             env_variables.append(client.V1EnvVar(name='GOOGLE_APPLICATION_CREDENTIALS', value='/etc/cloud_conductor/gcp.json'))
+            env_variables.append(client.V1EnvVar(name='RCLONE_CONFIG_GS_TYPE', value='google cloud storage'))
+            env_variables.append(client.V1EnvVar(name='RCLONE_CONFIG_GS_SERVICE_ACCOUNT_FILE', value='$GOOGLE_APPLICATION_CREDENTIALS'))
+            env_variables.append(client.V1EnvVar(name='RCLONE_CONFIG_GS_OBJECT_ACL', value='projectPrivate'))
+            env_variables.append(client.V1EnvVar(name='RCLONE_CONFIG_GS_BUCKET_ACL', value='projectPrivate'))
 
         if self.aws_secret_configured:
             env_variables.append(client.V1EnvVar(name='AWS_ACCESS_KEY_ID', value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='cloud-conductor-config', key='aws_id'))))
             env_variables.append(client.V1EnvVar(name='AWS_SECRET_ACCESS_KEY', value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='cloud-conductor-config', key='aws_access'))))
+            env_variables.append(client.V1EnvVar(name='RCLONE_CONFIG_S3_TYPE', value='s3'))
+            env_variables.append(client.V1EnvVar(name='RCLONE_CONFIG_S3_ACCESS_KEY_ID', value='$AWS_ACCESS_KEY_ID'))
+            env_variables.append(client.V1EnvVar(name='RCLONE_CONFIG_S3_SECRET_ACCESS_KEY', value='$AWS_SECRET_ACCESS_KEY'))
 
         storage_image = 'gcr.io/cloud-builders/gsutil'
-        storage_tasks = ['load_input', 'save_output', 'mkdir_', 'grant_', 'return_logs']
+        storage_tasks = ['mkdir_', 'grant_']
+        entrypoint = ["/bin/sh", "-c"]
 
         for k, v in self.processes.items():
             # if the process is for storage (i.e. mkdir, etc.)
@@ -360,6 +375,9 @@ class KubernetesJob(Instance):
                 container_image = storage_image
             else:
                 container_image = v['docker_image']
+                if v['docker_entrypoint'] is not None:
+                    # entrypoint = [v['docker_entrypoint']]
+                    v['original_cmd'] = v['docker_entrypoint'] + ' ' + v['original_cmd']
             args = v['original_cmd']
             if not isinstance(args, list):
                 args = [v['original_cmd'].replace("sudo ", "")]
@@ -378,7 +396,7 @@ class KubernetesJob(Instance):
             containers.append(client.V1Container(
                     # lifecycle=client.V1Lifecycle(post_start=post_start_handler),
                     image=container_image,
-                    command=["/bin/sh", "-c"],
+                    command=entrypoint,
                     args=[args],
                     name=formatted_container_name,
                     volume_mounts=volume_mounts,

@@ -266,6 +266,9 @@ class TaskWorker(Thread):
                 # Set the status to finalized
                 self.set_status(self.FINALIZING)
 
+            if len(output_files) > 0:
+                self.module_executor.update_file_sizes(output_files)
+
             # Indicate that task finished without any errors
             if not self.__cancelled:
                 with self.status_lock:

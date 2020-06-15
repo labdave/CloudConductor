@@ -177,6 +177,7 @@ class ModuleExecutor(object):
         for job_name in job_names:
             self.processor.wait_process(job_name)
 
+    def update_file_sizes(self, outputs):
         # Calculate output file size
         for output_file in outputs:
             job_name = "get_size_%s_%s" % (self.task_id, output_file.get_type())
@@ -186,8 +187,8 @@ class ModuleExecutor(object):
 
     def save_logs(self):
         # Move log files to final output log directory
-        self.storage_helper.mv(self.workspace.get_wrk_log_dir(),
-                               self.workspace.get_output_dir(),
+        self.storage_helper.mv(self.final_tmp_dir,
+                               self.final_output_dir,
                                job_name="return_logs", log=False, wait=True)
 
     def __create_workspace(self):
