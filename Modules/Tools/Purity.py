@@ -15,7 +15,7 @@ class Purity(Merger):
 		self.add_argument("nr_cpus",			default_value=1)
 		self.add_argument("mem",				default_value=5)
 		self.add_argument("whitelist",			is_required=True, is_resource=True)
-		self.add_argument("ext_whitelist",		is_resource=True)
+		self.add_argument("extended_whitelist", is_resource=True)
 
 
 	def define_output(self):
@@ -29,7 +29,7 @@ class Purity(Merger):
 		# Module creator needs to use renamed arguments as required by CC
 		vcf_gz							= self.get_argument("vcf_gz")
 		whitelist						= self.get_argument("whitelist")
-		ext_whitelist					= self.get_argument("ext_whitelist")
+		ext_whitelist					= self.get_argument("extended_whitelist")
 
 		for vcf in vcf_gz:
 			if 'variants.vcf' in vcf:
