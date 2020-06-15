@@ -294,45 +294,37 @@ class CloudInstance(object, metaclass=abc.ABCMeta):
 
         # Retry process if it can be retried
         if self.handle_failure(proc_name, proc_obj):
-            if not proc_obj.is_complete():
-                stdout, stderr = proc_obj.get_output()
-                logging.warning(f"({self.name}) Process '{proc_name}' failed but we will retry it!")
-                cmd = proc_obj.get_command()
-                # alter aws s3 cmd to try recursive vs. non-recursive
-                if 'aws s3 cp' in cmd:
-                    if '--recursive' in cmd:
-                        cmd = cmd.replace('--recursive', '')
-                    else:
-                        cmd = cmd.replace('aws s3 cp', 'aws s3 cp --recursive')
-                if 'ssh' in stderr:
-                    # issue with ssh connection, sleep for 10 seconds in case the server was having trouble with connections/commands
-                    time.sleep(30)
-                self.run(job_name=proc_name,
-                        cmd=cmd,
-                        num_retries=proc_obj.get_num_retries()-1,
-                        docker_image=proc_obj.get_docker_image(),
-                        docker_entrypoint=proc_obj.get_docker_entrypoint())
-                return self.wait_process(proc_name)
-            else:
-                # process is complete
-                return proc_obj.get_output()
-
-        # Process still failing and cannot be retried anymore or it has completed
-        if not proc_obj.is_complete():
-            logging.error(f"({self.name}) Process '{proc_name}' failed!")
-
-            # Log the output
             stdout, stderr = proc_obj.get_output()
-            stderr = re.sub(r'@(.|\n)*attacks.', '', stderr)  # remove man-in-middle err
-            logging.debug(f"({self.name}) The following output/error was received:"
-                            f"\n\nSTDOUT:\n{stdout}"
-                            f"\n\nSTDERR:\n{stderr}")
+            logging.warning(f"({self.name}) Process '{proc_name}' failed but we will retry it!")
+            cmd = proc_obj.get_command()
+            # alter aws s3 cmd to try recursive vs. non-recursive
+            if 'aws s3 cp' in cmd:
+                if '--recursive' in cmd:
+                    cmd = cmd.replace('--recursive', '')
+                else:
+                    cmd = cmd.replace('aws s3 cp', 'aws s3 cp --recursive')
+            if 'ssh' in stderr:
+                # issue with ssh connection, sleep for 10 seconds in case the server was having trouble with connections/commands
+                time.sleep(30)
+            self.run(job_name=proc_name,
+                     cmd=cmd,
+                     num_retries=proc_obj.get_num_retries()-1,
+                     docker_image=proc_obj.get_docker_image(),
+                     docker_entrypoint=proc_obj.get_docker_entrypoint())
+            return self.wait_process(proc_name)
 
-            # Raise an error
-            raise RuntimeError(f"({self.name}) Instance failed at process '{proc_name}'!")
-        else:
-                # process is complete
-                return proc_obj.get_output()
+        # Process still failing and cannot be retried anymore
+        logging.error(f"({self.name}) Process '{proc_name}' failed!")
+
+        # Log the output
+        stdout, stderr = proc_obj.get_output()
+        stderr = re.sub(r'@(.|\n)*attacks.', '', stderr)  # remove man-in-middle err
+        logging.debug(f"({self.name}) The following output/error was received:"
+                        f"\n\nSTDOUT:\n{stdout}"
+                        f"\n\nSTDERR:\n{stderr}")
+
+        # Raise an error
+        raise RuntimeError(f"({self.name}) Instance failed at process '{proc_name}'!")
 
     def handle_failure(self, proc_name, proc_obj):
         return self.default_num_cmd_retries != 0 and proc_obj.get_num_retries() > 0
