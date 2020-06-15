@@ -65,7 +65,7 @@ class StorageHelper(object):
             return True
 
         try:
-
+            logging.debug(f"Checking existence of {path}...")
             # Check if path is prefix, and create StoragePrefix object and check if exists
             if path.endswith("*"):
                 return StoragePrefix(path.rstrip("*")).exists()
@@ -74,6 +74,8 @@ class StorageHelper(object):
             return StorageFile(path).exists() or StorageFolder(path).exists()
 
         except RuntimeError as e:
+            import traceback
+            traceback.print_exc()
             if str(e) != "":
                 logging.error(f"StorageHelper error for {job_name}:\n{e}")
             return False

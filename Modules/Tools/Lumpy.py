@@ -14,8 +14,8 @@ class Lumpy(Module):
 		self.add_argument("filtered_bam",				is_required=True)
 		self.add_argument("filtered_bam_bai",			is_required=True)
 		self.add_argument("sample_id",					is_required=True)
-		self.add_argument("nr_cpus",					default_value=2)
-		self.add_argument("mem",						default_value=10.0)
+		self.add_argument("nr_cpus",					default_value=8)
+		self.add_argument("mem",						default_value=30)
 		self.add_argument("read_length",				default_value=152)
 		self.add_argument("discordant_z",				default_value=5)
 		self.add_argument("back_distance",				default_value=10)
@@ -41,6 +41,7 @@ class Lumpy(Module):
 		back_distance			= self.get_argument("back_distance")
 		weight					= self.get_argument("weight")
 		min_mapping_threshold	= self.get_argument("min_mapping_threshold")
+		threads					= self.get_argument("nr_cpus")
 
 		# get output
 		lumpy_vcf				= self.get_output("lumpy_vcf")
@@ -50,9 +51,9 @@ class Lumpy(Module):
 		cmd = "bash /usr/local/bin/lumpy.sh"
 
 		# add arguments
-		cmd += " {0} {1} {2} {3} {4} {5} {6} {7}".format(
+		cmd += " {0} {1} {2} {3} {4} {5} {6} {7} {8}".format(
 			bam, read_length, discordant_z, back_distance, weight,
-			min_mapping_threshold, lumpy_vcf, gt_vcf)
+			min_mapping_threshold, lumpy_vcf, gt_vcf, threads)
 
 		# add logging
 		cmd += " !LOG3!"
