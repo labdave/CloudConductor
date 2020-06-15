@@ -54,6 +54,10 @@ class AmazonInstance(CloudInstance):
 
         self.instance_type_list = self.platform.get_instance_type_list()
 
+        # Set additional SSH options
+        self.set_ssh_option("SendEnv", "AWS_ACCESS_KEY_ID")
+        self.set_ssh_option("SendEnv", "AWS_SECRET_ACCESS_KEY")
+
     def get_instance_size(self):
         '''Select optimal instance type for provided region, number of cpus, and memory allocation'''
         selected_instance_type = None
@@ -131,6 +135,10 @@ class AmazonInstance(CloudInstance):
             self.run("authenticate_google", cmd)
             self.wait_process("authenticate_google")
 
+            # Setup Google SA path
+            os.environ["GOOGLE_SA"] = f"/home/{self.ssh_connection_user}/GCP.json"
+            self.set_ssh_option('SendEnv', 'GOOGLE_SA')
+
         else:
             logging.warning("(%s) Google JSON key not provided! "
                             "Instance will not be able to access GCP buckets!" % self.name)
@@ -155,7 +163,7 @@ class AmazonInstance(CloudInstance):
         while not instance_started and counter > 0:
             try:
                 logging.info(f"Attempting to restart instance {self.name}")
-                instance_started = self.__aws_request(self.driver.start_node, self.node)
+                instance_started = self.__aws_request(self.driver.ex_start_node, self.node)
             except Exception as e:
                 exception_string = str(e)
                 if 'IncorrectInstanceState' in exception_string:
@@ -193,75 +201,7 @@ class AmazonInstance(CloudInstance):
         return self.node.public_ips[0]
 
     def stop_instance(self):
-        self.__aws_request(self.driver.stop_node, self.node)
-
-    def run(self, job_name, cmd, num_retries=None, docker_image=None):
-        # Checking if logging is required
-        if "!LOG" in cmd:
-
-            # Generate name of log file
-            log_file = f"{job_name}.log"
-            if self.wrk_log_dir is not None:
-                log_file = os.path.join(self.wrk_log_dir, log_file)
-
-            # Generating all the logging pipes
-            log_cmd_null    = " >>/dev/null 2>&1 "
-            log_cmd_stdout  = f" >>{log_file}"
-            log_cmd_stderr  = f" 2>>{log_file}"
-            log_cmd_all     = f" >>{log_file} 2>&1"
-
-            # Replacing the placeholders with the logging pipes
-            cmd = cmd.replace("!LOG0!", log_cmd_null)
-            cmd = cmd.replace("!LOG1!", log_cmd_stdout)
-            cmd = cmd.replace("!LOG2!", log_cmd_stderr)
-            cmd = cmd.replace("!LOG3!", log_cmd_all)
-
-        # Save original command
-        original_cmd = cmd
-
-        # Run in docker image if specified
-        if docker_image is not None:
-            cmd = f"sudo docker run --rm --user root -v {self.wrk_dir}:{self.wrk_dir} --entrypoint '/bin/bash' {docker_image} " \
-                f"-c '{cmd}'"
-
-        # Modify quotation marks to be able to send through SSH
-        cmd = cmd.replace("'", "'\"'\"'")
-
-        # Wrap the command around ssh
-        cmd = f"ssh -i {self.ssh_private_key} " \
-              f"-o CheckHostIP=no -o StrictHostKeyChecking=no " \
-              f"-o SendEnv=AWS_ACCESS_KEY_ID " \
-              f"-o SendEnv=AWS_SECRET_ACCESS_KEY " \
-              f"-o SendEnv=GOOGLE_APPLICATION_CREDENTIALS " \
-              f"-o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o TCPKeepAlive=yes "\
-              f"{self.ssh_connection_user}@{self.external_IP} -- '{cmd}'"
-
-        # Run command using subprocess popen and add Popen object to self.processes
-        logging.info("(%s) Process '%s' started!" % (self.name, job_name))
-        logging.debug("(%s) Process '%s' has the following command:\n    %s" % (self.name, job_name, original_cmd))
-
-        # Generating process arguments
-        kwargs = {
-
-            # Add Popen specific arguments
-            "shell": True,
-            "stdout": sp.PIPE,
-            "stderr": sp.PIPE,
-            "close_fds": True,
-            "env":  {
-                "GOOGLE_APPLICATION_CREDENTIALS": f"/home/{self.ssh_connection_user}/GCP.json",
-                "AWS_ACCESS_KEY_ID": self.identity,
-                "AWS_SECRET_ACCESS_KEY": self.secret
-            },
-
-            # Add CloudConductor specific arguments
-            "original_cmd": original_cmd,
-            "num_retries": self.default_num_cmd_retries if num_retries is None else num_retries,
-            "docker_image": docker_image
-        }
-
-        # Add process to list of processes
-        self.processes[job_name] = Process(cmd, **kwargs)
+        self.__aws_request(self.driver.ex_stop_node, self.node)
 
     def get_status(self, log_status=False):
 
@@ -302,6 +242,18 @@ class AmazonInstance(CloudInstance):
         if self.instance_type and self.instance_type["storagePrice"]:
             return self.instance_type["storagePrice"]
         return 0
+
+    def generate_docker_env(self):
+        env_vars = [
+            "RCLONE_CONFIG_GS_TYPE='google cloud storage'",
+            "RCLONE_CONFIG_GS_SERVICE_ACCOUNT_FILE=$GOOGLE_SA",
+            "RCLONE_CONFIG_GS_OBJECT_ACL='projectPrivate'",
+            "RCLONE_CONFIG_S3_TYPE='s3'",
+            "RCLONE_CONFIG_S3_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID",
+            "RCLONE_CONFIG_S3_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
+        ]
+
+        return " ".join([f"-e {e}" for e in env_vars])
 
     def list_nodes(self, instance_type=None):
         inst_type_filter = None if not instance_type else {'instance-type': instance_type}
@@ -411,12 +363,16 @@ class AmazonInstance(CloudInstance):
 
     def __cancel_spot_instance_request(self):
         client = boto3.client('ec2', aws_access_key_id=self.identity, aws_secret_access_key=self.secret, region_name='us-east-1', config=self.boto_config)
-        spot_requests = self.__aws_request(client.describe_spot_instance_requests, Filters=[{'Name': 'instance-id', 'Values': [self.node.id]}], MaxResults=5)
+        instance_info = self.__aws_request(client.describe_instances, InstanceIds=[self.node.id])
 
-        if spot_requests and spot_requests['SpotInstanceRequests']:
-            request_id = spot_requests['SpotInstanceRequests'][0]['SpotInstanceRequestId']
+        if instance_info and instance_info['Reservations']:
+            instance_info = instance_info['Reservations'][0]['Instances'][0]
+            request_id = instance_info['SpotInstanceRequestId']
             logging.debug(f"({self.name} Attempting to cancel spot instance {request_id}")
             response = client.cancel_spot_instance_requests(SpotInstanceRequestIds=[request_id])
             logging.debug(f"({self.name} Cancel spot instance response {str(response)}")
             if response and response['CancelledSpotInstanceRequests']:
                 return response['CancelledSpotInstanceRequests'][0]['SpotInstanceRequestId'] == request_id
+            else:
+                return False
+        return
