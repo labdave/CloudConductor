@@ -16,6 +16,7 @@ class Purity(Merger):
 		self.add_argument("mem",				default_value=5)
 		self.add_argument("whitelist",			is_required=True, is_resource=True)
 		self.add_argument("extended_whitelist", is_resource=True)
+		self.add_argument("e",					default=False)
 
 
 	def define_output(self):
@@ -30,6 +31,7 @@ class Purity(Merger):
 		vcf_gz							= self.get_argument("vcf_gz")
 		whitelist						= self.get_argument("whitelist")
 		ext_whitelist					= self.get_argument("extended_whitelist")
+		e								= self.get_argument("e")
 
 		for vcf in vcf_gz:
 			if 'variants.vcf' in vcf:
@@ -48,7 +50,7 @@ class Purity(Merger):
 		cmd = " bash vcf_pipeline.sh -w {0} -d {1} -s {2} -g {3} -o {4}".format(
 			whitelist, deepvariant_vcf, strelka_vcf, haplotypecaller_vcf, purity_estimate)
 
-		if ext_whitelist:
+		if e:
 			cmd += " -e {0}".format(ext_whitelist)
 
 		# add logging
