@@ -16,7 +16,7 @@ class Purity(Merger):
 		self.add_argument("mem",				default_value=5)
 		self.add_argument("whitelist",			is_required=True, is_resource=True)
 		self.add_argument("extended_whitelist", is_resource=True)
-		self.add_argument("e",					default=False)
+		self.add_argument("e",					default_value=False)
 
 
 	def define_output(self):
