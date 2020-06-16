@@ -53,7 +53,7 @@ class Destruct(Module):
 		cmd += " run /usr/local/bin/destruct_ref/ {0} {1} {2} --bam_files {3}".format(
 			breaks, break_libs, break_reads, bam)
 
-		cmd += " --lib_ids {0} --submit {1} --maxjobs {2}".format(lib_ids, submit, nr_cpus)
+		cmd += " --lib_ids {0} --maxjobs {1} --submit {2}".format(lib_ids, submit, nr_cpus)
 
 		# add logging
 		cmd += " !LOG3!"
