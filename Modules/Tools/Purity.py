@@ -5,7 +5,7 @@ class Purity(Merger):
 	def __init__(self, module_id, is_docker=False):
 		super(Purity, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
-		# self.output_keys 				= ["purity_estimate"]
+		self.output_keys 				= ["purity_estimate"]
 
 
 	def define_input(self):
