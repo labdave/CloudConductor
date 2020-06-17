@@ -236,9 +236,12 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
         if src_path.endswith("*"):
             basedir, basename = src_path.rsplit("/", 1)
             return f"--include {basename} copy {basedir} {dest_dir}"
-        elif is_directory:
-            newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
-            return f"copy {src_path} {dest_dir}/{newdir}"
+        elif src_path.startswith("gs:"):
+            if is_directory:
+                newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
+                return f"copy {src_path} {dest_dir}/{newdir}"
+            else:
+                return f"copy {src_path} {dest_dir}"
         else:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
             return f"copy {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}')"
@@ -275,9 +278,13 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
         if src_path.endswith("*"):
             basedir, basename = src_path.rsplit("/", 1)
             return f"--include {basename} copy {basedir} {dest_dir}"
-        elif is_directory:
-            newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
-            return f"copy {src_path} {dest_dir}/{newdir}"
+            return f"--include {basename} copy {basedir} {dest_dir}"
+        elif src_path.startswith("s3:"):
+            if is_directory:
+                newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
+                return f"copy {src_path} {dest_dir}/{newdir}"
+            else:
+                return f"copy {src_path} {dest_dir}"
         else:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
             return f"copy {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}')"

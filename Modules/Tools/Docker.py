@@ -75,7 +75,7 @@ class Docker(Module):
 
         # Declare inputs
         for arg in self.get_input_list():
-            logger.debug("Adding Docker Input: %s" % arg)
+            # logger.debug("Adding Docker Input: %s" % arg)
             # TODO: input is_required?
             self.add_argument(arg, is_required=True)
 
