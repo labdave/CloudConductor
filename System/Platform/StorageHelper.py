@@ -233,18 +233,23 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
         src_path = src_path.replace("gs://", "gs:")
         dest_dir = dest_dir.replace("gs://", "gs:")
 
+        if dest_dir.endswith("/"):
+            cmd = "copy"
+        else:
+            cmd = "copyto"
+
         if src_path.endswith("*"):
             basedir, basename = src_path.rsplit("/", 1)
-            return f"--include {basename} copy {basedir} {dest_dir}"
+            return f"--include {basename} {cmd} {basedir} {dest_dir}"
         elif src_path.startswith("gs:"):
             if is_directory:
                 newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
-                return f"copy {src_path} {dest_dir}/{newdir}"
+                return f"{cmd} {src_path} {dest_dir}/{newdir}"
             else:
-                return f"copy {src_path} {dest_dir}"
+                return f"{cmd} {src_path} {dest_dir}"
         else:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
-            return f"copy {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}')"
+            return f"{cmd} {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}')"
 
     @staticmethod
     def mkdir(dir_path):
@@ -275,19 +280,23 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
         src_path = src_path.replace("s3://", "s3:")
         dest_dir = dest_dir.replace("s3://", "s3:")
 
+        if dest_dir.endswith("/"):
+            cmd = "copy"
+        else:
+            cmd = "copyto"
+
         if src_path.endswith("*"):
             basedir, basename = src_path.rsplit("/", 1)
-            return f"--include {basename} copy {basedir} {dest_dir}"
-            return f"--include {basename} copy {basedir} {dest_dir}"
+            return f"--include {basename} {cmd} {basedir} {dest_dir}"
         elif src_path.startswith("s3:"):
             if is_directory:
                 newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
-                return f"copy {src_path} {dest_dir}/{newdir}"
+                return f"{cmd} {src_path} {dest_dir}/{newdir}"
             else:
-                return f"copy {src_path} {dest_dir}"
+                return f"{cmd} {src_path} {dest_dir}"
         else:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
-            return f"copy {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}')"
+            return f"{cmd} {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}')"
 
     @staticmethod
     def mkdir(dir_path):
