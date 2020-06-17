@@ -13,6 +13,7 @@ from cryptography.hazmat.backends import default_backend
 
 from Config import ConfigParser
 from System import CC_MAIN_DIR
+from System.Platform import Process
 
 
 class Platform(object, metaclass=abc.ABCMeta):

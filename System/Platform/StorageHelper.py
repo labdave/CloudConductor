@@ -85,50 +85,59 @@ class StorageHelper(object):
 
     def get_file_size(self, path, job_name=None, **kwargs):
 
+        retry_count = kwargs.get("retry_count", 0)
+
         # Ignore local paths
         if self.__get_file_protocol(path) == "Local":
             logging.warning(f"Ignoring path '{path}' as it is local on the disk image. Assuming the path is present!")
             return True
 
-        try:
-            # Check if path is prefix, and create StoragePrefix object and get its size
-            if path.endswith("*"):
-                _size = StoragePrefix(path.rstrip("*")).size
+        if retry_count < 5:
+            try:
+                # Check if path is prefix, and create StoragePrefix object and get its size
+                if path.endswith("*"):
+                    _size = StoragePrefix(path.rstrip("*")).size
 
-            # Check if it path exists as a file or folder, by creating StorageFile and StorageFolder object
-            else:
-                _file = StorageFile(path)
-                _folder = StorageFolder(path)
-                _size = 0
+                # Check if it path exists as a file or folder, by creating StorageFile and StorageFolder object
+                else:
+                    _file = StorageFile(path)
+                    _folder = StorageFolder(path)
+                    _size = 0
 
-                found = False
-                trial_count = 0
-                while not found:
+                    found = False
+                    trial_count = 0
+                    while not found:
 
-                    if trial_count > 10:
-                        logging.error(f"Cannot get size of '{path}' as it doesn't exist after multiple trials!")
-                        break
+                        if trial_count > 10:
+                            logging.error(f"Cannot get size of '{path}' as it doesn't exist after multiple trials!")
+                            break
 
-                    time.sleep(trial_count)
+                        time.sleep(trial_count)
 
-                    if _file.exists():
-                        _size = _file.size
-                        found = True
-                    elif _folder.exists():
-                        _size = _folder.size
-                        found = True
-                    else:
-                        trial_count += 1
-                        logging.warning(f"Cannot get size of '{path}' as it does not exist! Trial {trial_count}/10")
+                        if _file.exists():
+                            _size = _file.size
+                            found = True
+                        elif _folder.exists():
+                            _size = _folder.size
+                            found = True
+                        else:
+                            trial_count += 1
+                            logging.warning(f"Cannot get size of '{path}' as it does not exist! Trial {trial_count}/10")
 
-            # Convert to GB
-            return float(_size)/2**30
+                # Convert to GB
+                return float(_size)/2**30
 
-        except BaseException as e:
-            logging.error(f"Unable to get file size: {path}")
-            if str(e) != "":
-                logging.error(f"Received the following msg:\n{e}")
-            raise
+            except BaseException as e:
+                logging.error(f"Unable to get file size: {path}")
+                if str(e) != "":
+                    logging.error(f"Received the following msg:\n{e}")
+                if "dictionary changed size" in str(e):
+                    kwargs['retry_count'] = retry_count + 1
+                    return self.get_file_size(path, job_name, **kwargs)
+                raise
+        else:
+            logging.warning(f"Failed to get size of '{path}'! Attempted to retrieve size {retry_count + 1} times.")
+            return 0
 
     def rm(self, path, job_name=None, log=True, wait=False, **kwargs):
         # Delete file from file system
@@ -237,10 +246,10 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
             return f"--include {basename} copy {basedir} {dest_dir}"
         elif is_directory:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
-            return f"copy {src_path} {dest_dir}/{newdir}"
+            return f"copy {src_path} {dest_dir}/{newdir} --progress"
         else:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
-            return f"copy {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}')"
+            return f"copy {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}') --progress"
 
     @staticmethod
     def mkdir(dir_path):
@@ -273,13 +282,13 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
 
         if src_path.endswith("*"):
             basedir, basename = src_path.rsplit("/", 1)
-            return f"--include {basename} copy {basedir} {dest_dir}"
+            return f"--include {basename} copy {basedir} {dest_dir} --progress"
         elif is_directory:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
-            return f"copy {src_path} {dest_dir}/{newdir}"
+            return f"copy {src_path} {dest_dir}/{newdir} --progress"
         else:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
-            return f"copy {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}')"
+            return f"copy {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}') --progress"
 
     @staticmethod
     def mkdir(dir_path):

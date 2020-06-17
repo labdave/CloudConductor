@@ -205,6 +205,10 @@ class KubernetesJob(Instance):
                     # check for this last ( only when job is no longer active ) because our job is allowed to fail multiple times
                     # job_status will hold the number of times it has failed
                     self.stop_time = job_status['conditions'][0]['last_transition_time'].timestamp()
+                    failed_container = self.__get_failed_container()
+                    if failed_container:
+                        logging.error(f"({self.name}) Instance failed during task: {failed_container['name']} with command {failed_container['args']}.")
+                        logging.error(f"({self.name}) Logs from failed task: \n {failed_container['log']}")
                     raise RuntimeError(f"({self.name}) Instance failed!")
 
     def finalize(self):
@@ -362,8 +366,8 @@ class KubernetesJob(Instance):
             env_variables.append(client.V1EnvVar(name='AWS_ACCESS_KEY_ID', value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='cloud-conductor-config', key='aws_id'))))
             env_variables.append(client.V1EnvVar(name='AWS_SECRET_ACCESS_KEY', value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='cloud-conductor-config', key='aws_access'))))
             env_variables.append(client.V1EnvVar(name='RCLONE_CONFIG_S3_TYPE', value='s3'))
-            env_variables.append(client.V1EnvVar(name='RCLONE_CONFIG_S3_ACCESS_KEY_ID', value='$AWS_ACCESS_KEY_ID'))
-            env_variables.append(client.V1EnvVar(name='RCLONE_CONFIG_S3_SECRET_ACCESS_KEY', value='$AWS_SECRET_ACCESS_KEY'))
+            env_variables.append(client.V1EnvVar(name='RCLONE_CONFIG_S3_ACCESS_KEY_ID', value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='cloud-conductor-config', key='aws_id'))))
+            env_variables.append(client.V1EnvVar(name='RCLONE_CONFIG_S3_SECRET_ACCESS_KEY', value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='cloud-conductor-config', key='aws_access'))))
 
         storage_image = 'gcr.io/cloud-builders/gsutil'
         storage_tasks = ['mkdir_', 'grant_']
@@ -375,8 +379,7 @@ class KubernetesJob(Instance):
                 container_image = storage_image
             else:
                 container_image = v['docker_image']
-                if v['docker_entrypoint'] is not None:
-                    # entrypoint = [v['docker_entrypoint']]
+                if v['docker_entrypoint'] is not None and v['original_cmd'].find(v['docker_entrypoint']) == -1:
                     v['original_cmd'] = v['docker_entrypoint'] + ' ' + v['original_cmd']
             args = v['original_cmd']
             if not isinstance(args, list):
@@ -391,7 +394,7 @@ class KubernetesJob(Instance):
             container_name = k.replace("_", "-").replace(".", "-").lower()
             formatted_container_name = container_name[:57] + '-' + Platform.generate_unique_id(id_len=5)
 
-            args = f"echo STARTING TASK {container_name} && " + args
+            args = f">&2 echo STARTING TASK {container_name} && " + args
 
             containers.append(client.V1Container(
                     # lifecycle=client.V1Lifecycle(post_start=post_start_handler),
@@ -438,6 +441,32 @@ class KubernetesJob(Instance):
         job_def.spec = client.V1JobSpec(template=job_template, **job_spec)
 
         return job_def
+
+    def __get_failed_container(self):
+        """ Returns the logs for the specified container name in the currently running job """
+        response = api_request(self.core_api.list_namespaced_pod, namespace=self.namespace, label_selector=self.inst_name, watch=False, pretty='true')
+        # Loop through all the pods to find the pods for the job
+        for pod in response.get("items"):
+            if pod.get("metadata", {}).get("labels", {}).get("job-name") == self.inst_name:
+                pod_name = pod.get("metadata", {}).get("name", '')
+                init_container_statuses = pod['status']['init_container_statuses']
+                container_index = 0
+                for status in init_container_statuses:
+                    if not status['ready']:
+                        failed_container = pod['spec']['init_containers'][container_index]
+                        failed_container['log'] = api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
+                        return failed_container
+                    container_index += 1
+                container_statuses = pod['status']['container_statuses']
+                container_index = 0
+                for status in container_statuses:
+                    if not status['ready']:
+                        failed_container = pod['spec']['containers'][container_index]
+                        failed_container['log'] = api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
+                        return failed_container
+                    container_index += 1
+        logging.warning(f"Failed to retrieve failed containe in job {self.inst_name}")
+        return None
 
     def __get_container_log(self, container_name):
         """ Returns the logs for the specified container name in the currently running job """
