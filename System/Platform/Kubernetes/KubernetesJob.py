@@ -390,8 +390,8 @@ class KubernetesJob(Instance):
                 container_image = storage_image
             else:
                 container_image = v['docker_image']
-                # if v['docker_entrypoint'] is not None and v['original_cmd'].find(v['docker_entrypoint']) == -1:
-                #    v['original_cmd'] = v['docker_entrypoint'] + ' ' + v['original_cmd']
+                if v['docker_entrypoint'] is not None and v['original_cmd'].find(v['docker_entrypoint']) == -1:
+                    v['original_cmd'] = v['docker_entrypoint'] + ' ' + v['original_cmd']
             args = v['original_cmd']
             if not isinstance(args, list):
                 args = [v['original_cmd'].replace("sudo ", "")]
