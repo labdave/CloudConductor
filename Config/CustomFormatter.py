@@ -13,9 +13,6 @@ class CustomFormatter(logging.Formatter):
     prefix = "[%(asctime)s] "
     suffix = ": %(message)s"
 
-    source = " %(lineno)4d@%(module)-15s@%(name)s "
-    suffix = source + suffix
-
     COLOR_FORMATS = {
         logging.DEBUG: prefix + BOLD + DEBUG + "CC_DEBUG" + END + END + suffix,
         logging.INFO: prefix + BOLD + INFO + "CC_INFO" + END + END + suffix,

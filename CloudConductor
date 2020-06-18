@@ -141,7 +141,9 @@ def configure_logging(verbosity):
     logger.setLevel(level)
     # Filter the logs.
     # Logs not from the CC package will be discarded
-    logger.addFilter(PackageLogFilter(packages=["CloudConductor"]))
+    log_filter = PackageLogFilter(packages=["CloudConductor"])
+    for handler in logger.handlers:
+        handler.addFilter(log_filter)
 
 
 def configure_import_paths():
