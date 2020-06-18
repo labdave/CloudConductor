@@ -62,6 +62,7 @@ class KubernetesCluster(Platform):
         kwargs.update({
             "identity": self.identity,
             "cmd_retries": self.cmd_retries,
+            "final_output_dir": self.final_output_dir,
 
             "preemptible": preemptible,
             "provider": self.service_provider,
@@ -152,6 +153,13 @@ class KubernetesCluster(Platform):
         options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
         cmd = "gsutil %s cp -r '%s' '%s' 1>/dev/null 2>&1 " % (options_fast, log_path, dest_path)
         Process.run_local_cmd(cmd, err_msg="Could not transfer final log to the final output directory!")
+
+        # Transfer failed module log file to bucket
+        failed_module_log_path = log_path.replace("cc_log.txt", "failed_module_log.txt")
+        failed_module_dest_path = dest_path.replace("cc_log.txt", "failed_module_log.txt")
+        options_fast = '-m -o "GSUtil:sliced_object_download_max_components=200"'
+        cmd = "gsutil %s cp -r '%s' '%s' 1>/dev/null 2>&1 " % (options_fast, failed_module_log_path, failed_module_dest_path)
+        Process.run_local_cmd(cmd, err_msg="Could not transfer failed module log to the final output directory!")
 
     def clean_up(self):
         # Initialize the list of threads

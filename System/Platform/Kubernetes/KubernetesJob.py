@@ -4,11 +4,14 @@ import time
 import os
 import ast
 import re
+import tempfile
 
 from System.Platform.Instance import Instance
-from System.Platform import Platform
+from System.Platform import Platform, Process
 from System.Platform.Kubernetes.utils import api_request
 from collections import OrderedDict
+
+
 
 from kubernetes import client
 
@@ -37,6 +40,8 @@ class KubernetesJob(Instance):
         self.start_time = 0
         self.stop_time = 0
 
+        self.failed_container = None
+
         # define how long the job lasts after completion
         self.termination_seconds = 600
 
@@ -57,7 +62,7 @@ class KubernetesJob(Instance):
         all_pools = kwargs.pop("pools", [])
 
         self.node_pools = [x for x in all_pools if not x["preemptible"]]
-        self.preemptbible_node_pools = [x for x in all_pools if x["preemptible"]]
+        self.preemptible_node_pools = [x for x in all_pools if x["preemptible"]]
 
         # amount to subtract from max cpu / max mem for monitoring or general k8s overhead pods
         self.cpu_reserve = kwargs.pop("cpu_reserve", 0)
@@ -69,8 +74,8 @@ class KubernetesJob(Instance):
 
     def get_nodepool_info(self):
         node_pool_dict = self.node_pools
-        if self.preemptible and self.preemptbible_node_pools:
-            node_pool_dict = self.preemptbible_node_pools
+        if self.preemptible and self.preemptible_node_pools:
+            node_pool_dict = self.preemptible_node_pools
 
         for pool in node_pool_dict:
             if pool['max_cpu'] >= self.nr_cpus and pool['max_mem'] >= self.mem:
@@ -162,6 +167,10 @@ class KubernetesJob(Instance):
                 logging.debug(f"({self.name}) Persistent Volume Claim successfully destroyed.")
 
     def wait_process(self, proc_name):
+        if proc_name == "return_logs" and self.failed_container:
+            # job has failed so we will push the log to a temporary file which will be pushed to the bucket at the end
+            with open("failed_module_log.txt", "w") as log_file:
+                log_file.write(self.failed_container['module_log'])
         # Kubernetes Job waits until all tasks have been assigned to run
         return '', ''
 
@@ -207,10 +216,10 @@ class KubernetesJob(Instance):
                     # check for this last ( only when job is no longer active ) because our job is allowed to fail multiple times
                     # job_status will hold the number of times it has failed
                     self.stop_time = job_status['conditions'][0]['last_transition_time'].timestamp()
-                    failed_container = self.__get_failed_container()
-                    if failed_container:
-                        logging.error(f"({self.name}) Instance failed during task: {failed_container['name']} with command {failed_container['args']}.")
-                        logging.error(f"({self.name}) Logs from failed task: \n {failed_container['log']}")
+                    self.failed_container = self.__get_failed_container()
+                    if self.failed_container:
+                        logging.error(f"({self.name}) Instance failed during task: {self.failed_container['name']} with command {self.failed_container['args']}.")
+                        logging.error(f"({self.name}) Logs from failed task: \n {self.failed_container['log']}")
                     raise RuntimeError(f"({self.name}) Instance failed!")
 
     def finalize(self):
@@ -381,8 +390,8 @@ class KubernetesJob(Instance):
                 container_image = storage_image
             else:
                 container_image = v['docker_image']
-                if v['docker_entrypoint'] is not None and v['original_cmd'].find(v['docker_entrypoint']) == -1:
-                    v['original_cmd'] = v['docker_entrypoint'] + ' ' + v['original_cmd']
+                # if v['docker_entrypoint'] is not None and v['original_cmd'].find(v['docker_entrypoint']) == -1:
+                #    v['original_cmd'] = v['docker_entrypoint'] + ' ' + v['original_cmd']
             args = v['original_cmd']
             if not isinstance(args, list):
                 args = [v['original_cmd'].replace("sudo ", "")]
@@ -447,27 +456,33 @@ class KubernetesJob(Instance):
     def __get_failed_container(self):
         """ Returns the logs for the specified container name in the currently running job """
         response = api_request(self.core_api.list_namespaced_pod, namespace=self.namespace, label_selector=self.inst_name, watch=False, pretty='true')
-        # Loop through all the pods to find the pods for the job
-        for pod in response.get("items"):
-            if pod.get("metadata", {}).get("labels", {}).get("job-name") == self.inst_name:
-                pod_name = pod.get("metadata", {}).get("name", '')
-                init_container_statuses = pod['status']['init_container_statuses']
-                container_index = 0
-                for status in init_container_statuses:
-                    if not status['ready']:
-                        failed_container = pod['spec']['init_containers'][container_index]
-                        failed_container['log'] = api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
-                        return failed_container
-                    container_index += 1
-                container_statuses = pod['status']['container_statuses']
-                container_index = 0
-                for status in container_statuses:
-                    if not status['ready']:
-                        failed_container = pod['spec']['containers'][container_index]
-                        failed_container['log'] = api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
-                        return failed_container
-                    container_index += 1
-        logging.warning(f"Failed to retrieve failed containe in job {self.inst_name}")
+        if response.get("items"):
+            pod = response["items"][len(response["items"])-1]
+            pod_name = pod.get("metadata", {}).get("name", '')
+            module_log = ''
+            init_container_statuses = pod['status']['init_container_statuses']
+            container_index = 0
+            for status in init_container_statuses:
+                if not status['ready']:
+                    failed_container = pod['spec']['init_containers'][container_index]
+                    failed_container['log'] = api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
+                    failed_container['module_log'] = module_log
+                    return failed_container
+                else:
+                    module_log += '\n' + api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
+                container_index += 1
+            container_statuses = pod['status']['container_statuses']
+            container_index = 0
+            for status in container_statuses:
+                if not status['ready']:
+                    failed_container = pod['spec']['containers'][container_index]
+                    failed_container['log'] = api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
+                    failed_container['module_log'] = module_log
+                    return failed_container
+                else:
+                    module_log += '\n' + api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
+                container_index += 1
+        logging.warning(f"Failed to retrieve failed container in job {self.inst_name}")
         return None
 
     def __get_container_log(self, container_name):
