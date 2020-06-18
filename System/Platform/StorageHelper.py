@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-
+import traceback
 from Aries.storage import StorageFile, StoragePrefix, StorageFolder
 
 from System.Platform import CloudPlatform
@@ -75,12 +75,12 @@ class StorageHelper(object):
             return StorageFile(path).exists() or StorageFolder(path).exists()
 
         except RuntimeError as e:
-            import traceback
             traceback.print_exc()
             if str(e) != "":
                 logging.error(f"StorageHelper error for {job_name}:\n{e}")
             return False
         except:
+            traceback.print_exc()
             logging.error(f"Unable to check path existence: {path}")
             raise
 
