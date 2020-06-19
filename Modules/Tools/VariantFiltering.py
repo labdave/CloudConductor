@@ -14,6 +14,7 @@ class VariantFiltering(Merger):
 		self.add_argument("vcf",				is_required=True)
 		self.add_argument("nr_cpus",			default_value=1)
 		self.add_argument("mem",				default_value=5)
+		self.add_argument("sample_id", is_required=True)
 
 
 
@@ -33,6 +34,7 @@ class VariantFiltering(Merger):
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC
 		vcf_list							= self.get_argument("vcf")
+		sample_id             = self.get_argument("sample_id")
 
 		for vcf in vcf_list:
 			if 'strelka2' in vcf:
@@ -49,10 +51,11 @@ class VariantFiltering(Merger):
 		filt_variants					= self.get_output("filt_variants")
     wl_variants					= self.get_output("wl_variants")
     single_sample_merge					= self.get_output("single_sample_merge")
+
     
 		# add arguments
-		cmd = " RScript single_sample_VCF_merge_and_filter.R {1} {2} {3} {4} {5} {6} {7}".format(
-			haplotypecaller_vcf, strelka2_vcf, deepvariant_vcf, all_variants, filt_variants, wl_variants, single_sample_merge)
+		cmd = " RScript single_sample_VCF_merge_and_filter.R {1} {2} {3} {4} {5} {6} {7} {8}".format(
+			haplotypecaller_vcf, strelka2_vcf, deepvariant_vcf, all_variants, filt_variants, wl_variants, single_sample_merge, sample_id)
 
 		
 		# add logging
