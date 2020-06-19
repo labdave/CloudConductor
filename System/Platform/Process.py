@@ -72,7 +72,7 @@ class Process(sp.Popen):
         return self.to_rerun
 
     @staticmethod
-    def run_local_cmd(cmd, err_msg=None, num_retries=5, env_var=None, print_logs=False):
+    def run_local_cmd(cmd, err_msg=None, num_retries=5, env_var=None, print_logs=False, error_string_check="error"):
 
         # Running and waiting for the command
         proc = sp.Popen(cmd, shell=True, stdout=sp.PIPE, stderr=sp.PIPE, env=env_var)
@@ -82,8 +82,15 @@ class Process(sp.Popen):
         out = out.decode("utf8")
         err = err.decode("utf8")
 
+        if print_logs:
+            logging.info(f"OUTPUT FOR CMD:\n {cmd} \n {out}")
+            logging.info(f"ERROR FOR CMD:\n {cmd} \n {err}")
+
         # Check if any error has appeared
-        if len(err) != 0 and "error" in err.lower():
+        if len(err) != 0:
+
+            if error_string_check and error_string_check.lower() not in err.lower():
+                return out, err
 
             # Retry command if possible
             if num_retries > 0:
@@ -96,8 +103,4 @@ class Process(sp.Popen):
 
             raise RuntimeError(err_msg)
 
-        if print_logs:
-            logging.info(f"OUTPUT FOR CMD:\n {cmd} \n {out}")
-            logging.info(f"ERROR FOR CMD:\n {cmd} \n {err}")
-
-        return out
+        return out, err
