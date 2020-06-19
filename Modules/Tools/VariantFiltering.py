@@ -21,9 +21,9 @@ class VariantFiltering(Merger):
 	def define_output(self):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
-		all_variants							= self.generate_unique_file_name("all_variants.tsv")
-		filt_variants							= self.generate_unique_file_name("filt_variants.tsv")
-		wl_variants							  = self.generate_unique_file_name("wl_variants.tsv")
+		all_variants							= self.generate_unique_file_name("all_variants.csv")
+		filt_variants							= self.generate_unique_file_name("filt_variants.csv")
+		wl_variants							  = self.generate_unique_file_name("wl_variants.csv")
 		single_sample_merge				= self.generate_unique_file_name("single_sample_merge.RData")
 		self.add_output("all_variants",		all_variants)
 		self.add_output("filt_variants",		filt_variants)
