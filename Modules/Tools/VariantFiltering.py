@@ -54,7 +54,7 @@ class VariantFiltering(Merger):
 
     
 		# add arguments
-		cmd = " RScript single_sample_VCF_merge_and_filter.R {1} {2} {3} {4} {5} {6} {7} {8}".format(
+		cmd = " Rscript single_sample_VCF_merge_and_filter.R {1} {2} {3} {4} {5} {6} {7} {8}".format(
 			haplotypecaller_vcf, strelka2_vcf, deepvariant_vcf, all_variants, filt_variants, wl_variants, single_sample_merge, sample_id)
 
 		
