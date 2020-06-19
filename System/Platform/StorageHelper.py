@@ -240,16 +240,16 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
 
         if src_path.endswith("*"):
             basedir, basename = src_path.rsplit("/", 1)
-            return f"--include {basename} {cmd} {basedir} {dest_dir}"
+            return f"--include {basename} {cmd} {basedir} {dest_dir} --progress"
         elif src_path.startswith("gs:"):
             if is_directory:
                 newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
-                return f"{cmd} {src_path} {dest_dir}/{newdir}"
+                return f"{cmd} {src_path} {dest_dir}/{newdir} --progress"
             else:
                 return f"{cmd} {src_path} {dest_dir}"
         else:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
-            return f"{cmd} {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}')"
+            return f"{cmd} {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}') --progress"
 
     @staticmethod
     def mkdir(dir_path):
@@ -287,16 +287,16 @@ class AmazonStorageCmdGenerator(StorageCmdGenerator):
 
         if src_path.endswith("*"):
             basedir, basename = src_path.rsplit("/", 1)
-            return f"--include {basename} {cmd} {basedir} {dest_dir}"
+            return f"--include {basename} {cmd} {basedir} {dest_dir} --progress"
         elif src_path.startswith("s3:"):
             if is_directory:
                 newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
-                return f"{cmd} {src_path} {dest_dir}/{newdir}"
+                return f"{cmd} {src_path} {dest_dir}/{newdir} --progress"
             else:
-                return f"{cmd} {src_path} {dest_dir}"
+                return f"{cmd} {src_path} {dest_dir} --progress"
         else:
             newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
-            return f"{cmd} {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}')"
+            return f"{cmd} {src_path} {dest_dir}$([ -d {src_path} ] && echo '/{newdir}') --progress"
 
     @staticmethod
     def mkdir(dir_path):

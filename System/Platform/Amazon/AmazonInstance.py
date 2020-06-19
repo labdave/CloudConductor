@@ -128,7 +128,7 @@ class AmazonInstance(CloudInstance):
             cmd = f'scp -i {self.ssh_private_key} -o CheckHostIP=no -o StrictHostKeyChecking=no {self.google_json} ' \
                   f'{self.ssh_connection_user}@{self.external_IP}:GCP.json'
 
-            Process.run_local_cmd(cmd, err_msg="Could not authenticate Google SDK on instance!")
+            Process.run_local_cmd(cmd, err_msg="Could not authenticate Google SDK on instance!", print_logs=True)
 
             # Activate service account
             cmd = f'gcloud auth activate-service-account --key-file /home/{self.ssh_connection_user}/GCP.json'
@@ -247,6 +247,7 @@ class AmazonInstance(CloudInstance):
         env_vars = [
             "RCLONE_CONFIG_GS_TYPE='google cloud storage'",
             "RCLONE_CONFIG_GS_SERVICE_ACCOUNT_FILE=$GOOGLE_SA",
+            "RCLONE_CONFIG_GS_BUCKET_ACL='projectPrivate'",
             "RCLONE_CONFIG_GS_OBJECT_ACL='projectPrivate'",
             "RCLONE_CONFIG_S3_TYPE='s3'",
             "RCLONE_CONFIG_S3_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID",
