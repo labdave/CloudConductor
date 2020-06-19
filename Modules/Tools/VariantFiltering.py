@@ -27,8 +27,8 @@ class VariantFiltering(Merger):
 		single_sample_merge				= self.generate_unique_file_name("single_sample_merge.RData")
 		self.add_output("all_variants",		all_variants)
 		self.add_output("filt_variants",		filt_variants)
-    		self.add_output("wl_variants",		wl_variants)
-    		self.add_output("single_sample_merge",		single_sample_merge)
+		self.add_output("wl_variants",		wl_variants)
+		self.add_output("single_sample_merge",		single_sample_merge)
 
 
 	def define_command(self):
