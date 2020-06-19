@@ -9,6 +9,7 @@ import subprocess as sp
 
 from System import GAPipeline
 from Config import CustomFormatter
+from Aries.outputs import PackageLogFilter
 
 # Define the available platform modules
 available_plat_modules = {
@@ -136,7 +137,13 @@ def configure_logging(verbosity):
 
     # Setting the level of the logs
     level = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG][verbosity]
-    logging.getLogger().setLevel(level)
+    logger = logging.getLogger()
+    logger.setLevel(level)
+    # Filter the logs.
+    # Logs not from the CC package will be discarded
+    log_filter = PackageLogFilter(packages=["CloudConductor"])
+    for handler in logger.handlers:
+        handler.addFilter(log_filter)
 
 
 def configure_import_paths():
