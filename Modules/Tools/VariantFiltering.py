@@ -38,24 +38,23 @@ class VariantFiltering(Merger):
 
 		for vcf in vcf_list:
 			if 'strelka2' in vcf:
-			  strelka2_vcf=vcf
+				strelka2_vcf=vcf
 				continue
 			if 'deepvariant' in vcf:
-			  deepvariant_vcf=vcf
+				deepvariant_vcf=vcf
 				continue
 			if 'haplotypecaller' in vcf:
-			  haplotypecaller_vcf=vcf
+				haplotypecaller_vcf=vcf
 				continue
 		# get output
 		all_variants					= self.get_output("all_variants")
 		filt_variants					= self.get_output("filt_variants")
-    wl_variants					= self.get_output("wl_variants")
-    single_sample_merge					= self.get_output("single_sample_merge")
+		wl_variants					= self.get_output("wl_variants")
+		single_sample_merge				= self.get_output("single_sample_merge")
 
     
 		# add arguments
-		cmd = " Rscript single_sample_VCF_merge_and_filter.R {1} {2} {3} {4} {5} {6} {7} {8}".format(
-			haplotypecaller_vcf, strelka2_vcf, deepvariant_vcf, all_variants, filt_variants, wl_variants, single_sample_merge, sample_id)
+		cmd = " Rscript single_sample_VCF_merge_and_filter.R {1} {2} {3} {4} {5} {6} {7} {8}".format(haplotypecaller_vcf, strelka2_vcf, deepvariant_vcf, all_variants, filt_variants, wl_variants, single_sample_merge, sample_id)
 
 		
 		# add logging
