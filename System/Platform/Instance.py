@@ -6,6 +6,7 @@ import time
 import socket
 import re
 import random
+import traceback
 from collections import OrderedDict
 
 from System.Platform import Process
@@ -191,6 +192,7 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
                     self.destroy_instance()
                 except Exception as e:
                     logging.error(f"Received the following error: {str(e)}")
+                    traceback.print_exc()
                     if 'notFound' in str(e):
                         self.node = None
                         self.__add_history_event("DESTROY")
@@ -254,6 +256,7 @@ class CloudInstance(Instance, metaclass=abc.ABCMeta):
         except Exception as e:
             exception_string = str(e)
             logging.error(f"Received the following error: {exception_string}")
+            traceback.print_exc()
             if 'notFound' in exception_string:
                 logging.debug(f"({self.name}) Failed to stop instance. ResourceNotFound moving on.")
 
