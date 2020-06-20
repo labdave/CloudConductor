@@ -12,8 +12,8 @@ class VariantFiltering(Merger):
 		# Module creator needs to define which arguments have is_resource=True
 		# Module creator needs to rename arguments as required by CC
 		self.add_argument("vcf",				is_required=True)
-		self.add_argument("nr_cpus",			default_value=1)
-		self.add_argument("mem",				default_value=5)
+		self.add_argument("nr_cpus",			default_value=4)
+		self.add_argument("mem",				default_value=30)
 		self.add_argument("sample_id", is_required=True)
 
 
