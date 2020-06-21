@@ -13,7 +13,7 @@ from collections import OrderedDict
 
 
 
-from kubernetes import client
+from kubernetes import client, config
 
 
 class KubernetesJob(Instance):
@@ -237,10 +237,15 @@ class KubernetesJob(Instance):
         job_status = s.get("status", dict())
         if log_status:
             logging.debug(f"({self.name}) Job Status: {job_status}")
-        if job_status:
+        if job_status and job_status != "Failure":
             if self.start_time == 0 and job_status['start_time']:
                 self.start_time = job_status['start_time'].timestamp()
             return job_status
+        elif job_status == "Failure":
+            logging.debug(f"({self.name}) Failure to get status. Reason: {s.get('message', '')}")
+            if s.get('message', '') == "Unauthorized":
+                self.__reauthenticate_platform()
+                return self.get_status(log_status)
         return s
 
     def add_checkpoint(self, clear_output=True):
@@ -277,6 +282,9 @@ class KubernetesJob(Instance):
 
     def get_storage_price(self):
         return self.storage_price
+
+    def __reauthenticate_platform(self):
+        config.load_kube_config(config_file=self.identity)
 
     def __create_volume_claim(self):
         # create the persistent volume claim for the task
