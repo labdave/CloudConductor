@@ -868,6 +868,7 @@ class PreprocessIntervals(_GATKBase):
 
     def define_input(self):
         self.define_base_args()
+        self.add_argument("interval_list", is_required=True, default_value=0)
         self.add_argument("bin_length", is_required=False, default_value=0)
         self.add_argument("padding", is_required=False, default_value=250)
         self.add_argument("nr_cpus", is_required=True, default_value=1)
@@ -880,7 +881,7 @@ class PreprocessIntervals(_GATKBase):
 
     def define_command(self):
         # Get input arguments
-        bed = self.get_argument("bed")
+        interval_list = self.get_argument("interval_list")
         bin_length = self.get_argument("bin_length")
         padding = self.get_argument("padding")
         ref = self.get_argument("ref")
@@ -895,9 +896,12 @@ class PreprocessIntervals(_GATKBase):
         gatk_cmd = self.get_gatk_command()
 
         # Generate the command line for PreProcessIntervals
-        cmd = "{0} PreprocessIntervals --interval-merging-rule OVERLAPPING_ONLY".format(gatk_cmd)
-        cmd = "{0} -R {1} -L {2} --bin-length {3} --padding {4} {5} {6}".format(cmd, ref, bed, bin_length, padding,
-                                                                         output_file_flag, interval_list_out)
+        cmd = "{0} PreprocessIntervals -R {1} --bin-length {2} --padding {3} {4} {5}".format(gatk_cmd, ref, bin_length, padding,
+                                                                                             output_file_flag, interval_list_out)
+
+        # pass the location to include in the processing
+        if interval_list is not None:
+            cmd = "{0} -L {1} --interval-merging-rule OVERLAPPING_ONLY".format(cmd, interval_list)
 
         return "{0} !LOG3!".format(cmd)
 
