@@ -87,6 +87,6 @@ class DiscoWave(Module):
         cmd += " !LOG3!"
 
         if not self.is_docker:
-            cmd = "sudo " + cmd
+            cmd = "sudo python3 " + cmd
 
         return cmd
