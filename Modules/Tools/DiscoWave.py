@@ -45,7 +45,7 @@ class DiscoWave(Module):
 
         # Declare output file names
         translocation_table = self.generate_unique_file_name("{}.candidate_translocations.tsv".format(sample_id))
-        bam                 = self.generate_unique_file_name("{}.discordant_reads.diff_chrom.tsv".format(sample_id))
+        bam                 = self.generate_unique_file_name("{}.discordant_reads.diff_chrom.bam".format(sample_id))
         bam_idx             = bam + ".bai"
 
         # Create figure directory
