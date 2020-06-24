@@ -4,4 +4,4 @@ configobj
 apache-libcloud
 google-cloud-pubsub
 boto3
-Astrology-Aries
+Aries-storage>=0.1.298
