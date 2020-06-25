@@ -23,7 +23,7 @@ class DiscoWave(Module):
 
         # Options for disco-wave, set to disco-wave defaults
         self.add_argument("tiling_bed",                 default_value=None)
-        self.add_argument("min_read_pairs",             default_value=10)
+        self.add_argument("min_read_pairs",             default_value=5)
         self.add_argument("min_mapping_threshold",      default_value=20)
         
         
