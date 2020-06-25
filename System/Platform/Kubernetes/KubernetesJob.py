@@ -11,8 +11,6 @@ from System.Platform import Platform, Process
 from System.Platform.Kubernetes.utils import api_request
 from collections import OrderedDict
 
-
-
 from kubernetes import client, config
 
 
@@ -243,9 +241,6 @@ class KubernetesJob(Instance):
             return job_status
         elif job_status == "Failure":
             logging.debug(f"({self.name}) Failure to get status. Reason: {s.get('message', '')}")
-            if s.get('message', '') == "Unauthorized":
-                self.__reauthenticate_platform()
-                return self.get_status(log_status)
         return s
 
     def add_checkpoint(self, clear_output=True):
@@ -282,9 +277,6 @@ class KubernetesJob(Instance):
 
     def get_storage_price(self):
         return self.storage_price
-
-    def __reauthenticate_platform(self):
-        config.load_kube_config(config_file=self.identity)
 
     def __create_volume_claim(self):
         # create the persistent volume claim for the task
@@ -400,6 +392,8 @@ class KubernetesJob(Instance):
                 container_image = v['docker_image']
                 if v['docker_entrypoint'] is not None and v['original_cmd'].find(v['docker_entrypoint']) == -1:
                     v['original_cmd'] = v['docker_entrypoint'] + ' ' + v['original_cmd']
+                if 'rclone' in container_image:
+                    v['original_cmd'] = v['original_cmd'].replace("copyto", "copy")
             args = v['original_cmd']
             if not isinstance(args, list):
                 args = [v['original_cmd'].replace("sudo ", "")]

@@ -2,6 +2,7 @@ import logging
 import requests
 import time
 import os
+import json
 
 from System import CC_MAIN_DIR
 from System.Platform import Process
@@ -92,8 +93,12 @@ class KubernetesCluster(Platform):
             raise
 
     def authenticate_platform(self):
-        config.load_kube_config(config_file=self.identity)
+        cert_path, host, api_token, api_prefix = self.__parse_identity_json(self.identity)
         self.configuration = client.Configuration()
+        self.configuration.api_key["authorization"] = api_token
+        self.configuration.api_key_prefix['authorization'] = api_prefix
+        self.configuration.host = host
+        self.configuration.ssl_ca_cert = cert_path
         self.batch_api = client.BatchV1Api(client.ApiClient(self.configuration))
         self.core_api = client.CoreV1Api(client.ApiClient(self.configuration))
 
@@ -106,11 +111,11 @@ class KubernetesCluster(Platform):
 
     def validate(self):
         try:
-            namespace_list = api_request(self.batch_api.list_namespaced_job, namespace='default')
+            namespace_list = api_request(self.batch_api.list_namespaced_job, namespace='cloud-conductor')
             if not namespace_list or not namespace_list.items:
                 logging.error("Failed to validate Kubernetes platform.")
                 raise RuntimeError("Failed to validate Kubernetes platform.")
-        except BaseException:
+        except BaseException as e:
             logging.error(f"Failed to validate Kubernetes platform.")
             raise
 
@@ -177,3 +182,11 @@ class KubernetesCluster(Platform):
         # Wait for all threads to finish
         for _thread in destroy_threads:
             _thread.join()
+
+    def __parse_identity_json(self, identity):
+        api_key_prefix = 'Bearer'
+        f = open(self.identity) 
+        auth_config = json.load(f)
+        f.close()
+
+        return auth_config['cert'], auth_config['host'], auth_config['api_key'], api_key_prefix
