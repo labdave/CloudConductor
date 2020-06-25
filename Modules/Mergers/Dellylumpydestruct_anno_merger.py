@@ -21,7 +21,7 @@ class Dellylumpydestruct_anno_merger(Merger):
 		self.add_argument("gtf",					is_resource=True)
 		self.add_argument("chr_names",				is_resource=True)
 		self.add_argument("paper_freq_pairs",		is_resource=True)
-		self.add_argument("translocation_table"		is_required=True)
+		self.add_argument("translocation_table",	is_required=True)
 		self.add_argument("nr_cpus",				default_value=2)
 		self.add_argument("mem",					default_value=10.0)
 		self.add_argument("chr_filter",				default_value=0)
