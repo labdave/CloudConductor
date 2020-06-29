@@ -267,6 +267,61 @@ class AggregateNormalizedCounts(Merger):
 
         return [mk_sample_sheet_cmd, mk_sample_disease_cmd, cmd]
 
+class AggregateSalmonReadCounts(Merger):
+    def __init__(self, module_id, is_docker = False):
+        super(AggregateSalmonReadCounts, self).__init__(module_id, is_docker)
+        self.output_keys = ["expression_file"]
+
+    def define_input(self):
+        self.add_argument("sample_id",          is_required=True)
+        self.add_argument("quant_gene_counts")
+        self.add_argument("quant_gene_tpm")
+        self.add_argument("count_type",         is_required=True)
+        self.add_argument("aggregate_script",   is_required=True, is_resource=True)
+        self.add_argument("nr_cpus",            is_required=True, default_value=2)
+        self.add_argument("mem",                is_required=True, default_value="nr_cpus * 2")
+
+    def define_output(self):
+
+        # Declare unique file name
+        output_file_name = self.generate_unique_file_name(extension=".txt")
+
+        self.add_output("expression_file", output_file_name)
+
+    def define_command(self):
+
+        # Get arguments
+        samples             = self.get_argument("sample_id")
+        quant_gene_counts   = self.get_argument("quant_gene_counts")
+        quant_gene_tpm      = self.get_argument("quant_gene_tpm")
+        count_type          = self.get_argument("count_type")
+
+        #get the aggregate script to run
+        aggregate_script    = self.get_argument("aggregate_script")
+
+        # Get current working dir
+        working_dir = self.get_output_dir()
+
+        # Generate output file name prefix for STAR
+        sample_sheet_file = os.path.join(working_dir, "{0}".format("sample_info.txt"))
+
+        #get the output file and make appropriate path for it
+        output_file = self.get_output("expression_file")
+
+        # generate command line for Rscript
+        if count_type == "raw_counts":
+            mk_sample_sheet_cmd = generate_sample_sheet_cmd(samples, quant_gene_counts, sample_sheet_file)
+        elif count_type == "normalized_counts":
+            mk_sample_sheet_cmd = generate_sample_sheet_cmd(samples, quant_gene_tpm, sample_sheet_file)
+        else:
+            raise Exception("No count type specified.")
+
+        if not self.is_docker:
+            cmd = "sudo Rscript --vanilla {0} -f {1} -o {2} !LOG3!".format(aggregate_script, sample_sheet_file, output_file)
+        else:
+            cmd = "Rscript --vanilla {0} -f {1} -o {2} !LOG3!".format(aggregate_script, sample_sheet_file, output_file)
+
+        return "{0} ; {1}".format(mk_sample_sheet_cmd, cmd)
 
 class Cuffnorm(Merger):
     def __init__(self, module_id, is_docker = False):
