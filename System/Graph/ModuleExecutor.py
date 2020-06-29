@@ -187,7 +187,7 @@ class ModuleExecutor(object):
 
     def save_logs(self):
         # Move log files to final output log directory
-        self.storage_helper.mv(self.final_tmp_dir,
+        self.storage_helper.mv("/data/log",
                                self.final_output_dir,
                                job_name="return_logs", log=False, wait=True)
 

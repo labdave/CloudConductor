@@ -7,3 +7,4 @@ boto3
 Astrology-Aries
 kubernetes
 cryptography
+Aries-storage>=0.1.298
