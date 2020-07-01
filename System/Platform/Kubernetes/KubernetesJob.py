@@ -103,9 +103,9 @@ class KubernetesJob(Instance):
                 log_file = os.path.join(self.wrk_log_dir, log_file)
 
             # Generating all the logging pipes
-            log_cmd_null    = " 2>&1"
+            log_cmd_null    = " 2>&1 > /dev/null"
             log_cmd_stdout  = f" "
-            log_cmd_stderr  = f" 2"
+            log_cmd_stderr  = f" > /dev/null"
             log_cmd_all     = f" 2>&1"
 
             # Replacing the placeholders with the logging pipes
