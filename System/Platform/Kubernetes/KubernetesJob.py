@@ -407,7 +407,7 @@ class KubernetesJob(Instance):
             container_name = k.replace("_", "-").replace(".", "-").lower()
             formatted_container_name = container_name[:57] + '-' + Platform.generate_unique_id(id_len=5)
 
-            args = f">&2 echo STARTING TASK {container_name} && " + args
+            # args = f">&2 echo STARTING TASK {container_name} && " + args
 
             containers.append(client.V1Container(
                     # lifecycle=client.V1Lifecycle(post_start=post_start_handler),
