@@ -103,10 +103,10 @@ class KubernetesJob(Instance):
                 log_file = os.path.join(self.wrk_log_dir, log_file)
 
             # Generating all the logging pipes
-            log_cmd_null    = " >>/dev/null 2>&1"
-            log_cmd_stdout  = f" | tee -a {log_file}"
+            log_cmd_null    = " >>/dev/null 2>&1 "
+            log_cmd_stdout  = f" >>{log_file}"
             log_cmd_stderr  = f" 2>>{log_file}"
-            log_cmd_all     = f" 2>&1 | tee -a {log_file}"
+            log_cmd_all     = f" >>{log_file} 2>&1"
 
             # Replacing the placeholders with the logging pipes
             cmd = cmd.replace("!LOG0!", log_cmd_null)
@@ -400,6 +400,8 @@ class KubernetesJob(Instance):
 
             if "gsutil" in args:
                 args = "gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS && " + args
+
+            logging.debug(f"({self.name}) Command for task {k} is : {args}")
 
             # format the container name and roll call to logging
             container_name = k.replace("_", "-").replace(".", "-").lower()

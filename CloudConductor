@@ -239,7 +239,7 @@ def main():
         pipeline.validate()
 
         # Run the pipeline
-        pipeline.run()
+        pipeline.run(rm_tmp_output_on_success=False)
 
         # Indicate that pipeline completed successfully
         err = False
