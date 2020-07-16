@@ -398,6 +398,9 @@ class KubernetesJob(Instance):
             args = " && ".join(args)
             args = args.replace("\n", " ")
 
+            if "awk " in args:
+                args = re.sub("'\"'\"'", "'", args)
+
             if "gsutil" in args:
                 args = "gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS && " + args
 
