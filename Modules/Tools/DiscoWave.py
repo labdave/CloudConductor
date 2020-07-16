@@ -17,7 +17,7 @@ class DiscoWave(Module):
         self.add_argument("mem",                        is_required=True, default_value="nr_cpus * 2")
 
         # Inputs to disco-wave
-        self.add_argument("sample_id",                  is_required=True)
+        self.add_argument("sample_name",                  is_required=True)
         self.add_argument("bam",                        is_required=True)
         self.add_argument("bam_idx",                    is_required=True)
 
@@ -30,27 +30,27 @@ class DiscoWave(Module):
     def define_output(self):
 
         # Get the sample name
-        sample_id = self.get_argument("sample_id")
+        sample_name = self.get_argument("sample_name")
         
         # We may get more than one sample name if this is being run on a merged BAM. Check that it's all the same sample
         # name, and raise an error if that's not the case.
-        if isinstance(sample_id, list):
-            sample_id = set(sample_id)
-            if len(sample_id) != 1:
+        if isinstance(sample_name, list):
+            sample_name = set(sample_name)
+            if len(sample_name) != 1:
                 logging.error("More than one unique sample provided. Please only run one sample at a time.")
                 raise RuntimeError("More than one unique sample provided. Please only run one sample at a time!")
 
-            # If we get here, we know that sample_id is a set with 1 element 
-            sample_id = sample_id.pop()
+            # If we get here, we know that sample_name is a set with 1 element 
+            sample_name = sample_name.pop()
 
         # Declare output file names
-        translocation_table = self.generate_unique_file_name("{}.candidate_translocations.tsv".format(sample_id))
-        bam                 = self.generate_unique_file_name("{}.discordant_reads.diff_chrom.bam".format(sample_id))
+        translocation_table = self.generate_unique_file_name("{}.candidate_translocations.tsv".format(sample_name))
+        bam                 = self.generate_unique_file_name("{}.discordant_reads.diff_chrom.bam".format(sample_name))
         bam_idx             = bam + ".bai"
 
         # Create figure directory
         # Initializing this way because unclear if generate_unique_file_name will copy a directory over
-        figure_dir          = os.path.join(self.get_output_dir(), "{}.supporting_figures".format(sample_id))
+        figure_dir          = os.path.join(self.get_output_dir(), "{}.supporting_figures".format(sample_name))
 
         self.add_output("translocation_table", translocation_table)
         self.add_output("bam", bam)
@@ -64,7 +64,7 @@ class DiscoWave(Module):
         input_bam               = self.get_argument("bam")
         disco_wave              = self.get_argument("disco_wave")
         nr_cpus                 = self.get_argument("nr_cpus")
-        sample_id               = self.get_argument("sample_id")
+        sample_name               = self.get_argument("sample_name")
         tiling_bed              = self.get_argument("tiling_bed")
         min_read_pairs          = self.get_argument("min_read_pairs")
         min_mapping_threshold   = self.get_argument("min_mapping_threshold")
@@ -77,7 +77,7 @@ class DiscoWave(Module):
 
         cmd = "{0} {1} --sample_name {2}  --out_translocation_table {3} --out_discordant_bam {4} " \
         "--figure_output_dir {5} --min_read_pairs {6} --min_mapping_quality {7} --nr_cpus {8}".format(
-            disco_wave, input_bam, sample_id, translocation_table, output_bam, figure_dir, min_read_pairs, 
+            disco_wave, input_bam, sample_name, translocation_table, output_bam, figure_dir, min_read_pairs, 
             min_mapping_threshold, nr_cpus)
 
         # Add tiling BED if it was somehow defined. Default in tool is MYC/BCL2/BCL6.
