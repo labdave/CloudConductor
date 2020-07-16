@@ -7,8 +7,8 @@ class Delly(Module):
 
 
     def define_input(self):
-        self.add_argument("filtered_bam",       is_required=True)
-        self.add_argument("filtered_bam_bai",   is_required=True)
+        self.add_argument("bam",       is_required=True)
+        self.add_argument("bam_idx",            is_required=True)
         self.add_argument("delly",              is_required=True, is_resource=True)
         self.add_argument("ref",                is_required=True, is_resource=True)
         self.add_argument("exclude_list",       is_resource=True)
@@ -26,7 +26,7 @@ class Delly(Module):
     def define_command(self):
 
         # Get arguments to run Delly
-        bam             = self.get_argument("filtered_bam")
+        bam             = self.get_argument("bam")
         ref             = self.get_argument("ref")
         exclude_list    = self.get_argument("exclude_list")
         delly           = self.get_argument("delly")
