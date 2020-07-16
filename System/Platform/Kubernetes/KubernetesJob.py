@@ -144,7 +144,7 @@ class KubernetesJob(Instance):
                 elif delete_status and isinstance(delete_status, dict) or delete_status.get("failed") or delete_status.get("succeeded"):
                     logging.debug(f"({self.name}) Kubernetes job successfully destroyed.")
 
-        if self.start_time > 0:
+        if self.start_time > 0 and self.stop_time == 0:
             self.stop_time = time.time()
         # stop monitoring the job
         self.monitoring = False
