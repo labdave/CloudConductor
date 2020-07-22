@@ -991,7 +991,7 @@ class PlotDenoisedCopyRatios(_GATKBase):
         sample_name = self.get_argument("sample_name")
 
         # Declare unique file name for a single output file
-        denoised_plot = self.generate_unique_file_name(extension="{0}.denoised.png".format(sample_name))
+        denoised_plot = self.generate_unique_file_name(extension="denoised.png")
 
         # Split the genereated unique output file name to get prefix to use to generate other output filenames
         prefix = denoised_plot.split(".denoised.png")[0]
@@ -1063,7 +1063,7 @@ class CollectAllelicCounts(_GATKBase):
         sample_name = self.get_argument("sample_name")
 
         # Declare unique file name for a single output file
-        allelic_counts = self.generate_unique_file_name(extension="{0}.allelicCounts.txt".format(sample_name))
+        allelic_counts = self.generate_unique_file_name(extension="allelicCounts.txt")
 
         self.add_output("allelic_counts", allelic_counts)
 
@@ -1110,7 +1110,7 @@ class ModelSegments(_GATKBase):
         sample_name = self.get_argument("sample_name")
 
         # Declare unique file name for a single output file
-        model_begin_seg = self.generate_unique_file_name(extension="{0}.modelBegin.seg".format(sample_name))
+        model_begin_seg = self.generate_unique_file_name(extension="modelBegin.seg")
 
         # Split the genereated unique output file name to get prefix to use to generate other output filenames
         prefix = model_begin_seg.split(".modelBegin.seg")[0]
@@ -1176,7 +1176,7 @@ class CallCopyRatioSegments(_GATKBase):
         sample_name = self.get_argument("sample_name")
 
         # Declare unique file name for a single output file
-        called_seg = self.generate_unique_file_name(extension="{0}.called.seg".format(sample_name))
+        called_seg = self.generate_unique_file_name(extension="called.seg")
 
         # Add output file keys to be returned to Bucket
         self.add_output("seg_call", called_seg)
@@ -1223,7 +1223,7 @@ class PlotModeledSegments(_GATKBase):
         sample_name = self.get_argument("sample_name")
 
         # Declare unique file name for a single output file
-        modeled_plot = self.generate_unique_file_name(extension="{0}.modeled.png".format(sample_name))
+        modeled_plot = self.generate_unique_file_name(extension="modeled.png")
 
         # Add output file keys to be returned to Bucket
         self.add_output("model_plot", modeled_plot)

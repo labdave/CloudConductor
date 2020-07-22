@@ -11,9 +11,8 @@ class Lumpy(Module):
 	def define_input(self):
 		# Module creator needs to define which arguments have is_resource=True
 		# Module creator needs to rename arguments as required by CC
-		self.add_argument("filtered_bam",				is_required=True)
-		self.add_argument("filtered_bam_bai",			is_required=True)
-		self.add_argument("sample_id",					is_required=True)
+		self.add_argument("bam",						is_required=True)
+		self.add_argument("bam_idx",					is_required=True)
 		self.add_argument("nr_cpus",					default_value=8)
 		self.add_argument("mem",						default_value=30)
 		self.add_argument("read_length",				default_value=152)
@@ -26,16 +25,15 @@ class Lumpy(Module):
 	def define_output(self):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
-		sample_id		= self.get_argument("sample_id")
-		lumpy_vcf		= self.generate_unique_file_name("{}.lumpy.vcf".format(sample_id))
-		gt_vcf 			= self.generate_unique_file_name("{}.gt.vcf".format(sample_id))
+		lumpy_vcf		= self.generate_unique_file_name("lumpy.vcf")
+		gt_vcf 			= self.generate_unique_file_name("gt.vcf")
 		self.add_output("lumpy_vcf",		lumpy_vcf)
 		self.add_output("gt_vcf",			gt_vcf)
 
 
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC
-		bam						= self.get_argument("filtered_bam")
+		bam						= self.get_argument("bam")
 		read_length				= self.get_argument("read_length")
 		discordant_z			= self.get_argument("discordant_z")
 		back_distance			= self.get_argument("back_distance")
