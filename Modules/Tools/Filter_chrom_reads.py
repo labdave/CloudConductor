@@ -5,7 +5,7 @@ class Filter_chrom_reads(Module):
 	def __init__(self, module_id, is_docker=False):
 		super(Filter_chrom_reads, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
-		self.output_keys = ["filtered_bam", "filtered_bam_bai"]
+		self.output_keys = ["bam", "bam_idx"]
 
 
 	def define_input(self):
@@ -20,11 +20,11 @@ class Filter_chrom_reads(Module):
 	def define_output(self):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
-		filtered_bam			= self.generate_unique_file_name(".filtered.bam")
-		temp1_bam				= filtered_bam.replace('.bam', '.temp1.bam')
-		temp2_bam				= filtered_bam.replace('.bam', '.temp2.bam')
-		self.add_output("filtered_bam",		filtered_bam)
-		self.add_output("filtered_bam_bai",	filtered_bam+'.bai')
+		bam_out					= self.generate_unique_file_name(".filtered.bam")
+		temp1_bam				= bam_out.replace('.bam', '.temp1.bam')
+		temp2_bam				= bam_out.replace('.bam', '.temp2.bam')
+		self.add_output("bam",				bam_out)
+		self.add_output("bam_idx",			bam_out+'.bai')
 		self.add_output("temp1_bam",		temp1_bam)
 		self.add_output("temp2_bam",		temp2_bam)
 
@@ -36,7 +36,7 @@ class Filter_chrom_reads(Module):
 		F						= self.get_argument("F")
 
 		# get output
-		filtered_bam			= self.get_output("filtered_bam")
+		bam_out					= self.get_output("bam")
 		temp1_bam				= self.get_output("temp1_bam")
 		temp2_bam				= self.get_output("temp2_bam")
 
@@ -45,7 +45,7 @@ class Filter_chrom_reads(Module):
 
 		# add arguments
 		cmd += " {0} {1} {2} {3} {4} {5}".format(
-			bam, threads, F, filtered_bam, temp1_bam, temp2_bam)
+			bam, threads, F, bam_out, temp1_bam, temp2_bam)
 
 		# add logging
 		cmd += " !LOG3!"
