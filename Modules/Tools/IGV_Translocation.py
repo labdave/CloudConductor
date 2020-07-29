@@ -65,7 +65,7 @@ class IGV_Translocation(Module):
 		# BAM WITH SPLIT READS
 
 		# run non-squished version
-		cmd += "python igv_script_creator.py -f filtered_records.tsv -o nonsquished.script -b {0} -z {1} -t {2} -r {3} -d {4}/nonsquished".format(bam, zoom, bed, repeat_blacklist, igv_translocation_dir)
+		cmd += "python igv_script_creator.py -f filtered_records.tsv -o nonsquished.script -b {0} -z {1} -t {2} -r {3} -d {4}/nonsquished/splitreads".format(bam, zoom, bed, repeat_blacklist, igv_translocation_dir)
 		if split:
 			cmd += " -s"
 		if grouped:
@@ -73,7 +73,7 @@ class IGV_Translocation(Module):
 		cmd += " !LOG3!;"
 
 		# run squished version
-		cmd += "python igv_script_creator.py -f filtered_records.tsv -o squished.script -b {0} -z {1} -t {2} -r {3} -d {4}/squished".format(bam, zoom, bed, repeat_blacklist, igv_translocation_dir)
+		cmd += "python igv_script_creator.py -f filtered_records.tsv -o squished.script -b {0} -z {1} -t {2} -r {3} -d {4}/squished/splitreads".format(bam, zoom, bed, repeat_blacklist, igv_translocation_dir)
 		if split:
 			cmd += " -s"
 		if grouped:
