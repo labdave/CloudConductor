@@ -29,6 +29,7 @@ class IGV_Translocation(Module):
 		self.add_argument("segdup_blacklist",		is_resource=True)
 		self.add_argument("ig_bed",					is_resource=True)
 		self.add_argument("fish_bed",				is_resource=True)
+		self.add_argument("sample_name",			is_required=True)
 
 
 	def define_output(self):
@@ -53,6 +54,7 @@ class IGV_Translocation(Module):
 		segdup_blacklist			= self.get_argument("segdup_blacklist")
 		ig_bed						= self.get_argument("ig_bed")
 		fish_bed					= self.get_argument("fish_bed")
+		sample_name					= self.get_argument("sample_name")
 
 		# get output
 		igv_translocation_dir		= self.get_output("igv_translocation_dir")
@@ -91,8 +93,8 @@ class IGV_Translocation(Module):
 
 		# run squished version
 		cmd += "python igv_script_creator.py -f filtered.tsv -o squished_nosplitreads.script"
-		cmd += " -b {0} -z {1} -t {2} -r {3} -S {4} -F {5} -i {6} -d {7}/squished_nosplitreads".format(
-			non_split_bam, zoom, bed, repeat_blacklist, segdup_blacklist, fish_bed, ig_bed, igv_translocation_dir)
+		cmd += " -b {0} -z {1} -t {2} -r {3} -S {4} -F {5} -i {6} -n {7} -d {8}/squished_nosplitreads".format(
+			non_split_bam, zoom, bed, repeat_blacklist, segdup_blacklist, fish_bed, ig_bed, sample_name, igv_translocation_dir)
 		if split:
 			cmd += " -s"
 		if grouped:
