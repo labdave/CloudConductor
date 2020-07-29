@@ -6,7 +6,7 @@ import logging
 class DiscoWave(Module):
     def __init__(self, module_id, is_docker=True):
         super(DiscoWave, self).__init__(module_id, is_docker)
-        self.output_keys = ["translocation_table", "bam", "bam_idx", "figure_dir"]
+        self.output_keys = ["translocation_table", "non_split_bam", "non_split_bam_idx", "figure_dir"]
 
     def define_input(self):
         # Path to execution wrapper script
@@ -53,8 +53,8 @@ class DiscoWave(Module):
         figure_dir          = os.path.join(self.get_output_dir(), "{}.supporting_figures".format(sample_name))
 
         self.add_output("translocation_table", translocation_table)
-        self.add_output("bam", bam)
-        self.add_output("bam_idx", bam_idx)
+        self.add_output("non_split_bam", bam)
+        self.add_output("non_split_bam_idx", bam_idx)
         self.add_output("figure_dir", figure_dir)
 
 
@@ -71,7 +71,7 @@ class DiscoWave(Module):
 
         # Get output paths
         translocation_table     = self.get_output("translocation_table")
-        output_bam              = self.get_output("bam")
+        output_bam              = self.get_output("non_split_bam")
         figure_dir              = self.get_output("figure_dir")
 
 
