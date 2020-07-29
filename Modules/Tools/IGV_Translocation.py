@@ -54,7 +54,7 @@ class IGV_Translocation(Module):
 		segdup_blacklist			= self.get_argument("segdup_blacklist")
 		ig_bed						= self.get_argument("ig_bed")
 		fish_bed					= self.get_argument("fish_bed")
-		sample_name					= self.get_argument("sample_name")
+		sample_name					= "17887_T_1"
 
 		# get output
 		igv_translocation_dir		= self.get_output("igv_translocation_dir")
