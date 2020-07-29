@@ -5,6 +5,8 @@ import os
 import ast
 import re
 import tempfile
+import yaml
+import json
 
 from System.Platform.Instance import Instance
 from System.Platform import Platform, Process
@@ -184,15 +186,30 @@ class KubernetesJob(Instance):
         # create the job definition
         self.job_def = self.__create_job_def()
 
-        try:
-            creation_response = api_request(self.batch_api.create_namespaced_job, self.namespace, self.job_def)
-            creation_status = creation_response.get("status", None)
-            if creation_status and isinstance(creation_status, dict) and creation_status != 'Failure':
-                logging.debug(f"({self.name}) Kubernetes job successfully created! Begin monitoring.")
-            else:
+        creation_tries = 0
+        api_request_completed = False
+        while not api_request_completed and creation_tries < 5:
+            try:
+                creation_response = api_request(self.batch_api.create_namespaced_job, self.namespace, self.job_def)
+                creation_status = creation_response.get("status", None)
+                api_request_completed = True
+                if creation_status and isinstance(creation_status, dict) and creation_status != 'Failure':
+                    job_yaml = yaml.dump(creation_response).split("\n")
+                    stripped_yaml = []
+                    for line in job_yaml:
+                        if ": null" not in line and "status:" not in line and "self_link" :
+                            stripped_yaml.append(line)
+                    job_yaml = "\n".join(stripped_yaml)
+                    logging.debug(f"({self.name}) KUBERENETES JOB YAML : \n\n{job_yaml}")
+                    logging.debug(f"({self.name}) Kubernetes job successfully created! Begin monitoring.")
+                else:
+                    raise RuntimeError(f"({self.name}) Failure to create the job on the cluster")
+            except ConnectionResetError as e:
+                logging.warning(f"({self.name}) Connection error when trying to create the Kubernetes job we will try again.")
+                time.sleep(20)
+                creation_tries += 1
+            except Exception as e:
                 raise RuntimeError(f"({self.name}) Failure to create the job on the cluster")
-        except Exception as e:
-            raise RuntimeError(f"({self.name}) Failure to create the job on the cluster")
 
         # begin monitoring job for completion/failure
         self.monitoring = True
@@ -227,7 +244,7 @@ class KubernetesJob(Instance):
     def get_stop_time(self):
         return self.stop_time
 
-    def get_status(self, log_status=False):
+    def get_status(self, retries=0, log_status=False):
         s = api_request(self.batch_api.read_namespaced_job_status, self.inst_name, self.namespace)
         # Save the status if the job is no longer active
         job_status = s.get("status", dict())
@@ -238,7 +255,12 @@ class KubernetesJob(Instance):
                 self.start_time = job_status['start_time'].timestamp()
             return job_status
         elif job_status == "Failure":
-            logging.debug(f"({self.name}) Failure to get status. Reason: {s.get('message', '')}")
+            if 'rpc error' in s.get('message', '') and retries < 5:
+                logging.warning(f"({self.name}) Request issue when getting status. We'll try again.")
+                time.sleep(30)
+                return self.get_status(retries + 1, log_status)
+            else:
+                logging.debug(f"({self.name}) Failure to get status. Reason: {s.get('message', '')}")
         return s
 
     def add_checkpoint(self, clear_output=True):
@@ -284,7 +306,16 @@ class KubernetesJob(Instance):
         pvc_spec = client.V1PersistentVolumeClaimSpec(access_modes=['ReadWriteOnce'], resources=pvc_resources, storage_class_name='standard')
         self.task_pvc = client.V1PersistentVolumeClaim(metadata=pvc_meta, spec=pvc_spec)
 
-        pvc_response = api_request(self.core_api.create_namespaced_persistent_volume_claim, self.namespace, self.task_pvc)
+        creation_tries = 0
+        api_request_completed = False
+        while not api_request_completed and creation_tries < 5:
+            try:
+                pvc_response = api_request(self.core_api.create_namespaced_persistent_volume_claim, self.namespace, self.task_pvc)
+                api_request_completed = True
+            except ConnectionResetError as e:
+                logging.warning(f"Connection error when trying to create Persisten Volume Claim we will try again.")
+                time.sleep(20)
+                creation_tries += 1
 
         # Save the status if the job is no longer active
         pvc_status = pvc_response.get("status", None)
