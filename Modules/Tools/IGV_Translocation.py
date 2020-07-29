@@ -102,11 +102,12 @@ class IGV_Translocation(Module):
 		# run igv non-squished version
 		cmd += "xvfb-run --auto-servernum --server-args=\"-screen 0 4000x2400x24\" java -Xmx{0}000m -jar IGV_2.3.81/igv.jar -b nonsquished.script !LOG3!;".format(nr_cpus)
 		# run igv squished version
-		cmd += "xvfb-run --auto-servernum --server-args=\"-screen 0 4000x2400x24\" java -Xmx{0}000m -jar IGV_2.3.81/igv.jar -b squished.script !LOG3!".format(nr_cpus)
+		cmd += "xvfb-run --auto-servernum --server-args=\"-screen 0 4000x2400x24\" java -Xmx{0}000m -jar IGV_2.3.81/igv.jar -b squished.script !LOG3!;".format(nr_cpus)
 		
 		# run igv non-squished version nosplitreads
 		cmd += "xvfb-run --auto-servernum --server-args=\"-screen 0 4000x2400x24\" java -Xmx{0}000m -jar IGV_2.3.81/igv.jar -b nonsquished_nosplitreads.script !LOG3!;".format(nr_cpus)
 		# run igv squished version nosplitreads
-		cmd += "xvfb-run --auto-servernum --server-args=\"-screen 0 4000x2400x24\" java -Xmx{0}000m -jar IGV_2.3.81/igv.jar -b squished_nosplitreads.script !LOG3!".format(nr_cpus)
+		cmd += "xvfb-run --auto-servernum --server-args=\"-screen 0 4000x2400x24\" java -Xmx{0}000m -jar IGV_2.3.81/igv.jar -b squished_nosplitreads.script !LOG3!;".format(nr_cpus)
 		
+		cmd += "echo done"
 		return cmd
