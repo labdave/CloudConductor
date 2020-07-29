@@ -55,6 +55,8 @@ class IGV_Translocation(Module):
 		cmd = "python filter_rows.py {0} {1} filtered_records.tsv !LOG3!;".format(anno_vcf, pe_sr_threshold)
 		cmd += "cat filtered_records.tsv !LOG3!;"
 		cmd += "mkdir -p {0}; !LOG3!;".format(igv_translocation_dir)
+		cmd += "mkdir -p {0}/nonsquished; !LOG3!;".format(igv_translocation_dir)
+		cmd += "mkdir -p {0}/squished; !LOG3!;".format(igv_translocation_dir)
 		cmd += "mkdir -p {0}/nonsquished/nosplitreads; !LOG3!;".format(igv_translocation_dir)
 		cmd += "mkdir -p {0}/squished/nosplitreads; !LOG3!;".format(igv_translocation_dir)
 		cmd += "mkdir -p {0}/nonsquished/splitreads; !LOG3!;".format(igv_translocation_dir)
@@ -81,7 +83,7 @@ class IGV_Translocation(Module):
 		# BAM WITH NO SPLIT READS
 
 		# run non-squished version
-		cmd += "python igv_script_creator.py -f filtered_records.tsv -o nonsquished_nosplitreads.script -b {0} -z {1} -t {2} -r {3} -d {4}/nonsquished".format(non_split_bam, zoom, bed, repeat_blacklist, igv_translocation_dir)
+		cmd += "python igv_script_creator.py -f filtered_records.tsv -o nonsquished_nosplitreads.script -b {0} -z {1} -t {2} -r {3} -d {4}/nonsquished/nosplitreads".format(non_split_bam, zoom, bed, repeat_blacklist, igv_translocation_dir)
 		if split:
 			cmd += " -s"
 		if grouped:
@@ -89,7 +91,7 @@ class IGV_Translocation(Module):
 		cmd += " !LOG3!;"
 
 		# run squished version
-		cmd += "python igv_script_creator.py -f filtered_records.tsv -o squished_nosplitreads.script -b {0} -z {1} -t {2} -r {3} -d {4}/squished".format(non_split_bam, zoom, bed, repeat_blacklist, igv_translocation_dir)
+		cmd += "python igv_script_creator.py -f filtered_records.tsv -o squished_nosplitreads.script -b {0} -z {1} -t {2} -r {3} -d {4}/squished/nosplitreads".format(non_split_bam, zoom, bed, repeat_blacklist, igv_translocation_dir)
 		if split:
 			cmd += " -s"
 		if grouped:
