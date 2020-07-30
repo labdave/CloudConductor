@@ -5,6 +5,7 @@ import json
 import copy
 import collections
 import time
+import random
 from kubernetes.client.rest import ApiException
 logger = logging.getLogger(__name__)
 
@@ -32,24 +33,47 @@ def api_request(api_func, *args, **kwargs):
                 response = response.to_dict()
             break
         except ApiException as e:
-            logger.debug("Exception when calling %s: %s" % (api_func.__name__, e))
+            time.sleep(get_api_sleep(i+1))
+            logger.warning("Exception when calling %s: %s" % (api_func.__name__, e))
             response = {
                 "status": e.status,
                 "error": e.reason,
                 "headers": stringify(e.headers),
             }
             response.update(json.loads(e.body))
-            break
+            continue
         except ConnectionResetError as e:
-            time.sleep(10)
-            logger.debug("Exception when calling %s: %s" % (api_func.__name__, e))
+            time.sleep(get_api_sleep(i+1))
+            logger.warning("Exception when calling %s: %s" % (api_func.__name__, e))
             logger.debug("Will retry the request.")
             response = {
                 "status": "Failed",
                 "error": e,
             }
             continue
+        except Exception as e:
+            logger.warning("Exception when calling %s: %s" % (api_func.__name__, e))
+            exception_string = str(e)
+            if "Max retries" in exception_string or "NewConnectionError" in exception_string:
+                time.sleep(get_api_sleep(i+1))
+                logger.debug("Will retry the request.")
+                response = {
+                    "status": "Failed",
+                    "error": e,
+                }
+                continue
+            else:
+                response = {
+                    "status": "Failed",
+                    "error": e,
+                }
+                break
     return response
+
+
+def get_api_sleep(attempt):
+    temp = min(200, 4 * 2 ** attempt)
+    return temp / 2 + random.randrange(0, temp/2)
 
 
 # This function is from the Aries package.

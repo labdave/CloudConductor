@@ -206,7 +206,7 @@ class KubernetesJob(Instance):
                     raise RuntimeError(f"({self.name}) Failure to create the job on the cluster")
             except ConnectionResetError as e:
                 logging.warning(f"({self.name}) Connection error when trying to create the Kubernetes job we will try again.")
-                time.sleep(20)
+                time.sleep(self.get_api_sleep())
                 creation_tries += 1
             except Exception as e:
                 raise RuntimeError(f"({self.name}) Failure to create the job on the cluster")

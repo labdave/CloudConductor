@@ -10,7 +10,7 @@ from System.Platform.Platform import Platform
 from threading import Thread
 
 from System.Platform.Kubernetes import KubernetesJob
-from System.Platform.Kubernetes.utils import api_request
+from System.Platform.Kubernetes.utils import api_request, get_api_sleep
 
 from kubernetes import config, client
 
