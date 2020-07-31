@@ -100,8 +100,8 @@ class IGV_Snapshot(Module):
 
 			# run squished version
 			cmd += "python igv_script_creator.py -f filtered.tsv -o squished_nosplitreads.script"
-			cmd += " -b {0} -z {1} -t {2} -r {3} -S {4} -F {5} -i {6} -n {7} -d {8}/squished_nosplitreads".format(
-				non_split_bam, zoom, bed, repeat_blacklist, segdup_blacklist, fish_bed, ig_bed, sample_name, igv_snapshot_dir)
+			cmd += " -b {0} -z {1} -t {2} -r {3} -S {4} -F {5} -i {6} -d {7}/squished_nosplitreads".format(
+				non_split_bam, zoom, bed, repeat_blacklist, segdup_blacklist, fish_bed, ig_bed, igv_snapshot_dir)
 			if split:
 				cmd += " -s"
 			if grouped:
@@ -131,7 +131,7 @@ class IGV_Snapshot(Module):
 				columns, vcf)
 
 			cmd += "python igv_script_creator.py -f filtered.tsv -o snv.script"
-			cmd += " -b {0} -z {1} -t {2} -r {3} -d {7}/nonsquished_splitreads !LOG3!;".format(
+			cmd += " -b {0} -z {1} -t {2} -r {3} -d {4}/nonsquished_splitreads !LOG3!;".format(
 				bam, zoom, bed, repeat_blacklist, igv_snapshot_dir)
 
 			cmd += "cat snv.script !LOG3!;"
