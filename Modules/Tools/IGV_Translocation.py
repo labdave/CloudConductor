@@ -29,7 +29,6 @@ class IGV_Translocation(Module):
 		self.add_argument("segdup_blacklist",		is_resource=True)
 		self.add_argument("ig_bed",					is_resource=True)
 		self.add_argument("fish_bed",				is_resource=True)
-		self.add_argument("sample_name",			is_required=True)
 
 
 	def define_output(self):
@@ -54,7 +53,6 @@ class IGV_Translocation(Module):
 		segdup_blacklist			= self.get_argument("segdup_blacklist")
 		ig_bed						= self.get_argument("ig_bed")
 		fish_bed					= self.get_argument("fish_bed")
-		sample_name					= "17887_T_1"
 
 		# get output
 		igv_translocation_dir		= self.get_output("igv_translocation_dir")
