@@ -56,6 +56,9 @@ class IGV_Snapshot(Module):
 		ig_bed						= self.get_argument("ig_bed")
 		fish_bed					= self.get_argument("fish_bed")
 
+		# get output
+		igv_snapshot_dir			= self.get_output("igv_snapshot_dir")
+
 		if anno_vcf is not None:
 			vcf = anno_vcf
 			columns = 5
@@ -126,9 +129,6 @@ class IGV_Snapshot(Module):
 			# command
 			cmd = "python filter_rows.py -o filtered.tsv -c {0} -i {3} !LOG3!;".format(
 				columns, vcf)
-
-			# get output
-			igv_snapshot_dir			= self.get_output("igv_snapshot_dir")
 
 			cmd += "python igv_script_creator.py -f filtered.tsv -o snv.script"
 			cmd += " -b {0} -z {1} -t {2} -r {3} -d {7}/nonsquished_splitreads !LOG3!;".format(
