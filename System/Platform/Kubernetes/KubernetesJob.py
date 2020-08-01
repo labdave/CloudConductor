@@ -206,7 +206,7 @@ class KubernetesJob(Instance):
                     raise RuntimeError(f"({self.name}) Failure to create the job on the cluster")
             except ConnectionResetError as e:
                 logging.warning(f"({self.name}) Connection error when trying to create the Kubernetes job we will try again.")
-                time.sleep(20)
+                time.sleep(self.get_api_sleep())
                 creation_tries += 1
             except Exception as e:
                 raise RuntimeError(f"({self.name}) Failure to create the job on the cluster")
@@ -255,12 +255,13 @@ class KubernetesJob(Instance):
                 self.start_time = job_status['start_time'].timestamp()
             return job_status
         elif job_status == "Failure":
-            if 'rpc error' in s.get('message', '') and retries < 5:
+            reason = s.get('message', '')
+            if 'rpc error' in reason or 'Timeout: ' in reason and retries < 5:
                 logging.warning(f"({self.name}) Request issue when getting status. We'll try again.")
                 time.sleep(30)
                 return self.get_status(retries + 1, log_status)
             else:
-                logging.debug(f"({self.name}) Failure to get status. Reason: {s.get('message', '')}")
+                logging.error(f"({self.name}) Failure to get status. Reason: {reason}")
         return s
 
     def add_checkpoint(self, clear_output=True):
