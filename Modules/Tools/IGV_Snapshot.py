@@ -27,7 +27,7 @@ class IGV_Snapshot(Module):
 		self.add_argument("bed",					is_resource=True)
 		self.add_argument("repeat_blacklist",		is_resource=True)
 		self.add_argument("repeat_blacklist_index",	is_resource=True)
-		self.add_argument("segdup_blacklist",		is_resource=True)
+		self.add_argument("segmental_blacklist",		is_resource=True)
 		self.add_argument("ig_bed",					is_resource=True)
 		self.add_argument("fish_bed",				is_resource=True)
 
@@ -52,7 +52,7 @@ class IGV_Snapshot(Module):
 		nr_cpus						= self.get_argument("nr_cpus")
 		bed							= self.get_argument("bed")
 		repeat_blacklist			= self.get_argument("repeat_blacklist")
-		segdup_blacklist			= self.get_argument("segdup_blacklist")
+		segmental_blacklist			= self.get_argument("segmental_blacklist")
 		ig_bed						= self.get_argument("ig_bed")
 		fish_bed					= self.get_argument("fish_bed")
 
@@ -69,17 +69,17 @@ class IGV_Snapshot(Module):
 				columns, pe_sr_threshold, thresh_column, vcf)
 			
 			cmd += "cat filtered.tsv !LOG3!;"
-			cmd += "mkdir -p {0}; !LOG3!;".format(igv_snapshot_dir)
-			cmd += "mkdir -p {0}/nonsquished_nosplitreads; !LOG3!;".format(igv_snapshot_dir)
-			cmd += "mkdir -p {0}/squished_nosplitreads; !LOG3!;".format(igv_snapshot_dir)
-			cmd += "mkdir -p {0}/nonsquished_splitreads; !LOG3!;".format(igv_snapshot_dir)
+			cmd += "mkdir -p {0} !LOG3!;".format(igv_snapshot_dir)
+			cmd += "mkdir -p {0}/nonsquished_nosplitreads !LOG3!;".format(igv_snapshot_dir)
+			cmd += "mkdir -p {0}/squished_nosplitreads !LOG3!;".format(igv_snapshot_dir)
+			cmd += "mkdir -p {0}/nonsquished_splitreads !LOG3!;".format(igv_snapshot_dir)
 
 			# BAM WITH SPLIT READS
 
 			# run non-squished version
 			cmd += "python igv_script_creator.py -f filtered.tsv -o nonsquished_splitreads.script"
 			cmd += " -b {0} -z {1} -t {2} -r {3} -S {4} -F {5} -i {6} -d {7}/nonsquished_splitreads".format(
-				bam, zoom, bed, repeat_blacklist, segdup_blacklist, fish_bed, ig_bed, igv_snapshot_dir)
+				bam, zoom, bed, repeat_blacklist, segmental_blacklist, fish_bed, ig_bed, igv_snapshot_dir)
 			if split:
 				cmd += " -s"
 			if grouped:
@@ -91,7 +91,7 @@ class IGV_Snapshot(Module):
 			# run non-squished version
 			cmd += "python igv_script_creator.py -f filtered.tsv -o nonsquished_nosplitreads.script"
 			cmd += " -b {0} -z {1} -t {2} -r {3} -S {4} -F {5} -i {6} -d {7}/nonsquished_nosplitreads".format(
-				non_split_bam, zoom, bed, repeat_blacklist, segdup_blacklist, fish_bed, ig_bed, igv_snapshot_dir)
+				non_split_bam, zoom, bed, repeat_blacklist, segmental_blacklist, fish_bed, ig_bed, igv_snapshot_dir)
 			if split:
 				cmd += " -s"
 			if grouped:
@@ -101,7 +101,7 @@ class IGV_Snapshot(Module):
 			# run squished version
 			cmd += "python igv_script_creator.py -f filtered.tsv -o squished_nosplitreads.script"
 			cmd += " -b {0} -z {1} -t {2} -r {3} -S {4} -F {5} -i {6} -d {7}/squished_nosplitreads".format(
-				non_split_bam, zoom, bed, repeat_blacklist, segdup_blacklist, fish_bed, ig_bed, igv_snapshot_dir)
+				non_split_bam, zoom, bed, repeat_blacklist, segmental_blacklist, fish_bed, ig_bed, igv_snapshot_dir)
 			if split:
 				cmd += " -s"
 			if grouped:
