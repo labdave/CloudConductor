@@ -39,6 +39,7 @@ class KubernetesCluster(Platform):
         self.cpu_reserve = self.config.get("cpu_reserve", 0.1)
         self.mem_reserve = self.config.get("mem_reserve", 1)
         self.pools = self.config.get("pools", [])
+        self.persistent_volumes = self.config.get("persistent_volumes", [])
         self.storage_price = self.config.get("storage_price", 0)
 
     def get_instance(self, nr_cpus, mem, disk_space, **kwargs):
@@ -70,6 +71,7 @@ class KubernetesCluster(Platform):
             "region": self.region,
             "zone": self.zone,
             "pools": self.pools,
+            "persistent_volumes": self.persistent_volumes,
             "cpu_reserve": self.cpu_reserve,
             "mem_reserve": self.mem_reserve,
             "storage_price": self.storage_price,
