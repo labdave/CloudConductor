@@ -46,7 +46,7 @@ class ModuleExecutor(object):
                 continue
 
             # Directory where input will be transferred
-            dest_dir = "/data"
+            dest_dir = "/data/"
 
             # Input filename after transfer (None = same as src)
             dest_filename = None
