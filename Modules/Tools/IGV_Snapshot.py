@@ -112,12 +112,14 @@ class IGV_Snapshot(Module):
 			cmd += "cat nonsquished_nosplitreads.script !LOG3!;"
 			cmd += "cat squished_nosplitreads.script !LOG3!;"
 			
-			# run igv non-squished version
-			cmd += "xvfb-run --auto-servernum --server-args=\"-screen 0 4000x2400x24\" java -Xmx{0}000m -jar IGV_2.3.81/igv.jar -b nonsquished_splitreads.script !LOG3!;".format(nr_cpus)
+			# NOPE run igv non-squished version
+			# NOPE cmd += "xvfb-run --auto-servernum --server-args=\"-screen 0 4000x2400x24\" java -Xmx{0}000m -jar IGV_2.3.81/igv.jar -b nonsquished_splitreads.script !LOG3!;".format(nr_cpus)
+			
 			# run igv non-squished version nosplitreads
 			cmd += "xvfb-run --auto-servernum --server-args=\"-screen 0 4000x2400x24\" java -Xmx{0}000m -jar IGV_2.3.81/igv.jar -b nonsquished_nosplitreads.script !LOG3!;".format(nr_cpus)
-			# run igv squished version nosplitreads
-			cmd += "xvfb-run --auto-servernum --server-args=\"-screen 0 4000x2400x24\" java -Xmx{0}000m -jar IGV_2.3.81/igv.jar -b squished_nosplitreads.script !LOG3!;".format(nr_cpus)
+			
+			# NOPE run igv squished version nosplitreads
+			# NOPE cmd += "xvfb-run --auto-servernum --server-args=\"-screen 0 4000x2400x24\" java -Xmx{0}000m -jar IGV_2.3.81/igv.jar -b squished_nosplitreads.script !LOG3!;".format(nr_cpus)
 			
 			cmd += "echo done"
 
