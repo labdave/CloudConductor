@@ -127,7 +127,7 @@ class IGV_Snapshot(Module):
 			columns = 3
 
 			# command
-			cmd = "python filter_rows.py -o filtered.tsv -c {0} -i {3} !LOG3!;".format(
+			cmd = "python filter_rows.py -o filtered.tsv -c {0} -i {1} !LOG3!;".format(
 				columns, vcf)
 
 			cmd += "python igv_script_creator.py -f filtered.tsv -o snv.script"
