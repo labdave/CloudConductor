@@ -106,10 +106,10 @@ class KubernetesJob(Instance):
                 log_file = os.path.join(self.wrk_log_dir, log_file)
 
             # Generating all the logging pipes
-            log_cmd_null    = " >>/dev/null 2>&1 "
-            log_cmd_stdout  = f" >>{log_file}"
-            log_cmd_stderr  = f" 2>>{log_file}"
-            log_cmd_all     = f" >>{log_file} 2>&1"
+            log_cmd_null    = f" |& tee -a /dev/null"
+            log_cmd_stdout  = f" | tee -a {log_file}"
+            log_cmd_stderr  = f" > >(tee -a /dev/null) 2> >(tee -a {log_file} >&2)"
+            log_cmd_all     = f" |& tee -a {log_file}"
 
             # Replacing the placeholders with the logging pipes
             cmd = cmd.replace("!LOG0!", log_cmd_null)
@@ -420,10 +420,10 @@ class KubernetesJob(Instance):
 
         storage_image = 'gcr.io/cloud-builders/gsutil'
         storage_tasks = ['mkdir_', 'grant_']
-        entrypoint = ["/bin/sh", "-c"]
 
         for k, v in self.processes.items():
             # if the process is for storage (i.e. mkdir, etc.)
+            entrypoint = ["/bin/bash", "-c"]
             if any(x in k for x in storage_tasks) or not v['docker_image']:
                 container_image = storage_image
             else:
@@ -431,12 +431,13 @@ class KubernetesJob(Instance):
                 if v['docker_entrypoint'] is not None and v['original_cmd'].find(v['docker_entrypoint']) == -1:
                     v['original_cmd'] = v['docker_entrypoint'] + ' ' + v['original_cmd']
                 if 'rclone' in container_image:
-                    v['original_cmd'] = v['original_cmd'].replace("copyto", "copy")
+                    v['original_cmd'] = v['original_cmd'].replace("|&", "2>&1 |")
+                    entrypoint = ["/bin/sh", "-c"]
             args = v['original_cmd']
             if not isinstance(args, list):
                 args = [v['original_cmd'].replace("sudo ", "")]
             args = " && ".join(args)
-            args = args.replace("\n", " ")
+            args = args.replace("\n", " ")                
 
             if "awk " in args:
                 args = re.sub("'\"'\"'", "'", args)
