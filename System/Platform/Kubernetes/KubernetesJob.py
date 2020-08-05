@@ -10,7 +10,7 @@ import json
 
 from System.Platform.Instance import Instance
 from System.Platform import Platform, Process
-from System.Platform.Kubernetes.utils import api_request
+from System.Platform.Kubernetes.utils import api_request, get_api_sleep
 from collections import OrderedDict
 
 from kubernetes import client, config
@@ -60,6 +60,7 @@ class KubernetesJob(Instance):
         self.preemptible = kwargs.pop("preemptible", False)
 
         all_pools = kwargs.pop("pools", [])
+        self.extra_persistent_volumes = kwargs.pop("persistent_volumes", [])
 
         self.node_pools = [x for x in all_pools if not x["preemptible"]]
         self.preemptible_node_pools = [x for x in all_pools if x["preemptible"]]
@@ -186,30 +187,22 @@ class KubernetesJob(Instance):
         # create the job definition
         self.job_def = self.__create_job_def()
 
-        creation_tries = 0
-        api_request_completed = False
-        while not api_request_completed and creation_tries < 5:
-            try:
-                creation_response = api_request(self.batch_api.create_namespaced_job, self.namespace, self.job_def)
-                creation_status = creation_response.get("status", None)
-                api_request_completed = True
-                if creation_status and isinstance(creation_status, dict) and creation_status != 'Failure':
-                    job_yaml = yaml.dump(creation_response).split("\n")
-                    stripped_yaml = []
-                    for line in job_yaml:
-                        if ": null" not in line and "status:" not in line and "self_link" :
-                            stripped_yaml.append(line)
-                    job_yaml = "\n".join(stripped_yaml)
-                    logging.debug(f"({self.name}) KUBERENETES JOB YAML : \n\n{job_yaml}")
-                    logging.debug(f"({self.name}) Kubernetes job successfully created! Begin monitoring.")
-                else:
-                    raise RuntimeError(f"({self.name}) Failure to create the job on the cluster")
-            except ConnectionResetError as e:
-                logging.warning(f"({self.name}) Connection error when trying to create the Kubernetes job we will try again.")
-                time.sleep(self.get_api_sleep())
-                creation_tries += 1
-            except Exception as e:
+        try:
+            creation_response = api_request(self.batch_api.create_namespaced_job, self.namespace, self.job_def)
+            creation_status = creation_response.get("status", None)
+            if creation_status and isinstance(creation_status, dict) and creation_status != 'Failure':
+                job_yaml = yaml.dump(creation_response).split("\n")
+                stripped_yaml = []
+                for line in job_yaml:
+                    if ": null" not in line and "status:" not in line and "self_link" :
+                        stripped_yaml.append(line)
+                job_yaml = "\n".join(stripped_yaml)
+                logging.debug(f"({self.name}) KUBERENETES JOB YAML : \n\n{job_yaml}")
+                logging.debug(f"({self.name}) Kubernetes job successfully created! Begin monitoring.")
+            else:
                 raise RuntimeError(f"({self.name}) Failure to create the job on the cluster")
+        except Exception as e:
+            raise RuntimeError(f"({self.name}) Failure to create the job on the cluster Reason: {str(e)}")
 
         # begin monitoring job for completion/failure
         self.monitoring = True
@@ -307,23 +300,17 @@ class KubernetesJob(Instance):
         pvc_spec = client.V1PersistentVolumeClaimSpec(access_modes=['ReadWriteOnce'], resources=pvc_resources, storage_class_name='standard')
         self.task_pvc = client.V1PersistentVolumeClaim(metadata=pvc_meta, spec=pvc_spec)
 
-        creation_tries = 0
-        api_request_completed = False
-        while not api_request_completed and creation_tries < 5:
-            try:
-                pvc_response = api_request(self.core_api.create_namespaced_persistent_volume_claim, self.namespace, self.task_pvc)
-                api_request_completed = True
-            except ConnectionResetError as e:
-                logging.warning(f"Connection error when trying to create Persisten Volume Claim we will try again.")
-                time.sleep(20)
-                creation_tries += 1
+        try:
+            pvc_response = api_request(self.core_api.create_namespaced_persistent_volume_claim, self.namespace, self.task_pvc)
+        except Exception as e:
+            raise RuntimeError(f"({self.name}) Failure to create the Persistent Volume Claim on the cluster. Reason: {str(e)}")
 
         # Save the status if the job is no longer active
         pvc_status = pvc_response.get("status", None)
         if pvc_status and isinstance(pvc_status, dict):
             logging.debug(f"({self.name}) Persistent Volume Claim created.")
         else:
-            raise RuntimeError(f"({self.name}) Failure to create a Persistent Volume Claim on the cluster")
+            raise RuntimeError(f"({self.name}) Failure to create a Persistent Volume Claim on the cluster. Reason: {str(e)}")
 
     def __create_job_def(self, rerun=False):
         # initialize the job def body
@@ -377,6 +364,27 @@ class KubernetesJob(Instance):
                 )
             )
         )
+
+        # incorporate configured persistent volumes if associated with the current task
+        if self.extra_persistent_volumes:
+            for pv in self.extra_persistent_volumes:
+                if pv['task_prefix'] in self.name:
+                    # need to add the extra persistent volume
+                    volume_mounts.append(
+                        client.V1VolumeMount(
+                            mount_path=pv["path"],
+                            name=pv['volume_name'],
+                            read_only=pv['read_only']
+                        )
+                    )
+                    volumes.append(
+                        client.V1Volume(
+                            name=pv['volume_name'],
+                            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                                claim_name=pv['pvc_name']
+                            )
+                        )
+                    )
 
         # incorporate configured secrets
         if self.gcp_secret_configured:
