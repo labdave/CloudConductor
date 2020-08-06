@@ -5,14 +5,14 @@ class Destruct(Module):
 	def __init__(self, module_id, is_docker=False):
 		super(Destruct, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
-		self.output_keys = ["breaks", "break_libs", "break_reads"]  #, "log"]
+		self.output_keys = ["breaks", "break_libs", "break_reads"]
 
 
 	def define_input(self):
 		# Module creator needs to define which arguments have is_resource=True
 		# Module creator needs to rename arguments as required by CC
-		self.add_argument("bam",				is_required=True)
-		self.add_argument("bam_idx",			is_required=True)
+		self.add_argument("non_split_bam",		is_required=True)
+		self.add_argument("non_split_bam_idx",	is_required=True)
 		self.add_argument("nr_cpus",			default_value=8)
 		self.add_argument("mem",				default_value=40)
 		self.add_argument("destruct",			is_required=True, is_resource=True)
@@ -28,12 +28,11 @@ class Destruct(Module):
 		self.add_output("breaks",			breaks)
 		self.add_output("break_libs",		break_libs)
 		self.add_output("break_reads",		break_reads)
-		# self.add_output("log",				"/tmp/log/latest/pipeline.log")
 
 
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC
-		bam						= self.get_argument("bam")
+		non_split_bam			= self.get_argument("non_split_bam")
 		destruct				= self.get_argument("destruct")
 		lib_ids					= self.get_argument("lib_ids")
 		submit					= self.get_argument("submit")
@@ -49,7 +48,7 @@ class Destruct(Module):
 
 		# add arguments
 		cmd += " run /usr/local/bin/destruct_ref/ {0} {1} {2} --bam_files {3}".format(
-			breaks, break_libs, break_reads, bam)
+			breaks, break_libs, break_reads, non_split_bam)
 
 		cmd += " --lib_ids {0} --maxjobs {1} --submit {2}".format(lib_ids, nr_cpus, submit)
 
