@@ -15,6 +15,7 @@ class Filter_chrom_reads(Module):
 		self.add_argument("nr_cpus",		default_value=2)
 		self.add_argument("mem",			default_value=10.0)
 		self.add_argument("F",				default_value=1294)
+		self.add_argument("padded_bed",		is_resource=True)
 
 
 	def define_output(self):
@@ -34,6 +35,7 @@ class Filter_chrom_reads(Module):
 		bam						= self.get_argument("bam")
 		threads					= self.get_argument("nr_cpus")
 		F						= self.get_argument("F")
+		padded_bed				= self.get_argument("padded_bed")
 
 		# get output
 		bam_out					= self.get_output("bam")
@@ -44,8 +46,8 @@ class Filter_chrom_reads(Module):
 		cmd = "bash /usr/local/bin/filter_chrom_reads.sh"
 
 		# add arguments
-		cmd += " {0} {1} {2} {3} {4} {5}".format(
-			bam, threads, F, bam_out, temp1_bam, temp2_bam)
+		cmd += " {0} {1} {2} {3} {4} {5} {6}".format(
+			bam, threads, F, bam_out, temp1_bam, temp2_bam, padded_bed)
 
 		# add logging
 		cmd += " !LOG3!"
