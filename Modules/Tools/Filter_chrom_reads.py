@@ -22,13 +22,16 @@ class Filter_chrom_reads(Module):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
 		bam_out					= self.generate_unique_file_name(".filtered.bam")
-		temp1_bam				= bam_out.replace('.bam', '.temp1.bam')
-		temp2_bam				= bam_out.replace('.bam', '.temp2.bam')
 		self.add_output("bam",				bam_out)
 		self.add_output("bam_idx",			bam_out+'.bai')
-		self.add_output("temp1_bam",		temp1_bam)
-		self.add_output("temp2_bam",		temp2_bam)
-
+		self.add_output("temp1_bam",		"/data/output/temp1.bam")
+		self.add_output("temp2_bam",		"/data/output/temp2.bam")
+		self.add_output("tmp",				"/data/output/tmp")
+		self.add_output("tmp1",				"/data/output/tmp1")
+		self.add_output("npr",				"/data/output/non-primary.reads.txt")
+		self.add_output("otr",				"/data/output/on_target.reads.txt")
+		self.add_output("on_target_bam",	"/data/output/on_target.bam")
+		self.add_output("tmp1",				"/data/output/tmp1")
 
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC
@@ -39,15 +42,13 @@ class Filter_chrom_reads(Module):
 
 		# get output
 		bam_out					= self.get_output("bam")
-		temp1_bam				= self.get_output("temp1_bam")
-		temp2_bam				= self.get_output("temp2_bam")
 
 		# add module
 		cmd = "bash /usr/local/bin/filter_chrom_reads.sh"
 
 		# add arguments
-		cmd += " {0} {1} {2} {3} {4} {5} {6}".format(
-			bam, threads, F, bam_out, temp1_bam, temp2_bam, bed)
+		cmd += " {0} {1} {2} {3} {4}".format(
+			bam, threads, F, bam_out, bed)
 
 		# add logging
 		cmd += " !LOG3!"
