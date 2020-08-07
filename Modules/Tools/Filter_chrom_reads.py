@@ -31,7 +31,6 @@ class Filter_chrom_reads(Module):
 		self.add_output("npr",				"/data/output/non-primary.reads.txt")
 		self.add_output("otr",				"/data/output/on_target.reads.txt")
 		self.add_output("on_target_bam",	"/data/output/on_target.bam")
-		self.add_output("tmp1",				"/data/output/tmp1")
 
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC
