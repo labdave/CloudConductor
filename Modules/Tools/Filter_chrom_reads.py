@@ -13,7 +13,7 @@ class Filter_chrom_reads(Module):
 		# Module creator needs to rename arguments as required by CC
 		self.add_argument("bam",			is_required=True)
 		self.add_argument("nr_cpus",		default_value=8)
-		self.add_argument("mem",			default_value=60)
+		self.add_argument("mem",			default_value=120)
 		self.add_argument("F",				default_value=1294)
 		self.add_argument("bed",			is_resource=True)
 
