@@ -280,8 +280,19 @@ class KubernetesJob(Instance):
         else:
             pricing_url = f"https://banzaicloud.com/cloudinfo/api/v1/providers/google/services/gke/regions/{self.region}/products"
 
-        products = requests.get(pricing_url).json()
-        product_info = next((x for x in products['products'] if x['type'] == self.nodepool_info["inst_type"]), None)
+        pricing_received = False
+        request_count = 0
+        while not pricing_received and request_count < 5:
+            try:
+                request_count += 1
+                products = requests.get(pricing_url).json()
+                product_info = next((x for x in products['products'] if x['type'] == self.nodepool_info["inst_type"]), None)
+                pricing_received = True
+            except Exception as e:
+                if request_count > 5:
+                    raise RuntimeError(f"({self.name}) Failure to get pricing info. Reason: {str(e)}")
+                logging.warning(f"({self.name}) Exception when retrieving pricing info. We will retry the request ({request_count}/5).\nReason: {str(e)}")
+                time.sleep(30)
 
         if product_info:
             return product_info['onDemandPrice'] if not self.preemptible else product_info['spotPrice'][0]['price']
