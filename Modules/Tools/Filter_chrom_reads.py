@@ -12,40 +12,42 @@ class Filter_chrom_reads(Module):
 		# Module creator needs to define which arguments have is_resource=True
 		# Module creator needs to rename arguments as required by CC
 		self.add_argument("bam",			is_required=True)
-		self.add_argument("nr_cpus",		default_value=2)
-		self.add_argument("mem",			default_value=10.0)
+		self.add_argument("nr_cpus",		default_value=16)
+		self.add_argument("mem",			default_value=200)
 		self.add_argument("F",				default_value=1294)
+		self.add_argument("bed",			is_resource=True)
 
 
 	def define_output(self):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
 		bam_out					= self.generate_unique_file_name(".filtered.bam")
-		temp1_bam				= bam_out.replace('.bam', '.temp1.bam')
-		temp2_bam				= bam_out.replace('.bam', '.temp2.bam')
 		self.add_output("bam",				bam_out)
 		self.add_output("bam_idx",			bam_out+'.bai')
-		self.add_output("temp1_bam",		temp1_bam)
-		self.add_output("temp2_bam",		temp2_bam)
-
+		self.add_output("temp1_bam",		"/data/output/temp1.bam")
+		self.add_output("temp2_bam",		"/data/output/temp2.bam")
+		self.add_output("tmp",				"/data/output/tmp")
+		self.add_output("tmp1",				"/data/output/tmp1")
+		self.add_output("npr",				"/data/output/non-primary.reads.txt")
+		self.add_output("otr",				"/data/output/on_target.reads.txt")
+		self.add_output("on_target_bam",	"/data/output/on_target.bam")
 
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC
 		bam						= self.get_argument("bam")
 		threads					= self.get_argument("nr_cpus")
 		F						= self.get_argument("F")
+		bed						= self.get_argument("bed")
 
 		# get output
 		bam_out					= self.get_output("bam")
-		temp1_bam				= self.get_output("temp1_bam")
-		temp2_bam				= self.get_output("temp2_bam")
 
 		# add module
 		cmd = "bash /usr/local/bin/filter_chrom_reads.sh"
 
 		# add arguments
-		cmd += " {0} {1} {2} {3} {4} {5}".format(
-			bam, threads, F, bam_out, temp1_bam, temp2_bam)
+		cmd += " {0} {1} {2} {3} {4}".format(
+			bam, threads, F, bam_out, bed)
 
 		# add logging
 		cmd += " !LOG3!"

@@ -115,6 +115,38 @@
             "type": "array",
             "minItems": 1,
             "uniqueItems": true
+        },
+        "persistent_volumes": {
+            "items": {
+                "properties": {
+                    "task_prefix": {
+                        "type": "string"
+                    },
+                    "volume_name": {
+                        "type": "string"
+                    },
+                    "pvc_name": {
+                        "type": "string"
+                    },
+                    "path": {
+                        "type": "string"
+                    },
+                    "read_only": {
+                        "type": "boolean",
+                        "default": true
+                    }
+                },
+                "required": [
+                    "task_prefix",
+                    "volume_name",
+                    "pvc_name",
+                    "path"
+                ],
+                "type": "object"
+            },
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true
         }
     },
     "required": [
