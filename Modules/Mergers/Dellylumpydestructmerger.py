@@ -39,9 +39,6 @@ class Dellylumpydestructmerger(Merger):
 			if 'delly.merged' in vcf:
 				delly_file = vcf
 				continue
-			if 'destruct.merged' in vcf:
-				destruct_file = vcf
-				continue
 
 		# get output
 		all_merged_vcf			= self.get_output("all_merged_vcf")
