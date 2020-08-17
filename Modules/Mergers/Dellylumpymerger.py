@@ -50,7 +50,7 @@ class Dellylumpymerger(Merger):
 		cmd += " {0} {1}".format(all_merged_vcf, chr_filter)
 
 		# add merged vcf files
-		cmd += " {0} {1} {2}".format(delly_file, lumpy_file, destruct_file)
+		cmd += " {0} {1}".format(delly_file, lumpy_file)
 
 		# add logging
 		cmd += " !LOG3!"
