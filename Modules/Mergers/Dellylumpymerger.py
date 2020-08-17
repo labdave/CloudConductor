@@ -1,9 +1,9 @@
 from Modules import Merger
 
 # Module created using CC_module_helper.py
-class Dellylumpydestructmerger(Merger):
+class Dellylumpymerger(Merger):
 	def __init__(self, module_id, is_docker=False):
-		super(Dellylumpydestructmerger, self).__init__(module_id, is_docker)
+		super(Dellylumpymerger, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
 		self.output_keys = ["all_merged_vcf", "all_merged_cons_vcf"] 
 
