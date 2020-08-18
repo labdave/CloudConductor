@@ -52,7 +52,7 @@ class Dellylumpy_anno_merger(Merger):
 		anno_vcf						= self.get_output("anno_vcf")
 
 		# add module
-		cmd = " python3 Merge_delly_lumpy_destruct_annotation.py"
+		cmd = " python3 Merge_delly_lumpy_annotation.py"
 
 		# add arguments
 		cmd += " -i {0} -c {1} -o {2}".format(all_merged_cons_vcf, bed, anno_vcf)
