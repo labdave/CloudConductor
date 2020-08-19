@@ -321,7 +321,7 @@ class KubernetesJob(Instance):
         if pvc_status and isinstance(pvc_status, dict):
             logging.debug(f"({self.name}) Persistent Volume Claim created.")
         else:
-            raise RuntimeError(f"({self.name}) Failure to create a Persistent Volume Claim on the cluster. Reason: {str(e)}")
+            raise RuntimeError(f"({self.name}) Failure to create a Persistent Volume Claim on the cluster. Response: {str(pvc_response)}")
 
     def __create_job_def(self, rerun=False):
         # initialize the job def body
