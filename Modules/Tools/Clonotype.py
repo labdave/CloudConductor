@@ -12,7 +12,7 @@ class Clonotype(Module):
         self.add_argument('t',          default_value=False)
         self.add_argument('nr_cpus',    default_value=2)
         self.add_argument('mem',        default_value=12)
-        self.add_argument('logging',    default_value='!LOG1!')
+        self.add_argument('logging',    default_value='!LOG3!')
 
     def define_output(self):
         ig_clones   = self.generate_unique_file_name('IG.clones.tsv')
