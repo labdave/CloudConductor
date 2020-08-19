@@ -43,6 +43,40 @@ class Index(Module):
         return cmd
 
 
+class Stats(Module):
+    def __init__(self, module_id, is_docker = False):
+        super(Stats, self).__init__(module_id, is_docker)
+        self.output_keys = ["stats"]
+
+    def define_input(self):
+        self.add_argument("bam",            is_required=True)
+        self.add_argument("bam_idx",        is_required=True)
+        self.add_argument("samtools",       is_required=True, is_resource=True)
+        self.add_argument("exclude_dups",   default_value=False)
+        self.add_argument("nr_cpus",        is_required=True, default_value=8)
+        self.add_argument("mem",            is_required=True, default_value="nr_cpus * 2")
+
+    def define_output(self):
+        # Declare stats output filename
+        flagstat = self.generate_unique_file_name(".stats.out")
+        self.add_output("stats", flagstat, is_path=True)
+
+    def define_command(self):
+        # Define command for running samtools stats from a platform
+        bam             = self.get_argument("bam")
+        samtools        = self.get_argument("samtools")
+        exclude_dups    = self.get_argument("exclude_dups")
+        nr_cpus         = self.get_argument("nr_cpus")
+
+        stats           = self.get_output("stats")
+
+        # Generating Stats command
+        if exclude_dups:
+            return f'{samtools} stats -@ {nr_cpus} -d {bam} > {stats} !LOG2!'
+
+        return f'{samtools} stats -@ {nr_cpus} {bam} > {stats} !LOG2!'
+
+
 class Flagstat(Module):
     def __init__(self, module_id, is_docker = False):
         super(Flagstat, self).__init__(module_id, is_docker)
