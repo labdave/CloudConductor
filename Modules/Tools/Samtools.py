@@ -49,12 +49,13 @@ class Stats(Module):
         self.output_keys = ["stats"]
 
     def define_input(self):
-        self.add_argument("bam",            is_required=True)
-        self.add_argument("bam_idx",        is_required=True)
-        self.add_argument("samtools",       is_required=True, is_resource=True)
-        self.add_argument("exclude_dups",   default_value=False)
-        self.add_argument("nr_cpus",        is_required=True, default_value=8)
-        self.add_argument("mem",            is_required=True, default_value="nr_cpus * 2")
+        self.add_argument("bam",                is_required=True)
+        self.add_argument("bam_idx",            is_required=True)
+        self.add_argument("samtools",           is_required=True, is_resource=True)
+        self.add_argument("remove_dups",        default_value=True)
+        self.add_argument("remove_overlaps",    default_value=True)
+        self.add_argument("nr_cpus",            is_required=True, default_value=8)
+        self.add_argument("mem",                is_required=True, default_value="nr_cpus * 2")
 
     def define_output(self):
         # Declare stats output filename
@@ -65,16 +66,24 @@ class Stats(Module):
         # Define command for running samtools stats from a platform
         bam             = self.get_argument("bam")
         samtools        = self.get_argument("samtools")
-        exclude_dups    = self.get_argument("exclude_dups")
+        remove_dups     = self.get_argument("remove_dups")
+        remove_overlaps = self.get_argument("remove_overlaps")
         nr_cpus         = self.get_argument("nr_cpus")
 
         stats           = self.get_output("stats")
 
         # Generating Stats command
-        if exclude_dups:
-            return f'{samtools} stats -@ {nr_cpus} -d {bam} > {stats} !LOG2!'
+        samtools_stats_cmd = f'{samtools} stats -@ {nr_cpus}'
 
-        return f'{samtools} stats -@ {nr_cpus} {bam} > {stats} !LOG2!'
+        # exclude the duplicates
+        if remove_dups:
+            samtools_stats_cmd = f'{samtools_stats_cmd} -d'
+
+        # exclude the overlaps
+        if remove_overlaps:
+            samtools_stats_cmd = f'{samtools_stats_cmd} -p'
+
+        return f'{samtools_stats_cmd} {bam} > {stats} !LOG2!'
 
 
 class Flagstat(Module):
