@@ -10,8 +10,8 @@ class Clonotype(Module):
         self.add_argument('bam_idx',    is_required=True)
         self.add_argument('ig',         default_value=False)
         self.add_argument('t',          default_value=False)
-        self.add_argument('nr_cpus',    default_value=2)
-        self.add_argument('mem',        default_value=12)
+        self.add_argument('nr_cpus',    default_value=4)
+        self.add_argument('mem',        default_value=30)
         self.add_argument('logging',    default_value='!LOG3!')
 
     def define_output(self):
