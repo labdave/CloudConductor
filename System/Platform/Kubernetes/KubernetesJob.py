@@ -219,9 +219,13 @@ class KubernetesJob(Instance):
                         logs = self.__get_container_log(self.job_containers[len(self.job_containers)-1].name)
                         return logs, ''
                 elif job_status.get("failed"):
+                    logging.warning(f"{self.name}) Job marked as failed. Status response:\n{str(job_status)}")
                     # check for this last ( only when job is no longer active ) because our job is allowed to fail multiple times
                     # job_status will hold the number of times it has failed
-                    self.stop_time = job_status['conditions'][0]['last_transition_time'].timestamp()
+                    if job_status and job_status['conditions']:
+                        self.stop_time = job_status['conditions'][0]['last_transition_time'].timestamp()
+                    else:
+                        self.stop_time = time.time()
                     self.failed_container = self.__get_failed_container()
                     if self.failed_container:
                         logging.error(f"({self.name}) Instance failed during task: {self.failed_container['name']} with command {self.failed_container['args']}.")
