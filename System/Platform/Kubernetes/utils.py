@@ -32,11 +32,6 @@ def api_request(api_func, *args, **kwargs):
                 response = response.to_dict()
             break
         except ApiException as e:
-            time.sleep(get_api_sleep(i+1))
-            if 'delete' in api_func.__name__ and 'Not Found' in e.reason:
-                logging.debug("")
-            else:
-                logging.warning("APIException when calling %s: %s" % (api_func.__name__, e))
             response = {
                 "status": e.status,
                 "error": e.reason,
@@ -47,6 +42,11 @@ def api_request(api_func, *args, **kwargs):
                 response.update(error_body)
             except Exception:
                 logging.debug("Issue with parsing the error body into json.")
+            if 'delete' in api_func.__name__ and 'Not Found' in e.reason:
+                break
+            else:
+                time.sleep(get_api_sleep(i+1))
+                logging.warning("APIException when calling %s: %s" % (api_func.__name__, e))
             continue
         except ConnectionResetError as e:
             time.sleep(get_api_sleep(i+1))
@@ -68,6 +68,12 @@ def api_request(api_func, *args, **kwargs):
                     "error": e,
                 }
                 continue
+            elif 'delete' in api_func.__name__ and 'not found' in exception_string:
+                response = {
+                    "status": "Failed",
+                    "error": e,
+                }
+                break
             else:
                 response = {
                     "status": "Failed",
