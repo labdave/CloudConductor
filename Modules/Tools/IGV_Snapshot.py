@@ -12,7 +12,7 @@ class IGV_Snapshot(Module):
 	def define_input(self):
 		# Module creator needs to define which arguments have is_resource=True
 		# Module creator needs to rename arguments as required by CC
-		self.add_argument("anno_vcf")
+		self.add_argument("all_merged_cons_vcf")
 		self.add_argument("wl_variants")
 		self.add_argument("bam",					is_required=True)
 		self.add_argument("bam_idx",				is_required=True)
@@ -41,7 +41,7 @@ class IGV_Snapshot(Module):
 
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC
-		anno_vcf					= self.get_argument("anno_vcf")
+		all_merged_cons_vcf					= self.get_argument("all_merged_cons_vcf")
 		wl_variants					= self.get_argument("wl_variants")
 		bam							= self.get_argument("bam")
 		non_split_bam				= self.get_argument("non_split_bam")
@@ -59,8 +59,8 @@ class IGV_Snapshot(Module):
 		# get output
 		igv_snapshot_dir			= self.get_output("igv_snapshot_dir")
 
-		if anno_vcf is not None:
-			vcf = anno_vcf
+		if all_merged_cons_vcf is not None:
+			vcf = all_merged_cons_vcf
 			columns = 5
 			thresh_column = 7
 

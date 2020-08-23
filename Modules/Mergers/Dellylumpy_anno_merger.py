@@ -2,9 +2,9 @@ from Modules import Merger
 
 #debug
 # Module created using CC_module_helper.py
-class Dellylumpydestruct_anno_merger(Merger):
+class Dellylumpy_anno_merger(Merger):
 	def __init__(self, module_id, is_docker=False):
-		super(Dellylumpydestruct_anno_merger, self).__init__(module_id, is_docker)
+		super(Dellylumpy_anno_merger, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
 		self.output_keys = ["anno_vcf"]
 
@@ -52,7 +52,7 @@ class Dellylumpydestruct_anno_merger(Merger):
 		anno_vcf						= self.get_output("anno_vcf")
 
 		# add module
-		cmd = " python Merge_delly_lumpy_destruct_annotation.py"
+		cmd = " python3 Merge_delly_lumpy_annotation.py"
 
 		# add arguments
 		cmd += " -i {0} -c {1} -o {2}".format(all_merged_cons_vcf, bed, anno_vcf)

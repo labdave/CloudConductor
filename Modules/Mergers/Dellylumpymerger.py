@@ -1,9 +1,9 @@
 from Modules import Merger
 
 # Module created using CC_module_helper.py
-class Dellylumpydestructmerger(Merger):
+class Dellylumpymerger(Merger):
 	def __init__(self, module_id, is_docker=False):
-		super(Dellylumpydestructmerger, self).__init__(module_id, is_docker)
+		super(Dellylumpymerger, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
 		self.output_keys = ["all_merged_vcf", "all_merged_cons_vcf"] 
 
@@ -39,21 +39,18 @@ class Dellylumpydestructmerger(Merger):
 			if 'delly.merged' in vcf:
 				delly_file = vcf
 				continue
-			if 'destruct.merged' in vcf:
-				destruct_file = vcf
-				continue
 
 		# get output
 		all_merged_vcf			= self.get_output("all_merged_vcf")
 
 		# add module
-		cmd = " python Merge_delly_lumpy_destruct.py"
+		cmd = " python3 Merge_delly_lumpy.py"
 
 		# add arguments
 		cmd += " {0} {1}".format(all_merged_vcf, chr_filter)
 
 		# add merged vcf files
-		cmd += " {0} {1} {2}".format(delly_file, lumpy_file, destruct_file)
+		cmd += " {0} {1}".format(delly_file, lumpy_file)
 
 		# add logging
 		cmd += " !LOG3!"
