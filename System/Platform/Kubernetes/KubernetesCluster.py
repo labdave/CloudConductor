@@ -100,6 +100,7 @@ class KubernetesCluster(Platform):
         self.configuration.api_key["authorization"] = api_token
         self.configuration.api_key_prefix['authorization'] = api_prefix
         self.configuration.host = host
+        self.configuration.connection_pool_maxsize = 200
         self.configuration.ssl_ca_cert = cert_path
         self.batch_api = client.BatchV1Api(client.ApiClient(self.configuration))
         self.core_api = client.CoreV1Api(client.ApiClient(self.configuration))
