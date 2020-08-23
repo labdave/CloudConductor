@@ -141,7 +141,8 @@ class KubernetesJob(Instance):
                 # Save the status if the job is no longer active
                 delete_status = delete_response.get("status", None)
                 if delete_status and delete_status == 'Failure':
-                    logging.warning(f"({self.name}) Failed to destroy Kubernetes Job. Message: {delete_response.get('message', '')}")
+                    if 'not found' not in delete_response.get('message', ''):
+                        logging.warning(f"({self.name}) Failed to destroy Kubernetes Job. Message: {delete_response.get('message', '')}")
                 elif delete_status and not isinstance(delete_status, dict):
                     delete_status = ast.literal_eval(delete_status)
                 elif delete_status and isinstance(delete_status, dict) or delete_status.get("failed") or delete_status.get("succeeded"):
@@ -159,7 +160,8 @@ class KubernetesJob(Instance):
             # Save the status if the job is no longer active
             pvc_status = pvc_response.get("status", None)
             if pvc_status and pvc_status == 'Failure':
-                logging.warning(f"({self.name}) Failed to destroy Persistent Volume Claim. Message: {pvc_response.get('message', '')}")
+                if 'not found' not in pvc_response.get('message', ''):
+                    logging.warning(f"({self.name}) Failed to destroy Persistent Volume Claim. Message: {pvc_response.get('message', '')}")
             elif pvc_status and not isinstance(pvc_status, dict):
                 pvc_status = ast.literal_eval(pvc_status)
             elif pvc_status and isinstance(pvc_status, dict):
