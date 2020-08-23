@@ -327,7 +327,7 @@ class KubernetesJob(Instance):
                 logging.debug(f"({self.name}) Persistent Volume Claim created.")
                 break
             else:
-                if 'Connection aborted' in pvc_status.get('error', ''):
+                if isinstance(pvc_status, dict) and 'Connection aborted' in pvc_status.get('error', ''):
                     time.sleep(get_api_sleep(i+1))
                     continue
                 else:
