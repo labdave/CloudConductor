@@ -24,7 +24,7 @@ def api_request(api_func, *args, **kwargs):
             headers, the header of the ApiException
 
     """
-    for i in range(8):
+    for i in range(12):
         try:
             response = api_func(*args, **kwargs)
             # Convert the response to dictionary if possible
