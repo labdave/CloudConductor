@@ -33,7 +33,10 @@ def api_request(api_func, *args, **kwargs):
             break
         except ApiException as e:
             time.sleep(get_api_sleep(i+1))
-            logging.warning("Exception when calling %s: %s" % (api_func.__name__, e))
+            if 'delete' in api_func.__name__ and 'Not Found' in e.reason:
+                logging.debug("")
+            else:
+                logging.warning("APIException when calling %s: %s" % (api_func.__name__, e))
             response = {
                 "status": e.status,
                 "error": e.reason,
@@ -47,7 +50,7 @@ def api_request(api_func, *args, **kwargs):
             continue
         except ConnectionResetError as e:
             time.sleep(get_api_sleep(i+1))
-            logging.warning("Exception when calling %s: %s" % (api_func.__name__, e))
+            logging.warning("ConnectionResetException when calling %s: %s" % (api_func.__name__, e))
             logging.debug("Will retry the request.")
             response = {
                 "status": "Failed",
