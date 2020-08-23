@@ -315,17 +315,23 @@ class KubernetesJob(Instance):
         pvc_spec = client.V1PersistentVolumeClaimSpec(access_modes=['ReadWriteOnce'], resources=pvc_resources, storage_class_name='standard')
         self.task_pvc = client.V1PersistentVolumeClaim(metadata=pvc_meta, spec=pvc_spec)
 
-        try:
-            pvc_response = api_request(self.core_api.create_namespaced_persistent_volume_claim, self.namespace, self.task_pvc)
-        except Exception as e:
-            raise RuntimeError(f"({self.name}) Failure to create the Persistent Volume Claim on the cluster. Reason: {str(e)}")
+        for i in range(10):
+            try:
+                pvc_response = api_request(self.core_api.create_namespaced_persistent_volume_claim, self.namespace, self.task_pvc)
+            except Exception as e:
+                raise RuntimeError(f"({self.name}) Failure to create the Persistent Volume Claim on the cluster. Reason: {str(e)}")
 
-        # Save the status if the job is no longer active
-        pvc_status = pvc_response.get("status", None)
-        if pvc_status and isinstance(pvc_status, dict):
-            logging.debug(f"({self.name}) Persistent Volume Claim created.")
-        else:
-            raise RuntimeError(f"({self.name}) Failure to create a Persistent Volume Claim on the cluster. Response: {str(pvc_response)}")
+            # Save the status if the job is no longer active
+            pvc_status = pvc_response.get("status", None)
+            if pvc_status and isinstance(pvc_status, dict):
+                logging.debug(f"({self.name}) Persistent Volume Claim created.")
+                break
+            else:
+                if 'Connection aborted' in pvc_status.get('error', ''):
+                    time.sleep(get_api_sleep(i+1))
+                    continue
+                else:
+                    raise RuntimeError(f"({self.name}) Failure to create a Persistent Volume Claim on the cluster. Response: {str(pvc_response)}")
 
     def __create_job_def(self, rerun=False):
         # initialize the job def body
