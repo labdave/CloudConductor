@@ -7,7 +7,6 @@ import collections
 import time
 import random
 from kubernetes.client.rest import ApiException
-logger = logging.getLogger(__name__)
 
 
 def api_request(api_func, *args, **kwargs):
@@ -25,7 +24,7 @@ def api_request(api_func, *args, **kwargs):
             headers, the header of the ApiException
 
     """
-    for i in range(8):
+    for i in range(12):
         try:
             response = api_func(*args, **kwargs)
             # Convert the response to dictionary if possible
@@ -34,29 +33,33 @@ def api_request(api_func, *args, **kwargs):
             break
         except ApiException as e:
             time.sleep(get_api_sleep(i+1))
-            logger.warning("Exception when calling %s: %s" % (api_func.__name__, e))
+            logging.warning("Exception when calling %s: %s" % (api_func.__name__, e))
             response = {
                 "status": e.status,
                 "error": e.reason,
                 "headers": stringify(e.headers),
             }
-            response.update(json.loads(e.body))
+            try:
+                error_body = json.loads(e.body)
+                response.update(error_body)
+            except Exception:
+                logging.debug("Issue with parsing the error body into json.")
             continue
         except ConnectionResetError as e:
             time.sleep(get_api_sleep(i+1))
-            logger.warning("Exception when calling %s: %s" % (api_func.__name__, e))
-            logger.debug("Will retry the request.")
+            logging.warning("Exception when calling %s: %s" % (api_func.__name__, e))
+            logging.debug("Will retry the request.")
             response = {
                 "status": "Failed",
                 "error": e,
             }
             continue
         except Exception as e:
-            logger.warning("Exception when calling %s: %s" % (api_func.__name__, e))
+            logging.warning("Exception when calling %s: %s" % (api_func.__name__, e))
             exception_string = str(e)
             if "Max retries" in exception_string or "NewConnectionError" in exception_string:
                 time.sleep(get_api_sleep(i+1))
-                logger.debug("Will retry the request.")
+                logging.debug("Will retry the request.")
                 response = {
                     "status": "Failed",
                     "error": e,
