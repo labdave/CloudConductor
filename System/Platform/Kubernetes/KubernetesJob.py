@@ -157,7 +157,6 @@ class KubernetesJob(Instance):
         else:
             logging.debug(f"{self.name}) Cleaning up prerequisite job resources.")
             self.__cleanup_job()
-            self.__cleanup_volume_claim()
             logging.debug(f"({self.name}) Starting creation of Kubernetes followup job.")
 
         # create the persistent volume claim for the job if one doesn't already exist
