@@ -134,10 +134,9 @@ class KubernetesJob(Instance):
 
     def destroy(self):
         # Destroy the job
-        # only want to destroy a job if it's active
         if self.job_def:
             status = self.get_status(force_refresh=True)
-            if status and isinstance(status, dict) and status.get("active"):
+            if status and isinstance(status, dict):
                 delete_response = api_request(self.batch_api.delete_namespaced_job, self.name, self.namespace)
 
                 # Save the status if the job is no longer active
@@ -149,6 +148,8 @@ class KubernetesJob(Instance):
                     delete_status = ast.literal_eval(delete_status)
                 else:
                     logging.debug(f"({self.name}) Kubernetes job successfully destroyed.")
+            # Destroy all pods associated with the job as well
+            self.__cleanup_pods()
 
         if self.start_time > 0 and self.stop_time == 0:
             self.stop_time = time.time()
@@ -166,7 +167,7 @@ class KubernetesJob(Instance):
                     logging.warning(f"({self.name}) Failed to destroy Persistent Volume Claim. Message: {pvc_response.get('message', '')}")
             elif pvc_status and not isinstance(pvc_status, dict):
                 pvc_status = ast.literal_eval(pvc_status)
-            elif pvc_status and isinstance(pvc_status, dict):
+            else:
                 logging.debug(f"({self.name}) Persistent Volume Claim successfully destroyed.")
 
     def wait_process(self, proc_name):
@@ -571,3 +572,16 @@ class KubernetesJob(Instance):
                     return response
         logging.warning(f"Failed to retrieve logs for container {container_name} in job {self.inst_name}")
         return ""
+
+    def __cleanup_pods(self):
+        response = api_request(self.core_api.list_namespaced_pod, namespace=self.namespace, label_selector=self.inst_name, watch=False, pretty='true')
+        if response.get("error"):
+            logging.warning(f"Failed to delete pods for job {self.inst_name}")
+            return ""
+        # Loop through all the pods to delete them from the cluster
+        for pod in response.get("items"):
+            if pod.get("metadata", {}).get("labels", {}).get("job-name") == self.inst_name:
+                pod_name = pod.get("metadata", {}).get("name", '')
+                if pod_name:
+                    response = api_request(self.core_api.delete_namespaced_pod, pod_name, self.namespace)
+                    logging.debug(f"({self.name}) Delete pod response: {response}")
