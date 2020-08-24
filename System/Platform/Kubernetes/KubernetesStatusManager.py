@@ -38,7 +38,7 @@ class KubernetesStatusManager(object):
     def __monitor_jobs(self):
         while self.is_monitoring:
             self.update_statuses()
-            time.sleep(30)
+            time.sleep(25)
 
     def update_statuses(self):
         try:
@@ -51,6 +51,6 @@ class KubernetesStatusManager(object):
     def get_job_status(self, job_name, force_refresh=False):
         if not self.job_list or force_refresh:
             self.update_statuses()
-        if self.job_list and self.job_list[job_name]:
+        if self.job_list and job_name in self.job_list:
             return self.job_list[job_name].get("status", "")
         return ""
