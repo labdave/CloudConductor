@@ -9,7 +9,7 @@ from System.Platform import Process
 from System.Platform.Platform import Platform
 from threading import Thread
 
-from System.Platform.Kubernetes import KubernetesJob
+from System.Platform.Kubernetes import KubernetesJob, KubernetesStatusManager
 from System.Platform.Kubernetes.utils import api_request, get_api_sleep
 
 from kubernetes import config, client
@@ -78,7 +78,8 @@ class KubernetesCluster(Platform):
             "gcp_secret_configured": self.gcp_secret_configured,
             "aws_secret_configured": self.aws_secret_configured,
             "batch_api": self.batch_api,
-            "core_api": self.core_api
+            "core_api": self.core_api,
+            "status_manager": self.status_manager
         })
 
         # Initialize new instance
@@ -104,6 +105,9 @@ class KubernetesCluster(Platform):
         self.configuration.ssl_ca_cert = cert_path
         self.batch_api = client.BatchV1Api(client.ApiClient(self.configuration))
         self.core_api = client.CoreV1Api(client.ApiClient(self.configuration))
+
+        self.status_manager = KubernetesStatusManager(self.batch_api, self.core_api)
+        self.status_manager.start_job_monitoring()
 
     def init_platform(self):
         # Authenticate the current platform

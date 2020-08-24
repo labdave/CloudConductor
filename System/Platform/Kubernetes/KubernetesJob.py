@@ -8,6 +8,7 @@ import tempfile
 import yaml
 import json
 
+from System.Platform.Kubernetes import KubernetesStatusManager
 from System.Platform.Instance import Instance
 from System.Platform import Platform, Process
 from System.Platform.Kubernetes.utils import api_request, get_api_sleep
@@ -52,6 +53,7 @@ class KubernetesJob(Instance):
         # Get API clients
         self.batch_api = kwargs.pop("batch_api")
         self.core_api = kwargs.pop("core_api")
+        self.status_manager = kwargs.pop("status_manager")
 
         # Get platform/cluster specific data
         self.storage_price = kwargs.pop("storage_price")
@@ -134,7 +136,7 @@ class KubernetesJob(Instance):
         # Destroy the job
         # only want to destroy a job if it's active
         if self.job_def:
-            status = self.get_status()
+            status = self.get_status(force_refresh=True)
             if status and isinstance(status, dict) and status.get("active"):
                 delete_response = api_request(self.batch_api.delete_namespaced_job, self.name, self.namespace)
 
@@ -243,10 +245,10 @@ class KubernetesJob(Instance):
     def get_stop_time(self):
         return self.stop_time
 
-    def get_status(self, retries=0, log_status=False):
-        s = api_request(self.batch_api.read_namespaced_job_status, self.inst_name, self.namespace)
+    def get_status(self, retries=0, log_status=False, force_refresh=False):
+        job_status = self.status_manager.get_job_status(self.inst_name, force_refresh)
+        # s = api_request(self.batch_api.read_namespaced_job_status, self.inst_name, self.namespace)
         # Save the status if the job is no longer active
-        job_status = s.get("status", dict())
         if log_status:
             logging.debug(f"({self.name}) Job Status: {job_status}")
         if job_status and job_status != "Failure":
@@ -254,14 +256,14 @@ class KubernetesJob(Instance):
                 self.start_time = job_status['start_time'].timestamp()
             return job_status
         elif job_status == "Failure":
-            reason = s.get('message', '')
+            reason = job_status.get('message', '')
             if 'rpc error' in reason or 'Timeout: ' in reason and retries < 5:
                 logging.warning(f"({self.name}) Request issue when getting status. We'll try again.")
                 time.sleep(30)
                 return self.get_status(retries + 1, log_status)
             else:
                 logging.error(f"({self.name}) Failure to get status. Reason: {reason}")
-        return s
+        return job_status
 
     def add_checkpoint(self, clear_output=True):
         pass
