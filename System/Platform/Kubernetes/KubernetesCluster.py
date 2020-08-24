@@ -177,6 +177,8 @@ class KubernetesCluster(Platform):
         # Initialize the list of threads
         destroy_threads = []
 
+        self.status_manager.stop_job_monitoring()
+
         # Launch the destroy process for each instance
         for name, job_obj in self.jobs.items():
             if job_obj is None:
