@@ -133,42 +133,14 @@ class KubernetesJob(Instance):
         self.processes[job_name] = task
 
     def destroy(self):
-        # Destroy the job
-        if self.job_def:
-            status = self.get_status(force_refresh=True)
-            if status and isinstance(status, dict):
-                delete_response = api_request(self.batch_api.delete_namespaced_job, self.name, self.namespace)
-
-                # Save the status if the job is no longer active
-                delete_status = delete_response.get("status", None)
-                if delete_status and delete_status == 'Failure':
-                    if 'not found' not in delete_response.get('message', ''):
-                        logging.warning(f"({self.name}) Failed to destroy Kubernetes Job. Message: {delete_response.get('message', '')}")
-                elif delete_status and not isinstance(delete_status, dict):
-                    delete_status = ast.literal_eval(delete_status)
-                else:
-                    logging.debug(f"({self.name}) Kubernetes job successfully destroyed.")
-            # Destroy all pods associated with the job as well
-            self.__cleanup_pods()
+        self.__cleanup_job()
 
         if self.start_time > 0 and self.stop_time == 0:
             self.stop_time = time.time()
         # stop monitoring the job
         self.monitoring = False
 
-        if self.pvc_name:
-            # Destroy the persistent volume claim
-            pvc_response = api_request(self.core_api.delete_namespaced_persistent_volume_claim, self.pvc_name, self.namespace)
-
-            # Save the status if the job is no longer active
-            pvc_status = pvc_response.get("status", None)
-            if pvc_status and pvc_status == 'Failure':
-                if 'not found' not in pvc_response.get('message', ''):
-                    logging.warning(f"({self.name}) Failed to destroy Persistent Volume Claim. Message: {pvc_response.get('message', '')}")
-            elif pvc_status and not isinstance(pvc_status, dict):
-                pvc_status = ast.literal_eval(pvc_status)
-            else:
-                logging.debug(f"({self.name}) Persistent Volume Claim successfully destroyed.")
+        self.__cleanup_volume_claim()
 
     def wait_process(self, proc_name):
         if proc_name == "return_logs" and self.failed_container:
@@ -183,6 +155,9 @@ class KubernetesJob(Instance):
         if self.job_count == 1:
             logging.debug(f"({self.name}) Starting creation of Kubernetes job.")
         else:
+            logging.debug(f"{self.name}) Cleaning up prerequisite job resources.")
+            self.__cleanup_job()
+            self.__cleanup_volume_claim()
             logging.debug(f"({self.name}) Starting creation of Kubernetes followup job.")
 
         # create the persistent volume claim for the job if one doesn't already exist
@@ -248,7 +223,6 @@ class KubernetesJob(Instance):
 
     def get_status(self, retries=0, log_status=False, force_refresh=False):
         job_status = self.status_manager.get_job_status(self.inst_name, force_refresh)
-        # s = api_request(self.batch_api.read_namespaced_job_status, self.inst_name, self.namespace)
         # Save the status if the job is no longer active
         if log_status:
             logging.debug(f"({self.name}) Job Status: {job_status}")
@@ -572,6 +546,40 @@ class KubernetesJob(Instance):
                     return response
         logging.warning(f"Failed to retrieve logs for container {container_name} in job {self.inst_name}")
         return ""
+
+    def __cleanup_job(self):
+        # Destroy the job
+        if self.job_def:
+            status = self.get_status(force_refresh=True)
+            if status and isinstance(status, dict):
+                delete_response = api_request(self.batch_api.delete_namespaced_job, self.name, self.namespace)
+
+                # Save the status if the job is no longer active
+                delete_status = delete_response.get("status", None)
+                if delete_status and delete_status == 'Failure':
+                    if 'not found' not in delete_response.get('message', ''):
+                        logging.warning(f"({self.name}) Failed to destroy Kubernetes Job. Message: {delete_response.get('message', '')}")
+                elif delete_status and not isinstance(delete_status, dict):
+                    delete_status = ast.literal_eval(delete_status)
+                else:
+                    logging.debug(f"({self.name}) Kubernetes job successfully destroyed.")
+            # Destroy all pods associated with the job as well
+            self.__cleanup_pods()
+
+    def __cleanup_volume_claim(self):
+        if self.pvc_name:
+            # Destroy the persistent volume claim
+            pvc_response = api_request(self.core_api.delete_namespaced_persistent_volume_claim, self.pvc_name, self.namespace)
+
+            # Save the status if the job is no longer active
+            pvc_status = pvc_response.get("status", None)
+            if pvc_status and pvc_status == 'Failure':
+                if 'not found' not in pvc_response.get('message', ''):
+                    logging.warning(f"({self.name}) Failed to destroy Persistent Volume Claim. Message: {pvc_response.get('message', '')}")
+            elif pvc_status and not isinstance(pvc_status, dict):
+                pvc_status = ast.literal_eval(pvc_status)
+            else:
+                logging.debug(f"({self.name}) Persistent Volume Claim successfully destroyed.")
 
     def __cleanup_pods(self):
         response = api_request(self.core_api.list_namespaced_pod, namespace=self.namespace, label_selector=self.inst_name, watch=False, pretty='true')
