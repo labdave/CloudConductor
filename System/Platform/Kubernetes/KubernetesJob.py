@@ -147,7 +147,7 @@ class KubernetesJob(Instance):
                         logging.warning(f"({self.name}) Failed to destroy Kubernetes Job. Message: {delete_response.get('message', '')}")
                 elif delete_status and not isinstance(delete_status, dict):
                     delete_status = ast.literal_eval(delete_status)
-                elif delete_status and isinstance(delete_status, dict) or delete_status.get("failed") or delete_status.get("succeeded"):
+                else:
                     logging.debug(f"({self.name}) Kubernetes job successfully destroyed.")
 
         if self.start_time > 0 and self.stop_time == 0:
