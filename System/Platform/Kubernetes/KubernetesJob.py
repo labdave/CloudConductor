@@ -188,7 +188,7 @@ class KubernetesJob(Instance):
         while self.monitoring:
             time.sleep(30)
             job_status = self.get_status(log_status=True)
-            if isinstance(job_status, dict) and not job_status.get("active"):
+            if isinstance(job_status, dict) and (job_status.get("succeeded") or (job_status.get("failed") and job_status.get("failed") >= self.default_num_cmd_retries) or not job_status.get("active")):
                 self.monitoring = False
                 if job_status.get("succeeded"):
                     self.stop_time = job_status['completion_time'].timestamp()
@@ -197,7 +197,7 @@ class KubernetesJob(Instance):
                         logging.debug("Returning logs from last process.")
                         logs = self.__get_container_log(self.job_containers[len(self.job_containers)-1].name)
                         return logs, ''
-                elif job_status.get("failed"):
+                elif job_status.get("failed") and job_status.get("failed") >= self.default_num_cmd_retries:
                     logging.warning(f"{self.name}) Job marked as failed. Status response:\n{str(job_status)}")
                     # check for this last ( only when job is no longer active ) because our job is allowed to fail multiple times
                     # job_status will hold the number of times it has failed

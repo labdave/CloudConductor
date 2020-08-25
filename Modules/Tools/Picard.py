@@ -13,8 +13,8 @@ class MarkDuplicates(Module):
         self.add_argument("bam_idx",    is_required=True)
         self.add_argument("is_aligned", is_required=True, default_value=True)
         self.add_argument("picard",     is_required=True, is_resource=True)
-        self.add_argument("nr_cpus",    is_required=True, default_value=4)
-        self.add_argument("mem",        is_required=True, default_value=20)
+        self.add_argument("nr_cpus",    is_required=True, default_value=8)
+        self.add_argument("mem",        is_required=True, default_value=61)
 
         # Require java if not being run on docker
         if not self.is_docker:
@@ -90,8 +90,8 @@ class CollectInsertSizeMetrics(Module):
         self.add_argument("bam_idx",            is_required=True)
         self.add_argument("picard",             is_required=True, is_resource=True)
         self.add_argument("num_reads",          is_required=True, default_value=1000000)
-        self.add_argument("nr_cpus",            is_required=True, default_value=4)
-        self.add_argument("mem",                is_required=True, default_value=10)
+        self.add_argument("nr_cpus",            is_required=True, default_value=8)
+        self.add_argument("mem",                is_required=True, default_value=61)
 
         # Require java if not being run on docker
         if not self.is_docker:
@@ -194,8 +194,8 @@ class SortGVCF(Module):
         self.add_argument("gvcf_idx",           is_required=True)
         self.add_argument("picard",             is_required=True, is_resource=True)
         self.add_argument("ref",                is_required=True, is_resource=True)
-        self.add_argument("nr_cpus",            is_required=True, default_value=4)
-        self.add_argument("mem",                is_required=True, default_value=25)
+        self.add_argument("nr_cpus",            is_required=True, default_value=8)
+        self.add_argument("mem",                is_required=True, default_value=61)
 
         # Require java if not being run on docker
         if not self.is_docker:
