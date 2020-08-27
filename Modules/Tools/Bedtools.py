@@ -1,5 +1,34 @@
 from Modules import Module
 
+
+class BamToFastq(Module):
+    def __init__(self, module_id, is_docker = False):
+        super(BamToFastq, self).__init__(module_id, is_docker)
+        self.output_keys 	= ["R1", "R2"]
+
+    def define_input(self):
+        self.add_argument("bam",		is_required=True)
+        self.add_argument("bam_idx",    is_required=True)
+        self.add_argument("bedtools",       is_required=True, is_resource=True)
+
+    def define_output(self):
+        r1 					= self.generate_unique_file_name(".r1.fq")
+        r2 					= self.generate_unique_file_name(".r2.fq")
+        self.add_output("R1", 			r1)
+        self.add_output("R2",			r2)
+
+    def define_command(self):
+        # Define command for running bedtools coverage from a platform
+        bam 				= self.get_argument("bam")
+        bam_idx 			= self.get_argument("bam_idx")
+
+        r1 					= self.get_output("R1")
+        r2 					= self.get_output("R2")
+
+        cmd = "{0} bamtofastq -i {1} -fq {2} -fq2 {3} !LOG3!".format(bedtools, bam, r1, r2)
+
+        return cmd
+
 class Coverage(Module):
     def __init__(self, module_id, is_docker = False):
         super(Coverage, self).__init__(module_id, is_docker)
@@ -40,7 +69,7 @@ class Coverage(Module):
 
             # Generating coverage command for read counts
             cmd = "{0} coverage -counts -a {1} -b {2} -sorted -g {4} > {3} !LOG2!".format(bedtools, bed, bam,
-                                                                                          read_counts, ref_idx)
+                    read_counts, ref_idx)
 
             return cmd
 
@@ -50,6 +79,6 @@ class Coverage(Module):
 
         # Generating coverage command
         cmd = "{0} coverage -a {1} -b {2} -sorted -g {4} > {3} !LOG2!".format(bedtools, bed, bam, coverage_report,
-                                                                              ref_idx)
+                ref_idx)
 
         return cmd
