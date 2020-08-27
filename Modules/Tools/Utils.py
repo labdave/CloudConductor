@@ -1004,3 +1004,47 @@ class GetERCCReadCounts(Module):
               "else echo -e \"ERCC-00000\t0\" > %s !LOG2!; fi" % (sam,sam,read_counts,read_counts)
 
         return cmd
+
+
+class SubsetFASTQ(Module):
+    def __init__(self, module_id, is_docker=False):
+        super(SubsetFASTQ, self).__init__(module_id, is_docker)
+        self.output_keys = ["R1", "R2"]
+
+    def define_input(self):
+        self.add_argument("R1",         is_required=True)
+        self.add_argument("R2")
+        self.add_argument("seqtk",      is_required=True, is_resource=True)
+        self.add_argument("sample",     is_required=True, default_value=1000000)
+        self.add_argument("nr_cpus",    is_required=True, default_value=2)
+        self.add_argument("mem",        is_required=True, default_value=4)
+
+    def define_output(self):
+        # Declare R1 output name
+        sample = self.get_argument("sample")
+
+        self.add_output("R1", self.generate_unique_file_name(extension=f'subset.{sample}.R1.fastq'))
+
+        if self.get_argument("R2"):
+            self.add_output("R2", self.generate_unique_file_name(extension=f'subset.{sample}.R2.fastq'))
+
+    def define_command(self):
+        # Get the input arguments
+        R1      = self.get_argument("R1")
+        R2      = self.get_argument("R2")
+        seqtk   = self.get_argument("seqtk")
+        sample  = self.get_argument("sample")
+
+        # Get the output arguments
+        r1_out = self.get_output("R1")
+
+        r1_cmd = f'{seqtk} sample -s100 {R1} {sample} > {r1_out}'
+
+        if R2:
+            r2_out = self.get_output("R2")
+
+            r2_cmd = f'{seqtk} sample -s100 {R2} {sample} > {r2_out}'
+
+            return f'{r1_cmd} !LOG2!; {r2_cmd} !LOG2!'
+
+        return f'{r1_cmd} !LOG2!'
