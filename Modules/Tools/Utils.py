@@ -1048,3 +1048,24 @@ class SubsetFASTQ(Module):
             return f'{r1_cmd} !LOG2!; {r2_cmd} !LOG2!'
 
         return f'{r1_cmd} !LOG2!'
+
+
+class pcrDupInsert(Module):
+    def __init__(self, module_id, is_docker=False):
+    super(pcrDupInsert, self).__init__(module_id, is_docker)
+
+    def define_input(self):
+        self.add.argument("BAM", is_required=TRUE)
+        self.add.argument("nr_cpus", is_required=True, default_value=2)
+        self.add.argument("mem", is_required=True, default_value=4)
+
+    def define_output(self):
+        dups = self.generate_unique_file_name(extension=".pcr_dup_out.txt")
+        self.add_output("dups", dups)
+
+    def define_command(self):
+        bam = self.get_arugment("bam")
+        
+        cmd = "sh misc_scripts/insert_size_pcr_dup_dt.sh {0} /data".format(bam)
+
+
