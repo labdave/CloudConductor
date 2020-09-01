@@ -1056,9 +1056,9 @@ class pcrDupInsert(Module):
         self.output_keys = ["dup_insert","nodup_insert","ercc_insert"]
 
     def define_input(self):
-        self.add.argument("bam", is_required=True)
-        self.add.argument("nr_cpus", is_required=True, default_value=2)
-        self.add.argument("mem", is_required=True, default_value=4)
+        self.add_argument("bam", is_required=True)
+        self.add_argument("nr_cpus", is_required=True, default_value=2)
+        self.add_argument("mem", is_required=True, default_value=4)
 
     def define_output(self):
         dups = self.generate_unique_file_name(extension=".pcr_dup_out.txt")
