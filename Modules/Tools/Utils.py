@@ -1077,7 +1077,7 @@ class pcrDupInsert(Module):
         nodups = self.get_output("nodup_insert")
         ercc   = self.get_output("ercc_insert")
         
-        cmd = "bash misc_scripts/insert_size_pcr_dup_dt.sh {0} {1} (2) {3} {4} !LOG3!".format(bam,cpus,dups, nodups, ercc)
+        cmd = "bash misc_scripts/insert_size_pcr_dup_dt.sh {0} {1} {2} {3} {4} !LOG3!".format(bam,cpus,dups, nodups, ercc)
         return cmd
 
 
