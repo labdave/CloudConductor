@@ -1071,7 +1071,7 @@ class pcrDupInsert(Module):
 
 
     def define_command(self):
-        bam    = self.get_arugment("bam")
+        bam    = self.get_argument("bam")
         cpus   = self.get_argument("nr_cpus")
         dups   = self.get_output("dup_insert")
         nodups = self.get_output("nodup_insert")
