@@ -50,6 +50,9 @@ class Datastore(object):
         task_module.set_argument("nr_cpus", nr_cpus)
         task_module.set_argument("mem", mem)
 
+    def is_multisample(self):
+        return self.sample_data.get_num_samples() > 1
+
     def get_task_workspace(self, task_id=None):
         # Use task information to generate unique directories for input/output files
 
