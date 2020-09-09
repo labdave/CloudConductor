@@ -60,11 +60,11 @@ class BWAMem(_SentieonBase):
 
         if R2 is not None:
             # Generate bwa-mem paired-end command
-            align_cmd = f'{sentieon_cmd} bwa mem -M -R "{rg_header}" -t {nr_cpus} {ref} {R1} {R2} !LOG2!'
+            align_cmd = f'{sentieon_cmd} bwa mem -M -R "{rg_header}" -t {nr_cpus} {ref} {R1} {R2}'
 
         else:
             # Generate bwa-mem single-end command
-            align_cmd = f'{sentieon_cmd} bwa mem -M -R "{rg_header}" -t {nr_cpus} {ref} {R1} !LOG2!'
+            align_cmd = f'{sentieon_cmd} bwa mem -M -R "{rg_header}" -t {nr_cpus} {ref} {R1}'
 
         # Generating command to sort the SAM and converting it to BAM
         bam_sort_cmd = f'{sentieon_cmd} util sort -r {ref} -o {bam_out} -t {nr_cpus} --sam2bam -i -'
