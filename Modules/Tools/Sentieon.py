@@ -69,7 +69,7 @@ class BWAMem(_SentieonBase):
         # Generating command to sort the SAM and converting it to BAM
         bam_sort_cmd = f'{sentieon_cmd} util sort -r {ref} -o {bam_out} -t {nr_cpus} --sam2bam -i -'
 
-        return f'{align_cmd} !LOG2! | {bam_sort_cmd} !LOG2!'
+        return f'{align_cmd} | {bam_sort_cmd}'
 
 
 class LocusCollector(_SentieonBase):
