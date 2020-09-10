@@ -26,19 +26,47 @@ class KubernetesStatusManager(object):
 
         self.job_list = None
         self.job_watch = None
+        self.pod_watch = None
         # list of jobs that we want to log when we have updates
         self.log_update_list = {}
 
         self.monitoring_thread = Thread(target=self.__monitor_jobs)
+        self.pod_monitoring_thread = Thread(target=self.__monitor_pods)
 
     def start_job_monitoring(self):
         self.is_monitoring = True
         self.monitoring_thread.start()
+        self.pod_monitoring_thread.start()
 
     def stop_job_monitoring(self):
         self.is_monitoring = False
         self.job_watch.stop()
+        self.pod_watch.stop()
         logging.info("Stopped watching job status updates.")
+
+    def __monitor_pods(self):
+        self.pod_watch = watch.Watch()
+        for event in self.pod_watch.stream(self.core_api.list_namespaced_pod, namespace='cloud-conductor'):
+            pod = event['object']
+            pod_job = event['object'].metadata.labels['job-name']
+            if pod_job and pod_job in self.log_update_list:
+                if pod.status.init_container_statuses and pod.status.container_statuses:
+                    num_containers = len(pod.status.init_container_statuses) + len(pod.status.container_statuses)
+                    current_running_container = None
+                    container_index = 0
+                    for container in pod.status.init_container_statuses:
+                        if container.state.running:
+                            current_running_container = container
+                            break
+                        container_index += 1
+                    if not current_running_container:
+                        for container in pod.status.container_statuses:
+                            if container.state.running:
+                                current_running_container = container
+                                break
+                            container_index += 1
+                    if current_running_container:
+                        logging.info(f"({pod_job}) Job is currently on task {container_index + 1}/{num_containers}. Current running task: ({current_running_container.name})")
 
     def __monitor_jobs(self):
         self.job_watch = watch.Watch()
@@ -47,6 +75,11 @@ class KubernetesStatusManager(object):
             job_name = event['object'].metadata.name
             if job_name:
                 self.job_list[str(job_name)] = event['object']
+                if job_name in self.log_update_list:
+                    status_str = str(event['object'].status).replace("\n", "")
+                    logging.info(f"({job_name}) Job Status: {status_str}")
+                    if event['object'].status.succeeded:
+                        self.remove_job_from_log_list(job_name)
 
     def add_job_to_log_list(self, job_name):
         self.log_update_list[job_name] = True
@@ -63,6 +96,7 @@ class KubernetesStatusManager(object):
             logging.error("Error with updating the job list to check statuses.")
 
     def get_job_status(self, job_name, force_refresh=False):
+        self.add_job_to_log_list(job_name)
         if self.job_list and job_name in self.job_list:
             return self.job_list[job_name].status
         return ""

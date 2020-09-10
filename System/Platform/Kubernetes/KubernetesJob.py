@@ -202,7 +202,7 @@ class KubernetesJob(Instance):
                     # check for this last ( only when job is no longer active ) because our job is allowed to fail multiple times
                     # job_status will hold the number of times it has failed
                     if job_status and job_status.conditions:
-                        self.stop_time = job_status.conditions[0]['last_transition_time'].timestamp()
+                        self.stop_time = job_status.conditions[0].last_transition_time.timestamp()
                     else:
                         self.stop_time = time.time()
                     self.failed_container = self.__get_failed_container()
@@ -221,11 +221,8 @@ class KubernetesJob(Instance):
         return self.stop_time
 
     def get_status(self, retries=0, log_status=False, force_refresh=False):
-        job_status = self.status_manager.get_job_status(self.inst_name, force_refresh)
+        job_status = self.status_manager.get_job_status(self.inst_name, self.name)
         # Save the status if the job is no longer active
-        if log_status:
-            status_str = str(job_status).replace("\n", "")
-            logging.debug(f"({self.name}) Job Status: {status_str}")
         if job_status and job_status != "Failure":
             if self.start_time == 0 and job_status.start_time:
                 self.start_time = job_status.start_time.timestamp()
