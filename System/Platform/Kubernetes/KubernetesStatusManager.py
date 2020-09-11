@@ -67,6 +67,8 @@ class KubernetesStatusManager(object):
                             container_index += 1
                     if current_running_container:
                         logging.info(f"({pod_job}) Job is currently on task {container_index + 1}/{num_containers}. Current running task: ({current_running_container.name})")
+            elif not pod_job:
+                logging.warning(f"No pod info with event. Watch event: {event}")
 
     def __monitor_jobs(self):
         self.job_watch = watch.Watch()
@@ -80,6 +82,8 @@ class KubernetesStatusManager(object):
                     logging.info(f"({job_name}) Job Status: {status_str}")
                     if event['object'].status.succeeded:
                         self.remove_job_from_log_list(job_name)
+            else:
+                logging.warning(f"No job info with event. Watch event: {event}")
 
     def add_job_to_log_list(self, job_name):
         self.log_update_list[job_name] = True
