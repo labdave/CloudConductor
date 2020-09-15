@@ -2,7 +2,7 @@ import copy
 
 from Modules import Merger
 
-class MergeBams(Merger):
+class MergeBamsRNA(Merger):
 
     def __init__(self, module_id, is_docker=False):
         super(MergeBams, self).__init__(module_id, is_docker)
