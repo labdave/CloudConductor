@@ -75,6 +75,8 @@ class KubernetesJob(Instance):
 
         self.node_label, self.nodepool_info = self.get_nodepool_info()
 
+        self.status_manager.check_monitoring_status()
+
     def get_nodepool_info(self):
         node_pool_dict = self.node_pools
         if self.preemptible and self.preemptible_node_pools:
