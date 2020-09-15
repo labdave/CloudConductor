@@ -5,7 +5,7 @@ from Modules import Merger
 class MergeBamsRNA(Merger):
 
     def __init__(self, module_id, is_docker=False):
-        super(MergeBams, self).__init__(module_id, is_docker)
+        super(MergeBamsRNA, self).__init__(module_id, is_docker)
         self.output_keys  = ["rna_bam", "rna_bam_idx"]
 
     def define_input(self):
