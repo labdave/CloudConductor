@@ -16,7 +16,7 @@ class RenameRNA(Module):
         bam                 = self.get_argument("bam")
         self.add_output("rna_bam",      bam)
 
-        rna_bam_idx         = self.get_output("rna_bam")+".bai"
+        rna_bam_idx         = str(self.get_output("rna_bam"))+".bai"
         self.add_output("rna_bam_idx",  rna_bam_idx)
 
     def define_command(self):
