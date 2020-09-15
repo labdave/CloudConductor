@@ -27,7 +27,7 @@ class MergeBams(Merger):
         # Multiple bam input. Merge into single bam.
         else:
             rna_bam_out = self.generate_unique_file_name(extension=".bam")
-           rna_bam_idx = "%s.bai" % rna_bam_out
+            rna_bam_idx = "%s.bai" % rna_bam_out
 
         self.add_output("rna_bam",      rna_bam_out)
         self.add_output("rna_bam_idx",  rna_bam_idx)
