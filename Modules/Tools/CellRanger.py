@@ -5,15 +5,13 @@ from Modules import Module
 
 class CellRanger(Module):
     def __init__(self, module_id, is_docker = False):
-        super(CellRanger, self).__init__(module_id, is_docker, is_resumable=True)
+        super(CellRanger, self).__init__(module_id, is_docker)
         self.output_keys = ["cellranger_output_dir"]
 
     def define_input(self):
         self.add_argument("sample_name",            is_required=True)
         self.add_argument("R1",                     is_required=True)
         self.add_argument("R2",                     is_required=True)
-        self.add_argument("cellranger",             is_required=True, is_resource=True)
-        self.add_argument("singlecell_rnaseq_ref",  is_required=True, is_resource=True)
         self.add_argument("nr_cpus",                is_required=True, default_value="MAX")
         self.add_argument("mem",                    is_required=True, default_value="nr_cpus * 6.5")
 
@@ -32,16 +30,14 @@ class CellRanger(Module):
 
     def define_command(self):
         # Generate command for running Cell Ranger
-        cellranger      = self.get_argument("cellranger")
         sample_name     = self.get_argument("sample_name")
-        transcriptome   = self.get_argument("singlecell_rnaseq_ref")
         nr_cpus         = self.get_argument("nr_cpus")
         mem             = self.get_argument("mem")
         R1              = self.get_argument("R1")
         R2              = self.get_argument("R2")
 
-        cellranger_dir  = os.path.dirname(cellranger)
-        source_path     = os.path.join(cellranger_dir, "sourceme.bash")
+        source_path     = "cellranger/sourceme.bash"
+        transcriptome   = "refdata-gex-GRCh38-2020-A/"
         wrk_dir         = self.get_output_dir()
 
         # Sample "names" are now the sample_id + the submission id, so we could have multiple sample "names"
@@ -93,7 +89,8 @@ class CellRanger(Module):
 
         # If interrupted, the lock file needs to be removed before restarting,
         # so we remove the lock file just in case it exists
-        cmd = "cd {0}; source {1}; rm -f {0}{2}/_lock; mkdir -p {3}; {4} {5} " \
+        cmd = "export PATH=\"cellranger-4.0.0/cellranger\":$PATH; cd {0}; source {1}; " \
+              "rm -f {0}{2}/_lock; mkdir -p {3}; {4} {5} " \
               "cellranger count --id={2} --fastqs={3} " \
               "--transcriptome={6} --localcores={7} --localmem={8} !LOG3! ".format(
             wrk_dir, source_path, sample_name, fastq_dir, mv_R1_cmd, mv_R2_cmd,
