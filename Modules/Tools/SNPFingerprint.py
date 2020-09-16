@@ -6,7 +6,7 @@ class SNPFingerprint(Merger):
     def __init__(self, module_id, is_docker=False):
         super(SNPFingerprint, self).__init__(module_id, is_docker)
         # Add output keys here if needed
-        self.output_keys = ["snp_fingerprint", "snp_fingerprint_r"]
+        self.output_keys = ["snp_fingerprint", "snp_fingerprint_r", "snp_fingerprint_data"]
 
     def define_input(self):
         # Module creator needs to define which arguments have is_resource=True
