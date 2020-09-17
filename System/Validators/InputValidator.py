@@ -31,12 +31,9 @@ class InputValidator(Validator):
         # Check sample data paths
         inputs["sample"] = self.__get_sample_data_paths()
 
-        logging.info("input: {}".format(inputs))
         # Validate all files by adding them to thread pool's queue
         for input_file_src in inputs:
             for input_file in inputs[input_file_src]:
-
-                logging.info("input_file: {}".format(input_file))
                 input_desc = self.__get_input_desc(input_file, input_source=input_file_src)
                 logging.info("Validating %s..." % input_desc)
                 self.thread_pool.add_task(input_file, input_desc)

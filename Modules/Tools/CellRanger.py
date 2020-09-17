@@ -91,7 +91,7 @@ class CellRanger(Module):
         # so we remove the lock file just in case it exists
         cmd = "export PATH=\"cellranger-4.0.0/cellranger\":$PATH; cd {0}; source {1}; " \
               "rm -f {0}{2}/_lock; mkdir -p {3}; {4} {5} " \
-              "cellranger count --id={2} --fastqs={3} " \
+              "cellranger-4.0.0/cellranger count --id={2} --fastqs={3} " \
               "--transcriptome={6} --localcores={7} --localmem={8} !LOG3! ".format(
             wrk_dir, source_path, sample_name, fastq_dir, mv_R1_cmd, mv_R2_cmd,
             transcriptome, nr_cpus, mem)
