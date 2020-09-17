@@ -23,10 +23,13 @@ class KubernetesStatusManager(object):
 
         self.batch_api = batch_api
         self.core_api = core_api
+        self.is_monitoring = False
 
         self.job_list = None
         self.job_watch = None
+        self.job_watch_reset = 0
         self.pod_watch = None
+        self.pod_watch_reset = 0
         # list of jobs that we want to log when we have updates
         self.log_update_list = {}
 
@@ -40,50 +43,73 @@ class KubernetesStatusManager(object):
 
     def stop_job_monitoring(self):
         self.is_monitoring = False
-        self.job_watch.stop()
-        self.pod_watch.stop()
+        if self.job_watch:
+            self.job_watch.stop()
+        if self.pod_watch:
+            self.pod_watch.stop()
         logging.info("Stopped watching job status updates.")
 
     def __monitor_pods(self):
-        self.pod_watch = watch.Watch()
-        for event in self.pod_watch.stream(self.core_api.list_namespaced_pod, namespace='cloud-conductor'):
-            pod = event['object']
-            pod_job = event['object'].metadata.labels['job-name']
-            if pod_job and pod_job in self.log_update_list:
-                if pod.status.init_container_statuses and pod.status.container_statuses:
-                    num_containers = len(pod.status.init_container_statuses) + len(pod.status.container_statuses)
-                    current_running_container = None
-                    container_index = 0
-                    for container in pod.status.init_container_statuses:
-                        if container.state.running:
-                            current_running_container = container
-                            break
-                        container_index += 1
-                    if not current_running_container:
-                        for container in pod.status.container_statuses:
+        global pod_monitoring_failure
+        pod_monitoring_failure = False
+        while self.pod_watch_reset < 5 and self.is_monitoring:
+            self.pod_watch = watch.Watch()
+            for event in self.pod_watch.stream(self.core_api.list_namespaced_pod, namespace='cloud-conductor'):
+                pod = event['object']
+                pod_job = event['object'].metadata.labels['job-name']
+                if pod_job and pod_job in self.log_update_list:
+                    self.pod_watch_reset = 0
+                    if pod.status.init_container_statuses and pod.status.container_statuses:
+                        num_containers = len(pod.status.init_container_statuses) + len(pod.status.container_statuses)
+                        current_running_container = None
+                        container_index = 0
+                        for container in pod.status.init_container_statuses:
                             if container.state.running:
                                 current_running_container = container
                                 break
                             container_index += 1
-                    if current_running_container:
-                        logging.info(f"({pod_job}) Job is currently on task {container_index + 1}/{num_containers}. Current running task: ({current_running_container.name})")
-            elif not pod_job:
-                logging.warning(f"No pod info with event. Watch event: {event}")
+                        if not current_running_container:
+                            for container in pod.status.container_statuses:
+                                if container.state.running:
+                                    current_running_container = container
+                                    break
+                                container_index += 1
+                        if current_running_container:
+                            logging.info(f"({pod_job}) Job is currently on task {container_index + 1}/{num_containers}. Current running task: ({current_running_container.name})")
+                elif not pod_job:
+                    self.pod_watch.stop()
+                    self.pod_watch_reset += 1
+                    logging.warning(f"No pod info with event. Watch event: {event}. We will try to reset the pod watch.")
+                    break
+        if self.pod_watch_reset >= 5:
+            pod_monitoring_failure = True
+            logging.error("Failure to setup the pod watch. Will not be able to get pod status from the Kubernetes cluster.")
 
     def __monitor_jobs(self):
-        self.job_watch = watch.Watch()
-        self.job_list = {}
-        for event in self.job_watch.stream(self.batch_api.list_namespaced_job, namespace='cloud-conductor'):
-            job_name = event['object'].metadata.name
-            if job_name:
-                self.job_list[str(job_name)] = event['object']
-                if job_name in self.log_update_list:
-                    status_str = str(event['object'].status).replace("\n", "")
-                    logging.info(f"({job_name}) Job Status: {status_str}")
-                    if event['object'].status.succeeded:
-                        self.remove_job_from_log_list(job_name)
-            else:
-                logging.warning(f"No job info with event. Watch event: {event}")
+        global job_monitoring_failure
+        job_monitoring_failure = False
+        while self.job_watch_reset < 5 and self.is_monitoring:
+            self.job_watch = watch.Watch()
+            self.job_list = {}
+            for event in self.job_watch.stream(self.batch_api.list_namespaced_job, namespace='cloud-conductor'):
+                job_name = event['object'].metadata.name
+                if job_name:
+                    self.job_watch_reset = 0
+                    self.job_list[str(job_name)] = event['object']
+                    if job_name in self.log_update_list:
+                        status_str = str(event['object'].status).replace("\n", "")
+                        logging.info(f"({job_name}) Job Status: {status_str}")
+                        if event['object'].status.succeeded:
+                            self.remove_job_from_log_list(job_name)
+                else:
+                    self.job_watch.stop()
+                    self.job_watch_reset += 1
+                    logging.warning(f"No job info with event. Watch event: {event}. We will try to reset the job watch.")
+                    break
+        if self.job_watch_reset >= 5:
+
+            job_monitoring_failure = True
+            logging.error("Failure to setup the job watch. Will not be able to get job status from the Kubernetes cluster.")
 
     def add_job_to_log_list(self, job_name):
         self.log_update_list[job_name] = True
@@ -99,7 +125,12 @@ class KubernetesStatusManager(object):
         except Exception as e:
             logging.error("Error with updating the job list to check statuses.")
 
+    def check_monitoring_status(self):
+        if job_monitoring_failure or pod_monitoring_failure:
+            raise RuntimeError("Failure to get pod/job status stream connected. Stopping execution.")
+
     def get_job_status(self, job_name, force_refresh=False):
+        self.check_monitoring_status()
         self.add_job_to_log_list(job_name)
         if self.job_list and job_name in self.job_list:
             return self.job_list[job_name].status
