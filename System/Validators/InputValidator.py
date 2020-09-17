@@ -81,6 +81,10 @@ class InputValidator(Validator):
         if isinstance(input_obj, GAPFile):
             return "%s file '%s' of type '%s' with path %s" % \
                    (input_source, input_obj.get_file_id(), input_obj.get_type(), input_obj.get_path())
+        # evaluate second only if first is true
+        elif isinstance(input_obj, list) and all(isinstance(x, GAPFile) for x in input_obj):
+            desc = "\n".join(["%s file '%s' of type '%s' with path %s" % \
+                   (input_source, x.get_file_id(), x.get_type(), x.get_path()) for x in input_obj])
         else:
             return "Docker '%s' with image %s" % (input_obj.get_ID(), input_obj.get_image_name())
 
