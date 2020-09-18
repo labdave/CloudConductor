@@ -71,8 +71,8 @@ class CellRanger(Module):
             mv_R2_cmd += "mv -u /data/{0} {1};".format(R2[i], new_R2)
 
         cmd = "source {0} !LOG3!; mkdir /data/fastqs; {1}{2} ls /data/fastqs/ !LOG3!;" \
-              "cellranger-4.0.0/cellranger count --id {3} --fastqs /data/fastqs/" \
-              "--transcriptome {4} --localcores {5} --localmem {6} !LOG3! ".format(
+              "cellranger-4.0.0/cellranger count --id {3} --fastqs /data/fastqs/ --transcriptome {4} " \
+              "--localcores {5} --localmem {6} !LOG3! ".format(
             source_path, mv_R1_cmd, mv_R2_cmd, sample_name, transcriptome, nr_cpus, mem)
 
         return cmd
