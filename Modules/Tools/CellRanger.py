@@ -86,7 +86,7 @@ class CellRanger(Module):
         cmd += mv_R2_cmd
         cmd += "ls -l /data/fastqs/ !LOG3!;"
         cmd += "cellranger-4.0.0/cellranger count -h !LOG3!;"
-        cmd += "cellranger-4.0.0/cellranger count --id {0} --fastqs /data/fastqs/ --transcriptome {1} " \
-              "--localcores {2} --localmem {3} !LOG3!".format(sample_name, transcriptome, nr_cpus, mem)
+        cmd += "cellranger-4.0.0/cellranger count --id {0} --fastqs /data/fastqs/ --transcriptome refdata-gex-GRCh38-2020-A " \
+              "--localcores {1} --localmem {2} !LOG3!".format(sample_name, nr_cpus, mem)
 
         return cmd
