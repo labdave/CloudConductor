@@ -438,7 +438,7 @@ class KubernetesJob(Instance):
             if not isinstance(args, list):
                 args = [v['original_cmd'].replace("sudo ", "")]
             args = " && ".join(args)
-            args = args.replace("\n", " ")                
+            args = args.replace("\n", " ")
 
             if "awk " in args:
                 args = re.sub("'\"'\"'", "'", args)

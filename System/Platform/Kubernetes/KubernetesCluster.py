@@ -194,7 +194,7 @@ class KubernetesCluster(Platform):
 
     def __parse_identity_json(self, identity):
         api_key_prefix = 'Bearer'
-        f = open(self.identity) 
+        f = open(self.identity)
         auth_config = json.load(f)
         f.close()
 

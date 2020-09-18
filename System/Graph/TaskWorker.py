@@ -99,7 +99,6 @@ class TaskWorker(Thread):
         else:
             return self.proc.get_stop_time()
 
-
     def get_cmd(self):
         return self.cmd
 
