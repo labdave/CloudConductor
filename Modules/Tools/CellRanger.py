@@ -25,6 +25,8 @@ class CellRanger(Module):
 
     def define_command(self):
         # Generate command for running Cell Ranger
+        R1              = self.get_argument("R1")
+        R2              = self.get_argument("R2")
         nr_cpus         = self.get_argument("nr_cpus")
         mem             = self.get_argument("mem")
         sample_name     = self.get_argument("sample_name")
@@ -36,9 +38,24 @@ class CellRanger(Module):
         source_path     = "cellranger-4.0.0/sourceme.bash"
         transcriptome   = "refdata-gex-GRCh38-2020-A/"
 
-        cmd = "source {0} !LOG3!; ls /data/ !LOG3!;" \
-              "cellranger-4.0.0/cellranger count --id={1} --fastqs=/data/ " \
-              "--transcriptome={2} --localcores={3} --localmem={4} !LOG3! ".format(
-            source_path, sample_name, transcriptome, nr_cpus, mem)
+        # if R1 and R2 are not a list, make it a list
+        if not isinstance(R1, list):
+            R1 = [R1]
+        if not isinstance(R2, list):
+            R2 = [R2]
+
+        # cellranger needs filename wrangling
+        mv_R1_cmd = ""
+        mv_R2_cmd = ""
+        for i in range(len(R1)):
+            new_R1 = "data/fastqs/sample_s0_L000_R1_00{0}.fastq.gz".format(i)
+            new_R2 = "/data/fastqs/sample_s0_L000_R2_00{0}.fastq.gz".format(i)
+            mv_R1_cmd += "mv -u /data/{0} {1};".format(R1[i].filename(), new_R1)
+            mv_R2_cmd += "mv -u /data/{0} {1};".format(R2[i].filename(), new_R2)
+
+        cmd = "source {0} !LOG3!; {1} !LOG3!; {2} !LOG3!; ls /data/fastqs/ !LOG3!;" \
+              "cellranger-4.0.0/cellranger count --id={3} --fastqs=/data/fastqs " \
+              "--transcriptome={4} --localcores={5} --localmem={6} !LOG3! ".format(
+            source_path, mv_R1_cmd, mv_R2_cmd, sample_name, transcriptome, nr_cpus, mem)
 
         return cmd

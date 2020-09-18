@@ -112,13 +112,13 @@ class InputValidator(Validator):
         # Check if the path exists
         for input_type, sample_paths in sample_paths.items():
             if isinstance(sample_paths, list):
-                def flatten(l):
+                def __flatten(l):
                     for el in l:
                         if isinstance(el, collections.Iterable) and not isinstance(el, (str, bytes)):
                             yield from flatten(el)
                         else:
                             yield el
-                for path in flatten(sample_paths):
+                for path in __flatten(sample_paths):
                     paths.append(path)
             else:
                 paths.append(sample_paths)
