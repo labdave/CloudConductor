@@ -47,11 +47,11 @@ class CellRanger(Module):
 
         # if R1 and R2 are not a list, make it a list. else, flatten it
         if isinstance(R1, list):
-            R1 = __flatten(R1)
+            R1 = list(__flatten(R1))
         else:
             R1 = [R1]
         if isinstance(R2, list):
-            R2 = __flatten(R2)
+            R2 = list(__flatten(R2))
         else:
             R2 = [R2]
 
