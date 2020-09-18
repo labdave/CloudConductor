@@ -36,7 +36,7 @@ class CellRanger(Module):
         source_path     = "cellranger-4.0.0/sourceme.bash"
         transcriptome   = "refdata-gex-GRCh38-2020-A/"
 
-        cmd = "source {0}; " \
+        cmd = "source {0}; ls /data/;" \
               "cellranger-4.0.0/cellranger count --id={1} --fastqs=/data/ " \
               "--transcriptome={2} --localcores={3} --localmem={4} !LOG3! ".format(
             source_path, sample_name, transcriptome, nr_cpus, mem)
