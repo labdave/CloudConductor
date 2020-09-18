@@ -38,10 +38,21 @@ class CellRanger(Module):
         source_path     = "cellranger-4.0.0/sourceme.bash"
         transcriptome   = "refdata-gex-GRCh38-2020-A/"
 
-        # if R1 and R2 are not a list, make it a list
-        if not isinstance(R1, list):
+        def __flatten(l):
+            for el in l:
+                if isinstance(el, collections.Iterable) and not isinstance(el, (str, bytes)):
+                    yield from __flatten(el)
+                else:
+                    yield el
+
+        # if R1 and R2 are not a list, make it a list. else, flatten it
+        if isinstance(R1, list):
+            R1 = __flatten(R1)
+        else:
             R1 = [R1]
-        if not isinstance(R2, list):
+        if isinstance(R2, list):
+            R2 = __flatten(R2)
+        else:
             R2 = [R2]
 
         # cellranger needs filename wrangling
