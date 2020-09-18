@@ -79,6 +79,7 @@ class CellRanger(Module):
 
         cmd = ""
         cmd += "tar -zxvf {0};".format(cellranger)
+        cmd += "sed -i \"/CTYPE/d\" cellranger-4:0.0/sourceme.bash;"
         cmd += "tar -zxvf {0};".format(transcriptome)
         cmd += "ls -l !LOG3!; ls -l /data/ !LOG3!;"
         cmd += "source {0} !LOG3!; mkdir /data/fastqs;".format(source_path)
