@@ -78,7 +78,7 @@ class CellRanger(Module):
             mv_R2_cmd += "mv -u /data/{0} {1};".format(R2[i], new_R2)
 
         cmd = ""
-        cmd += "gunzip {0};".format(cellranger)
+        cmd += "unzip {0};".format(cellranger)
         cmd += "tar -zxvf {0};".format(transcriptome)
         cmd += "ls -l !LOG3!; ls -l /data/ !LOG3!;"
         cmd += "source {0} !LOG3!; mkdir /data/fastqs;".format(source_path)
