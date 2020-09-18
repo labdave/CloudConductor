@@ -47,11 +47,11 @@ class CellRanger(Module):
 
         # if R1 and R2 are not a list, make it a list. else, flatten it
         if isinstance(R1, list):
-            R1 = list(__flatten(R1))
+            R1 = [str(i).split("/")[-1] for i in __flatten(R1)]
         else:
             R1 = [R1]
         if isinstance(R2, list):
-            R2 = list(__flatten(R2))
+            R2 = [str(i).split("/")[-1] for i in __flatten(R2)]
         else:
             R2 = [R2]
 
@@ -59,12 +59,12 @@ class CellRanger(Module):
         mv_R1_cmd = ""
         mv_R2_cmd = ""
         for i in range(len(R1)):
-            new_R1 = "data/fastqs/sample_s0_L000_R1_00{0}.fastq.gz".format(i)
+            new_R1 = "/data/fastqs/sample_s0_L000_R1_00{0}.fastq.gz".format(i)
             new_R2 = "/data/fastqs/sample_s0_L000_R2_00{0}.fastq.gz".format(i)
-            mv_R1_cmd += "mv -u /data/{0} {1};".format(R1[i].filename(), new_R1)
-            mv_R2_cmd += "mv -u /data/{0} {1};".format(R2[i].filename(), new_R2)
+            mv_R1_cmd += "mv -u /data/{0} {1};".format(R1[i], new_R1)
+            mv_R2_cmd += "mv -u /data/{0} {1};".format(R2[i], new_R2)
 
-        cmd = "source {0} !LOG3!; {1} !LOG3!; {2} !LOG3!; ls /data/fastqs/ !LOG3!;" \
+        cmd = "source {0} !LOG3!; {1}{2} ls /data/fastqs/ !LOG3!;" \
               "cellranger-4.0.0/cellranger count --id={3} --fastqs=/data/fastqs " \
               "--transcriptome={4} --localcores={5} --localmem={6} !LOG3! ".format(
             source_path, mv_R1_cmd, mv_R2_cmd, sample_name, transcriptome, nr_cpus, mem)
