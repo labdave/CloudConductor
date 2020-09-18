@@ -59,8 +59,12 @@ class CellRanger(Module):
         mv_R1_cmd = ""
         mv_R2_cmd = ""
         for i in range(len(R1)):
-            new_R1 = "/data/fastqs/sample_s0_L000_R1_00{0}.fastq.gz".format(i)
-            new_R2 = "/data/fastqs/sample_s0_L000_R2_00{0}.fastq.gz".format(i)
+            # TEMPORARY HARDCODING
+            lane_R1 = R1[i].split("-")[-2][-1]
+            lane_R2 = R2[i].split("-")[-2][-1]
+
+            new_R1 = "/data/fastqs/sample_s0_L00{0}_R1_00{1}.fastq.gz".format(lane_R1, i)
+            new_R2 = "/data/fastqs/sample_s0_L00{0}_R2_00{1}.fastq.gz".format(lane_R2, i)
             mv_R1_cmd += "mv -u /data/{0} {1};".format(R1[i], new_R1)
             mv_R2_cmd += "mv -u /data/{0} {1};".format(R2[i], new_R2)
 
