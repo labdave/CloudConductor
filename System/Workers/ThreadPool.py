@@ -3,6 +3,8 @@ from queue import Queue
 import logging
 
 # Inspired by https://www.metachris.com/2016/04/python-threadpool/
+
+
 class PoolWorker(threading.Thread):
     """ Thread executing tasks from a given tasks queue """
     def __init__(self, task_queue, **kwargs):
@@ -63,6 +65,7 @@ class PoolWorker(threading.Thread):
 
     def task(self, *args, **kargs):
         pass
+
 
 class ThreadPool:
     """ Pool of threads consuming tasks from a queue """

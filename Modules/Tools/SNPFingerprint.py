@@ -6,7 +6,7 @@ class SNPFingerprint(Merger):
     def __init__(self, module_id, is_docker=False):
         super(SNPFingerprint, self).__init__(module_id, is_docker)
         # Add output keys here if needed
-        self.output_keys = ["snp_fingerprint", "snp_fingerprint_r"]
+        self.output_keys = ["snp_fingerprint", "snp_fingerprint_r", "snp_fingerprint_data"]
 
     def define_input(self):
         # Module creator needs to define which arguments have is_resource=True
@@ -24,10 +24,12 @@ class SNPFingerprint(Merger):
         # based on the output keys provided during module creation
         snp_fingerprint = self.generate_unique_file_name("snp_fingerprint.txt")
         snp_fingerprint_r = self.generate_unique_file_name("snp_fingerprint.RData")
+        snp_fingerprint_data = self.generate_unique_file_name("snp_fingerprint_data.txt")
 
 
         self.add_output("snp_fingerprint", snp_fingerprint)
         self.add_output("snp_fingerprint_r", snp_fingerprint_r)
+        self.add_output("snp_fingerprint_data", snp_fingerprint_data)
 
 
     def define_command(self):
@@ -40,10 +42,11 @@ class SNPFingerprint(Merger):
         # get output
         snp_fingerprint = self.get_output("snp_fingerprint")
         snp_fingerprint_r = self.get_output("snp_fingerprint_r")
+        snp_fingerprint_data = self.get_output("snp_fingerprint_data")
 
 
         # add arguments
-        cmd = " Rscript fp.R {0} {1} {2} {3} {4} {5}".format( bam,ref, ref_idx, sample_id, snp_fingerprint_r, snp_fingerprint)
+        cmd = " Rscript fp.R {0} {1} {2} {3} {4} {5} {6}".format( bam,ref, ref_idx, sample_id, snp_fingerprint_r, snp_fingerprint, snp_fingerprint_data)
 
         # add logging
         cmd += " !LOG3!"
