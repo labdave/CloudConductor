@@ -43,7 +43,7 @@ class CellRanger(Module):
         if isinstance(sample_name, list):
             sample_name = sample_name[0]
 
-        source_path     = "/data/cellranger-4.0.0/sourceme.bash"
+        source_path     = "cellranger-4.0.0/sourceme.bash"
 
         def __flatten(l):
             for el in l:
@@ -78,14 +78,14 @@ class CellRanger(Module):
             mv_R2_cmd += "mv -u /data/{0} {1};".format(R2[i], new_R2)
 
         cmd = ""
-        cmd += "tar -zxvf {0} !LOG3!;".format(cellranger)
-        cmd += "tar -zxvf {0} !LOG3!;".format(transcriptome)
+        cmd += "tar -zxvf {0};".format(cellranger)
+        cmd += "tar -zxvf {0};".format(transcriptome)
         cmd += "ls -l !LOG3!; ls -l /data/ !LOG3!;"
         cmd += "source {0} !LOG3!; mkdir /data/fastqs;".format(source_path)
         cmd += mv_R1_cmd
         cmd += mv_R2_cmd
         cmd += "ls /data/fastqs/ !LOG3!;"
-        cmd += "/data/cellranger-4.0.0/cellranger count --id {0} --fastqs /data/fastqs/ --transcriptome {1} " \
+        cmd += "cellranger-4.0.0/cellranger count --id {0} --fastqs /data/fastqs/ --transcriptome {1} " \
               "--localcores {2} --localmem {3} !LOG3!".format(sample_name, transcriptome, nr_cpus, mem)
 
         return cmd
