@@ -115,7 +115,7 @@ class InputValidator(Validator):
                 def __flatten(l):
                     for el in l:
                         if isinstance(el, collections.Iterable) and not isinstance(el, (str, bytes)):
-                            yield from flatten(el)
+                            yield from __flatten(el)
                         else:
                             yield el
                 for path in __flatten(sample_paths):
