@@ -12,6 +12,8 @@ class CellRanger(Module):
 
     def define_input(self):
         self.add_argument("sample_name",    is_required=True)
+        self.add_argument("cellranger",     is_required=True, is_resource=True)
+        self.add_argument("transcriptome",  is_required=True, is_resource=True)
         self.add_argument("R1",             is_required=True)
         self.add_argument("R2",             is_required=True)
         self.add_argument("nr_cpus",        is_required=True, default_value="MAX")
@@ -19,8 +21,12 @@ class CellRanger(Module):
 
 
     def define_output(self):
-        cellranger_output_dir = os.path.join(self.output_dir, "outs")
-        self.add_output("cellranger_output_dir", self.output_dir, is_path=True)
+        sample_name     = self.get_argument("sample_name")
+        # use first one if sample name is a list
+        if isinstance(sample_name, list):
+            sample_name = sample_name[0]
+        cellranger_dir  = sample_name+"/outs/"
+        self.add_output("cellranger_output_dir", cellranger_dir, is_path=True)
 
 
     def define_command(self):
@@ -30,13 +36,14 @@ class CellRanger(Module):
         nr_cpus         = self.get_argument("nr_cpus")
         mem             = self.get_argument("mem")
         sample_name     = self.get_argument("sample_name")
+        cellranger      = self.get_argument("cellranger")
+        transcriptome   = self.get_argument("transcriptome")
 
         # use first one if sample name is a list
         if isinstance(sample_name, list):
             sample_name = sample_name[0]
 
-        source_path     = "cellranger-4.0.0/sourceme.bash"
-        transcriptome   = "refdata-gex-GRCh38-2020-A/"
+        source_path     = "/data/cellranger-4.0.0/sourceme.bash"
 
         def __flatten(l):
             for el in l:
@@ -70,9 +77,15 @@ class CellRanger(Module):
             mv_R1_cmd += "mv -u /data/{0} {1};".format(R1[i], new_R1)
             mv_R2_cmd += "mv -u /data/{0} {1};".format(R2[i], new_R2)
 
-        cmd = "source {0} !LOG3!; mkdir /data/fastqs; {1}{2} ls /data/fastqs/ !LOG3!;" \
-              "cellranger-4.0.0/cellranger count --id {3} --fastqs /data/fastqs/ --transcriptome {4} " \
-              "--localcores {5} --localmem {6} !LOG3! ".format(
-            source_path, mv_R1_cmd, mv_R2_cmd, sample_name, transcriptome, nr_cpus, mem)
+        cmd = ""
+        cmd += "tar -zxvf {0} !LOG3!;".format(cellranger)
+        cmd += "tar -zxvf {0} !LOG3!;".format(transcriptome)
+        cmd += "ls -l !LOG3!; ls -l /data/ !LOG3!;"
+        cmd += "source {0} !LOG3!; mkdir /data/fastqs;".format(source_path)
+        cmd += mv_R1_cmd
+        cmd += mv_R2_cmd
+        cmd += "ls /data/fastqs/ !LOG3!;"
+        cmd += "/data/cellranger-4.0.0/cellranger count --id {0} --fastqs /data/fastqs/ --transcriptome {1} " \
+              "--localcores {2} --localmem {3} !LOG3!".format(sample_name, transcriptome, nr_cpus, mem)
 
         return cmd
