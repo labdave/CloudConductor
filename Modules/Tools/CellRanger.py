@@ -63,8 +63,8 @@ class CellRanger(Module):
             lane_R1 = R1[i].split("-")[-2][-1]
             lane_R2 = R2[i].split("-")[-2][-1]
 
-            new_R1 = "/data/fastqs/sample_s0_L00{0}_R1_00{1}.fastq.gz".format(lane_R1, i)
-            new_R2 = "/data/fastqs/sample_s0_L00{0}_R2_00{1}.fastq.gz".format(lane_R2, i)
+            new_R1 = "/data/fastqs/sample_S1_L00{0}_R1_001.fastq.gz".format(lane_R1)
+            new_R2 = "/data/fastqs/sample_S1_L00{0}_R2_001.fastq.gz".format(lane_R2)
             mv_R1_cmd += "mv -u /data/{0} {1};".format(R1[i], new_R1)
             mv_R2_cmd += "mv -u /data/{0} {1};".format(R2[i], new_R2)
 
