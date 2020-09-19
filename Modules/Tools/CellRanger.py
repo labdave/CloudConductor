@@ -74,12 +74,13 @@ class CellRanger(Module):
 
             new_R1 = "/data/fastqs/sample_S{0}_L00{1}_R1_001.fastq.gz".format(samp_R1, lane_R1)
             new_R2 = "/data/fastqs/sample_S{0}_L00{1}_R2_001.fastq.gz".format(samp_R2, lane_R2)
-            mv_R1_cmd += "mv -u /data/{0} {1};".format(R1[i], new_R1)
-            mv_R2_cmd += "mv -u /data/{0} {1};".format(R2[i], new_R2)
+            mv_R1_cmd += "mv /data/{0} {1};".format(R1[i], new_R1)
+            mv_R2_cmd += "mv /data/{0} {1};".format(R2[i], new_R2)
 
         cmd = ""
-        cmd += "unzip {0};".format(cellranger)
-        cmd += "tar -zxvf {0};".format(transcriptome)
+        cmd += "gunzip {0};tar -xvf {1};".format(cellranger, str(cellranger).rstrip(".gz"))
+        cmd += "sed -i \"/CTYPE/d\" cellranger-4.0.0/sourceme.bash !LOG3!;"
+        cmd += "gunzip {0};tar -xvf {1};".format(transcriptome, str(transcriptome).rstrip(".gz"))
         cmd += "ls -l !LOG3!; ls -l /data/ !LOG3!;"
         cmd += "source {0} !LOG3!; mkdir /data/fastqs;".format(source_path)
         cmd += mv_R1_cmd
