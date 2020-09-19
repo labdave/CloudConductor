@@ -25,7 +25,7 @@ class CellRanger(Module):
         # use first one if sample name is a list
         if isinstance(sample_name, list):
             sample_name = sample_name[0]
-        cellranger_dir  = sample_name+"/outs/"
+        cellranger_dir  = "/"+sample_name+"/outs/"
         self.add_output("cellranger_output_dir", cellranger_dir, is_path=True)
 
 
