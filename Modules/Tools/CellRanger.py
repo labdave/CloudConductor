@@ -25,7 +25,7 @@ class CellRanger(Module):
         # use first one if sample name is a list
         if isinstance(sample_name, list):
             sample_name = sample_name[0]
-        cellranger_dir  = "/"+sample_name+"/outs/"
+        cellranger_dir  = sample_name
         self.add_output("cellranger_output_dir", cellranger_dir, is_path=True)
 
 
@@ -74,20 +74,20 @@ class CellRanger(Module):
 
             new_R1 = "/data/fastqs/sample_S{0}_L00{1}_R1_001.fastq.gz".format(samp_R1, lane_R1)
             new_R2 = "/data/fastqs/sample_S{0}_L00{1}_R2_001.fastq.gz".format(samp_R2, lane_R2)
-            mv_R1_cmd += "mv /data/{0} {1};".format(R1[i], new_R1)
-            mv_R2_cmd += "mv /data/{0} {1};".format(R2[i], new_R2)
+            mv_R1_cmd += "mv /data/{0} {1}; ".format(R1[i], new_R1)
+            mv_R2_cmd += "mv /data/{0} {1}; ".format(R2[i], new_R2)
 
         cmd = ""
-        cmd += "gunzip {0};tar -xvf {1};".format(cellranger, str(cellranger).rstrip(".gz"))
-        cmd += "sed -i \"/CTYPE/d\" cellranger-4.0.0/sourceme.bash !LOG3!;"
-        cmd += "gunzip {0};tar -xvf {1};".format(transcriptome, str(transcriptome).rstrip(".gz"))
-        cmd += "ls -l !LOG3!; ls -l /data/ !LOG3!;"
-        cmd += "source {0} !LOG3!; mkdir /data/fastqs;".format(source_path)
+        cmd += "gunzip {0}; tar -xvf {1}; ".format(cellranger, str(cellranger).rstrip(".gz"))
+        cmd += "sed -i \"/CTYPE/d\" cellranger-4.0.0/sourceme.bash !LOG3!; "
+        cmd += "gunzip {0}; tar -xvf {1}; ".format(transcriptome, str(transcriptome).rstrip(".gz"))
+        cmd += "ls -l !LOG3!; ls -l /data/ !LOG3!; "
+        cmd += "source {0} !LOG3!; mkdir /data/fastqs; ".format(source_path)
         cmd += mv_R1_cmd
         cmd += mv_R2_cmd
-        cmd += "ls -l /data/fastqs/ !LOG3!;"
+        cmd += "ls -l /data/fastqs/ !LOG3!; "
         cmd += "cellranger-4.0.0/cellranger count --id {0} --fastqs /data/fastqs/ --transcriptome refdata-gex-GRCh38-2020-A " \
-              "--localcores {1} --localmem {2} !LOG3!;".format(sample_name, nr_cpus, mem)
-        cmd += "ls -l !LOG3!; ls -l /AAC137_A !LOG3!"
+              "--localcores {1} --localmem {2} !LOG3!; ".format(sample_name, nr_cpus, mem)
+        cmd += "ls -l !LOG3!; ls -l /AAC137_A !LOG3! "
 
         return cmd
