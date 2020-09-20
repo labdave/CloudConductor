@@ -25,7 +25,7 @@ class CellRanger(Module):
         # use first one if sample name is a list
         if isinstance(sample_name, list):
             sample_name = sample_name[0]
-        cellranger_dir  = sample_name
+        cellranger_dir  = os.path.join(self.get_output_dir(), sample_name)
         self.add_output("cellranger_output_dir", cellranger_dir, is_path=True)
 
 
@@ -88,6 +88,7 @@ class CellRanger(Module):
         cmd += "ls -l /data/fastqs/ !LOG3!; "
         cmd += "cellranger-4.0.0/cellranger count --id {0} --fastqs /data/fastqs/ --transcriptome refdata-gex-GRCh38-2020-A " \
               "--localcores {1} --localmem {2} !LOG3!; ".format(sample_name, nr_cpus, mem)
-        cmd += "ls -l !LOG3!; ls -l /AAC137_A !LOG3! "
+        cmd += "mv {0} {1}".format(sample_name, os.path.join(self.get_output_dir(), sample_name))
+        cmd += "ls -l {0} !LOG3!; ls -l /data/output !LOG3! ".format(os.path.join(self.get_output_dir(), sample_name))
 
         return cmd
