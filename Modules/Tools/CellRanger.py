@@ -88,6 +88,6 @@ class CellRanger(Module):
         cmd += "ls -l /data/fastqs/ !LOG3!;"
         cmd += "cellranger-4.0.0/cellranger count --id {0} --fastqs /data/fastqs/ --transcriptome refdata-gex-GRCh38-2020-A " \
               "--localcores {1} --localmem {2} !LOG3!;".format(sample_name, nr_cpus, mem)
-        cmd += "ls -l !LOG3!; ls -l /data/ !LOG3!"
+        cmd += "ls -l !LOG3!; ls -l /AAC137_A !LOG3!"
 
         return cmd
