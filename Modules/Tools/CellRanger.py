@@ -69,8 +69,8 @@ class CellRanger(Module):
             # TEMPORARY HARDCODING
             lane_R1 = R1[i].split("-")[-2][-1]
             lane_R2 = R2[i].split("-")[-2][-1]
-            samp_R1 = R1[i].split("_")[-1]
-            samp_R2 = R2[i].split("_")[-1]
+            samp_R1 = R1[i].split("_")[-1].rstrip(".fastq.gz")
+            samp_R2 = R2[i].split("_")[-1].rstrip(".fastq.gz")
 
             new_R1 = "/data/fastqs/{0}_S1_L00{1}_R1_001.fastq.gz".format(samp_R1, lane_R1)
             new_R2 = "/data/fastqs/{0}_S1_L00{1}_R2_001.fastq.gz".format(samp_R2, lane_R2)
