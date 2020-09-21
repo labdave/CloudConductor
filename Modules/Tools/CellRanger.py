@@ -81,8 +81,8 @@ class CellRanger(Module):
                 i += 1
             logging.info(samples)
 
-            new_R1 = "/data/fastqs/sample_S{0}_L00{1}_R1_001.fastq.gz".format(1+samples[samp_R1]/2, lane_R1)
-            new_R2 = "/data/fastqs/sample_S{0}_L00{1}_R2_001.fastq.gz".format(1+samples[samp_R2]/2, lane_R2)
+            new_R1 = "/data/fastqs/sample_S{0}_L00{1}_R1_001.fastq.gz".format(int(1+samples[samp_R1]/2), lane_R1)
+            new_R2 = "/data/fastqs/sample_S{0}_L00{1}_R2_001.fastq.gz".format(int(1+samples[samp_R2]/2), lane_R2)
             mv_R1_cmd += "mv /data/{0} {1}; ".format(R1[i], new_R1)
             mv_R2_cmd += "mv /data/{0} {1}; ".format(R2[i], new_R2)
 
