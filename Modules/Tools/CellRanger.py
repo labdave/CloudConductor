@@ -65,7 +65,7 @@ class CellRanger(Module):
         # cellranger needs filename wrangling
         mv_R1_cmd = ""
         mv_R2_cmd = ""
-        samples = dict()
+        samples = []
         i = 1
         for i in range(len(R1)):
             # TEMPORARY HARDCODING
