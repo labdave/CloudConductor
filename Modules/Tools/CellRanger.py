@@ -71,18 +71,21 @@ class CellRanger(Module):
             # TEMPORARY HARDCODING
             lane_R1 = R1[i].split("-")[-2][-1]
             lane_R2 = R2[i].split("-")[-2][-1]
-            samp_R1 = R1[i].split("_")[-1].rstrip(".fastq.gz")
-            samp_R2 = R2[i].split("_")[-1].rstrip(".fastq.gz")
-            if samp_R1 not in samples:
-                samples[samp_R1] = i
-                i += 1
-            if samp_R2 not in samples:
-                samples[samp_R2] = i
-                i += 1
-            logging.info(samples)
-
-            new_R1 = "/data/fastqs/sample_S{0}_L00{1}_R1_001.fastq.gz".format(int(1+samples[samp_R1]/2), lane_R1)
-            new_R2 = "/data/fastqs/sample_S{0}_L00{1}_R2_001.fastq.gz".format(int(1+samples[samp_R2]/2), lane_R2)
+            
+            id_R1 = "L00{0}_R1".format(lane_R1)
+            id_R1 = "L00{0}_R2".format(lane_R2)
+            if id_R1 not in samples:
+                index = 1
+                samples.append(id_R1)
+            else:
+                index = 2
+            if id_R2 not in samples:
+                index = 1
+                samples.append(id_R2)
+            else:
+                index = 2
+            new_R1 = "/data/fastqs/sample_S{0}_L00{1}_R1_001.fastq.gz".format(index, lane_R1)
+            new_R2 = "/data/fastqs/sample_S{0}_L00{1}_R2_001.fastq.gz".format(index, lane_R2)
             mv_R1_cmd += "mv /data/{0} {1}; ".format(R1[i], new_R1)
             mv_R2_cmd += "mv /data/{0} {1}; ".format(R2[i], new_R2)
 
