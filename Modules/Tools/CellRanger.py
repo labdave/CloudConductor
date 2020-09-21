@@ -73,7 +73,7 @@ class CellRanger(Module):
             lane_R2 = R2[i].split("-")[-2][-1]
             
             id_R1 = "L00{0}_R1".format(lane_R1)
-            id_R1 = "L00{0}_R2".format(lane_R2)
+            id_R2 = "L00{0}_R2".format(lane_R2)
             if id_R1 not in samples:
                 index = 1
                 samples.append(id_R1)
