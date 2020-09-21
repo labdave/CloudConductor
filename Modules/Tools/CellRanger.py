@@ -1,6 +1,6 @@
 import collections
-import os
 import logging
+import os
 
 from Modules import Module
 
@@ -66,17 +66,18 @@ class CellRanger(Module):
         mv_R1_cmd = ""
         mv_R2_cmd = ""
         for i in range(len(R1)):
-            # TEMPORARY HARDCODING
-            lane_R1 = R1[i].split("-")[-2][-1]
-            lane_R2 = R2[i].split("-")[-2][-1]
-            samp_R1 = R1[i].split("_")[1][-1]
-            samp_R2 = R2[i].split("_")[1][-1]
+            # HUDSON ALPHA NAMING: Will need changing for non-HA sequencing
+            lane_R1 = R1[i].split("_")[1].strip("s")
+            lane_R2 = R2[i].split("_")[1].strip("s")
 
-            new_R1 = "/data/fastqs/sample_S{0}_L00{1}_R1_001.fastq.gz".format(samp_R1, lane_R1)
-            new_R2 = "/data/fastqs/sample_S{0}_L00{1}_R2_001.fastq.gz".format(samp_R2, lane_R2)
+            new_R1 = "/data/fastqs/sample_S0_L00{0}_R1_001.fastq.gz".format(lane_R1)
+            new_R2 = "/data/fastqs/sample_S0_L00{0}_R2_001.fastq.gz".format(lane_R2)
             mv_R1_cmd += "mv /data/{0} {1}; ".format(R1[i], new_R1)
             mv_R2_cmd += "mv /data/{0} {1}; ".format(R2[i], new_R2)
 
+        # tar with z wasn't working so gunzip followed by tar xvf
+        # next, remove the offending line in sourceme.bash and source it
+        # next, rename fastqs according to 
         cmd = ""
         cmd += "gunzip {0}; tar -xvf {1}; ".format(cellranger, str(cellranger).rstrip(".gz"))
         cmd += "sed -i \"/CTYPE/d\" cellranger-4.0.0/sourceme.bash !LOG3!; "
