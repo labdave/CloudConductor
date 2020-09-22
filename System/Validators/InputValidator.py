@@ -1,4 +1,5 @@
 import logging
+import collections
 
 from .Validator import Validator
 from System.Workers import ThreadPool, PoolWorker
@@ -81,6 +82,10 @@ class InputValidator(Validator):
         if isinstance(input_obj, GAPFile):
             return "%s file '%s' of type '%s' with path %s" % \
                    (input_source, input_obj.get_file_id(), input_obj.get_type(), input_obj.get_path())
+        # evaluate second only if first is true
+        elif isinstance(input_obj, list) and all(isinstance(x, GAPFile) for x in input_obj):
+            desc = "\n".join(["%s file '%s' of type '%s' with path %s" % \
+                   (input_source, x.get_file_id(), x.get_type(), x.get_path()) for x in input_obj])
         else:
             return "Docker '%s' with image %s" % (input_obj.get_ID(), input_obj.get_image_name())
 
@@ -107,7 +112,13 @@ class InputValidator(Validator):
         # Check if the path exists
         for input_type, sample_paths in sample_paths.items():
             if isinstance(sample_paths, list):
-                for path in sample_paths:
+                def __flatten(l):
+                    for el in l:
+                        if isinstance(el, collections.Iterable) and not isinstance(el, (str, bytes)):
+                            yield from __flatten(el)
+                        else:
+                            yield el
+                for path in __flatten(sample_paths):
                     paths.append(path)
             else:
                 paths.append(sample_paths)
