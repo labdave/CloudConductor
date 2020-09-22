@@ -68,7 +68,7 @@ class CellRanger(Module):
         samples = []
         i = 1
         for i in range(len(R1)):
-            # TEMPORARY HARDCODING
+            # HUDSON ALPHA NAMING TEMPLATE
             lane_R1 = R1[i].split("-")[-2][-1]
             lane_R2 = R2[i].split("-")[-2][-1]
             
