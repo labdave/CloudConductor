@@ -51,8 +51,8 @@ class Strelka2(Module):
         else:
             bam_string = "--bam {0}".format(bamlist)
 
-        cmd1 = "{0} {1} --referenceFasta {2} --callRegions={3} --runDir {4} !LOG3!".format(
+        cmd = "{0} {1} --referenceFasta {2} --callRegions={3} --runDir {4} !LOG3!;".format(
                strelka2, bam_string, refgenome, regionfile, self.run_directory)
-        cmd2 = "{0}/runWorkflow.py -m local -j {1} !LOG3!".format(self.run_directory, nr_cpus)
+        cmd += "{0}/runWorkflow.py -m local -j {1} !LOG3!".format(self.run_directory, nr_cpus)
 
         return cmd
