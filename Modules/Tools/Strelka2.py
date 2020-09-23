@@ -1,3 +1,6 @@
+import os
+import sys
+
 from Modules import Module
 
 
@@ -24,10 +27,10 @@ class Strelka2(Module):
     def define_output(self):
 
         # Everything Strelka does, it does inside this directory
-        self.run_directory = "{0}/RunDir".format(self.output_dir)
+        self.run_directory = os.path.join(self.output_dir, "/runDir")
 
         # Make unique filename
-        vcf_file = "{0}/results/variants/variants.vcf.gz".format(self.run_directory)
+        vcf_file = os.path.join(self.run_directory, "results/variants/variants.vcf.gz")
         vcf_tbi_file = "{0}.tbi".format(vcf_file)
 
         self.add_output("vcf_gz",   vcf_file)
@@ -48,7 +51,7 @@ class Strelka2(Module):
         else:
             bam_string = "--bam {0}".format(bamlist)
 
-        cmd1 = "{0} {1} --referenceFasta {2} --callRegions={3} --runDir {4}".format(
+        cmd1 = "rm -f /RunDir/runWorkflow.py; {0} {1} --referenceFasta {2} --callRegions={3} --runDir {4}".format(
                strelka2, bam_string, refgenome, regionfile, self.run_directory)
         cmd2 = "{0}/runWorkflow.py -m local -j {1}".format(self.run_directory, nr_cpus)
 

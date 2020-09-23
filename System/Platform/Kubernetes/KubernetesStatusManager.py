@@ -56,8 +56,8 @@ class KubernetesStatusManager(object):
             self.pod_watch = watch.Watch()
             for event in self.pod_watch.stream(self.core_api.list_namespaced_pod, namespace='cloud-conductor'):
                 pod = event['object']
-                if pod and pod.metadata.labels['job-name']:
-                    pod_job = event['object'].metadata.labels['job-name']
+                if pod and 'job-name' in pod.metadata.labels:
+                    pod_job = pod.metadata.labels['job-name']
                 if pod_job and pod_job in self.log_update_list:
                     self.pod_watch_reset = 0
                     if pod.status.init_container_statuses and pod.status.container_statuses:
@@ -80,7 +80,7 @@ class KubernetesStatusManager(object):
                 elif not pod_job:
                     self.pod_watch.stop()
                     self.pod_watch_reset += 1
-                    logging.warning(f"No pod info with event. Watch event: {event}. We will try to reset the pod watch.")
+                    logging.warning(f"No pod info with event. We will try to reset the pod watch.")
                     break
         if self.pod_watch_reset >= 5:
             pod_monitoring_failure = True
@@ -105,7 +105,7 @@ class KubernetesStatusManager(object):
                 else:
                     self.job_watch.stop()
                     self.job_watch_reset += 1
-                    logging.warning(f"No job info with event. Watch event: {event}. We will try to reset the job watch.")
+                    logging.warning(f"No job info with event. We will try to reset the job watch.")
                     break
         if self.job_watch_reset >= 5:
 
