@@ -27,7 +27,7 @@ class Strelka2(Module):
     def define_output(self):
 
         # Everything Strelka does, it does inside this directory
-        self.run_directory = os.path.join(self.output_dir, "/runDir")
+        self.run_directory = "/data/output/runDir"
 
         # Make unique filename
         vcf_file = os.path.join(self.run_directory, "results/variants/variants.vcf.gz")
