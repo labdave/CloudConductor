@@ -80,7 +80,7 @@ class KubernetesStatusManager(object):
                 elif not pod_job:
                     self.pod_watch.stop()
                     self.pod_watch_reset += 1
-                    logging.warning(f"No pod info with event. Watch event: {event}. We will try to reset the pod watch.")
+                    logging.warning(f"No pod info with event. We will try to reset the pod watch.")
                     break
         if self.pod_watch_reset >= 5:
             pod_monitoring_failure = True
@@ -105,7 +105,7 @@ class KubernetesStatusManager(object):
                 else:
                     self.job_watch.stop()
                     self.job_watch_reset += 1
-                    logging.warning(f"No job info with event. Watch event: {event}. We will try to reset the job watch.")
+                    logging.warning(f"No job info with event. We will try to reset the job watch.")
                     break
         if self.job_watch_reset >= 5:
 
