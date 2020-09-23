@@ -56,8 +56,8 @@ class KubernetesStatusManager(object):
             self.pod_watch = watch.Watch()
             for event in self.pod_watch.stream(self.core_api.list_namespaced_pod, namespace='cloud-conductor'):
                 pod = event['object']
-                if pod and pod.metadata.labels['job-name']:
-                    pod_job = event['object'].metadata.labels['job-name']
+                if pod and 'job-name' in pod.metadata.labels:
+                    pod_job = pod.metadata.labels['job-name']
                 if pod_job and pod_job in self.log_update_list:
                     self.pod_watch_reset = 0
                     if pod.status.init_container_statuses and pod.status.container_statuses:
