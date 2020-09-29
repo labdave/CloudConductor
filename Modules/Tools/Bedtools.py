@@ -25,6 +25,8 @@ class BamToFastq(Module):
         r1 					= self.get_output("R1")
         r2 					= self.get_output("R2")
 
+#Veronica's change
+
         cmd = "{0} bamtofastq -i {1} -fq {2} -fq2 {3} !LOG3!".format(bedtools, bam, r1, r2)
 
         return cmd
