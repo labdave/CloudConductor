@@ -8,8 +8,8 @@ class BamToFastq(Module):
 
     def define_input(self):
         self.add_argument("bam",		is_required=True)
-        self.add_argument("bam_idx",    is_required=True)
-        self.add_argument("bedtools",       is_required=True, is_resource=True)
+        self.add_argument("mem",        default_value=5)
+        self.add_argument("nr_cpus",    default_value=1)
 
     def define_output(self):
         r1 					= self.generate_unique_file_name(".r1.fq")
@@ -20,14 +20,15 @@ class BamToFastq(Module):
     def define_command(self):
         # Define command for running bedtools coverage from a platform
         bam 				= self.get_argument("bam")
-        bam_idx 			= self.get_argument("bam_idx")
+        sorted_bam          = str(bam).replace(".bam", ".sorted.bam")
 
         r1 					= self.get_output("R1")
         r2 					= self.get_output("R2")
 
 #Veronica's change
-
-        cmd = "{0} bamtofastq -i {1} -fq {2} -fq2 {3} !LOG3!".format(bedtools, bam, r1, r2)
+        cmd = "samtools index {0} !LOG3!;".format(bam)
+        cmd += "samtools sort -n {0} -o {1} !LOG3!;".format(bam, sorted_bam)
+        cmd += "bedtools bamtofastq -i {0} -fq {1} -fq2 {2} !LOG3!".format(sorted_bam, r1, r2)
 
         return cmd
 
