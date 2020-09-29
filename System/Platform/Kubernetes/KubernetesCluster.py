@@ -175,26 +175,26 @@ class KubernetesCluster(Platform):
 
     def clean_up(self):
         # Initialize the list of threads
-        destroy_threads = []
+        # destroy_threads = []
 
         self.status_manager.stop_job_monitoring()
 
         # Launch the destroy process for each instance
-        for name, job_obj in self.jobs.items():
-            if job_obj is None:
-                continue
+        # for name, job_obj in self.jobs.items():
+        #     if job_obj is None:
+        #         continue
 
-            thr = Thread(target=job_obj.destroy, daemon=True)
-            thr.start()
-            destroy_threads.append(thr)
+        #     thr = Thread(target=job_obj.destroy, daemon=True)
+        #     thr.start()
+        #     destroy_threads.append(thr)
 
         # Wait for all threads to finish
-        for _thread in destroy_threads:
-            _thread.join()
+        # for _thread in destroy_threads:
+        #     _thread.join()
 
     def __parse_identity_json(self, identity):
         api_key_prefix = 'Bearer'
-        f = open(self.identity) 
+        f = open(self.identity)
         auth_config = json.load(f)
         f.close()
 

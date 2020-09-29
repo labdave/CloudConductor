@@ -75,6 +75,8 @@ class KubernetesJob(Instance):
 
         self.node_label, self.nodepool_info = self.get_nodepool_info()
 
+        self.status_manager.check_monitoring_status()
+
     def get_nodepool_info(self):
         node_pool_dict = self.node_pools
         if self.preemptible and self.preemptible_node_pools:
@@ -186,23 +188,23 @@ class KubernetesJob(Instance):
         # begin monitoring job for completion/failure
         self.monitoring = True
         while self.monitoring:
-            time.sleep(30)
+            time.sleep(5)
             job_status = self.get_status(log_status=True)
-            if isinstance(job_status, dict) and (job_status.get("succeeded") or (job_status.get("failed") and job_status.get("failed") >= self.default_num_cmd_retries and not job_status.get("active"))):
+            if job_status and (job_status.succeeded or (job_status.failed and job_status.failed >= self.default_num_cmd_retries and not job_status.active)):
                 self.monitoring = False
-                if job_status.get("succeeded"):
-                    self.stop_time = job_status['completion_time'].timestamp()
+                if job_status.succeeded:
+                    self.stop_time = job_status.completion_time.timestamp()
                     logging.info(f"({self.name}) Process complete!")
                     if return_last_task_log:
                         logging.debug("Returning logs from last process.")
                         logs = self.__get_container_log(self.job_containers[len(self.job_containers)-1].name)
                         return logs, ''
-                elif job_status.get("failed") and job_status.get("failed") >= self.default_num_cmd_retries and not job_status.get("active"):
+                elif job_status.failed and job_status.failed >= self.default_num_cmd_retries and not job_status.active:
                     logging.warning(f"{self.name}) Job marked as failed. Status response:\n{str(job_status)}")
                     # check for this last ( only when job is no longer active ) because our job is allowed to fail multiple times
                     # job_status will hold the number of times it has failed
-                    if job_status and job_status['conditions']:
-                        self.stop_time = job_status['conditions'][0]['last_transition_time'].timestamp()
+                    if job_status and job_status.conditions:
+                        self.stop_time = job_status.conditions[0].last_transition_time.timestamp()
                     else:
                         self.stop_time = time.time()
                     self.failed_container = self.__get_failed_container()
@@ -221,16 +223,14 @@ class KubernetesJob(Instance):
         return self.stop_time
 
     def get_status(self, retries=0, log_status=False, force_refresh=False):
-        job_status = self.status_manager.get_job_status(self.inst_name, force_refresh)
+        job_status = self.status_manager.get_job_status(self.inst_name, self.name)
         # Save the status if the job is no longer active
-        if log_status:
-            logging.debug(f"({self.name}) Job Status: {job_status}")
         if job_status and job_status != "Failure":
-            if self.start_time == 0 and job_status['start_time']:
-                self.start_time = job_status['start_time'].timestamp()
+            if self.start_time == 0 and job_status.start_time:
+                self.start_time = job_status.start_time.timestamp()
             return job_status
         elif job_status == "Failure":
-            reason = job_status.get('message', '')
+            reason = job_status.message
             if 'rpc error' in reason or 'Timeout: ' in reason and retries < 5:
                 logging.warning(f"({self.name}) Request issue when getting status. We'll try again.")
                 time.sleep(30)
@@ -305,8 +305,10 @@ class KubernetesJob(Instance):
                 logging.debug(f"({self.name}) Persistent Volume Claim created.")
                 break
             else:
-                if isinstance(pvc_status, dict) and 'Connection aborted' in pvc_status.get('error', ''):
-                    time.sleep(get_api_sleep(i+1))
+                if 'Connection aborted' in str(pvc_response) or 'Connection reset' in str(pvc_response):
+                    sleep_time = get_api_sleep(i+1)
+                    logging.debug(f"({self.name}) Connection issue when creating Persistent Volume Claim. Sleeping for: {sleep_time}")
+                    time.sleep(sleep_time)
                     continue
                 else:
                     raise RuntimeError(f"({self.name}) Failure to create a Persistent Volume Claim on the cluster. Response: {str(pvc_response)}")
@@ -436,7 +438,7 @@ class KubernetesJob(Instance):
             if not isinstance(args, list):
                 args = [v['original_cmd'].replace("sudo ", "")]
             args = " && ".join(args)
-            args = args.replace("\n", " ")                
+            args = args.replace("\n", " ")
 
             if "awk " in args:
                 args = re.sub("'\"'\"'", "'", args)
@@ -550,7 +552,7 @@ class KubernetesJob(Instance):
         # Destroy the job
         if self.job_def:
             status = self.get_status(force_refresh=True)
-            if status and isinstance(status, dict):
+            if status:
                 delete_response = api_request(self.batch_api.delete_namespaced_job, self.name, self.namespace)
 
                 # Save the status if the job is no longer active
@@ -591,4 +593,4 @@ class KubernetesJob(Instance):
                 pod_name = pod.get("metadata", {}).get("name", '')
                 if pod_name:
                     response = api_request(self.core_api.delete_namespaced_pod, pod_name, self.namespace)
-                    logging.debug(f"({self.name}) Delete pod response: {response}")
+                    logging.debug(f"({self.name}) Pod removed successfully")

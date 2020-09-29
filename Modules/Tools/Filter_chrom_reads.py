@@ -24,13 +24,6 @@ class Filter_chrom_reads(Module):
 		bam_out					= self.generate_unique_file_name(".filtered.bam")
 		self.add_output("bam",				bam_out)
 		self.add_output("bam_idx",			bam_out+'.bai')
-		self.add_output("temp1_bam",		"/data/output/temp1.bam")
-		self.add_output("temp2_bam",		"/data/output/temp2.bam")
-		self.add_output("tmp",				"/data/output/tmp")
-		self.add_output("tmp1",				"/data/output/tmp1")
-		self.add_output("npr",				"/data/output/non-primary.reads.txt")
-		self.add_output("otr",				"/data/output/on_target.reads.txt")
-		self.add_output("on_target_bam",	"/data/output/on_target.bam")
 
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC

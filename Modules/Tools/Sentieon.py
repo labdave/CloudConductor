@@ -60,16 +60,16 @@ class BWAMem(_SentieonBase):
 
         if R2 is not None:
             # Generate bwa-mem paired-end command
-            align_cmd = f'{sentieon_cmd} bwa mem -M -R "{rg_header}" -t {nr_cpus} {ref} {R1} {R2} !LOG2!'
+            align_cmd = f'{sentieon_cmd} bwa mem -M -R "{rg_header}" -t {nr_cpus} {ref} {R1} {R2}'
 
         else:
             # Generate bwa-mem single-end command
-            align_cmd = f'{sentieon_cmd} bwa mem -M -R "{rg_header}" -t {nr_cpus} {ref} {R1} !LOG2!'
+            align_cmd = f'{sentieon_cmd} bwa mem -M -R "{rg_header}" -t {nr_cpus} {ref} {R1}'
 
         # Generating command to sort the SAM and converting it to BAM
         bam_sort_cmd = f'{sentieon_cmd} util sort -r {ref} -o {bam_out} -t {nr_cpus} --sam2bam -i -'
 
-        return f'{align_cmd} !LOG2! | {bam_sort_cmd} !LOG2!'
+        return f'{align_cmd} | {bam_sort_cmd}'
 
 
 class LocusCollector(_SentieonBase):
@@ -170,6 +170,7 @@ class Haplotyper(_SentieonBase):
         self.add_argument("ref",            is_required=True)
         self.add_argument("ref_idx",        is_required=True)
         self.add_argument("ref_dict",       is_required=True)
+        self.add_argument("bed",            is_required=True)
         self.add_argument("dbsnp")
         self.add_argument("recal_table")
         self.add_argument("nr_cpus",        is_required=True, default_value=8)
@@ -192,6 +193,7 @@ class Haplotyper(_SentieonBase):
         # Get arguments to run Haplotyper
         bam         = self.get_argument("bam")
         ref         = self.get_argument("ref")
+        bed         = self.get_argument("bed")
         dbsnp       = self.get_argument("dbsnp")
         recal_table = self.get_argument("recal_table")
         nr_cpus     = self.get_argument("nr_cpus")
@@ -203,6 +205,10 @@ class Haplotyper(_SentieonBase):
         sentieon_cmd = self.get_sentieon_command()
 
         sentieon_cmd = f'{sentieon_cmd} driver -t {nr_cpus} -r {ref} -i {bam}'
+
+        # if the target bed provided
+        if bed:
+            sentieon_cmd = f'{sentieon_cmd} --interval {bed}'
 
         # if recalibration table provided
         if recal_table:
