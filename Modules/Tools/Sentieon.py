@@ -171,6 +171,7 @@ class Haplotyper(_SentieonBase):
         self.add_argument("ref_idx",        is_required=True)
         self.add_argument("ref_dict",       is_required=True)
         self.add_argument("bed",            is_required=True)
+        self.add_argument("trim_soft_clip", default_value=True)
         self.add_argument("dbsnp")
         self.add_argument("recal_table")
         self.add_argument("nr_cpus",        is_required=True, default_value=8)
@@ -195,6 +196,7 @@ class Haplotyper(_SentieonBase):
         ref         = self.get_argument("ref")
         bed         = self.get_argument("bed")
         dbsnp       = self.get_argument("dbsnp")
+        trim_soft_clip = self.get_argument("trim_soft_clip")
         recal_table = self.get_argument("recal_table")
         nr_cpus     = self.get_argument("nr_cpus")
 
@@ -220,5 +222,9 @@ class Haplotyper(_SentieonBase):
         # if know sites/dbSNP provided
         if dbsnp:
             sentieon_cmd = f'{sentieon_cmd} -d {dbsnp}'
+
+        # exclude the soft clipped reads
+        if trim_soft_clip:
+            sentieon_cmd = f'{sentieon_cmd} --trim_soft_clip'
 
         return f'{sentieon_cmd} {vcf_gz} !LOG3!'
