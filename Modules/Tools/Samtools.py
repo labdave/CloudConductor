@@ -309,3 +309,34 @@ class Fastq(Module):
 
         # Generate command for obtaining the FASTQ reads
         return "{0} fastq {1} {2} !LOG3!".format(samtools, " ".join(opts), bam)
+
+#takes bam and sorts it by name
+class Sort_by_Name(Module):
+    def __init__(self, module_id, is_docker=False):
+        super(Sort_by_Name, self).__init__(module_id, is_docker)
+        #add output key, sorted bam
+        self.output_keys = ["sorted_bam"]
+
+    def define_input(self):
+        self.add_argument("bam",            is_required=True)
+        self.add_argument("nr_cpus",        default_value=4)
+        self.add_argument("mem",            default_value=10)
+        self.add_argument("samtools",       is_required=True,   is_resource=True)
+
+    def define_output(self):
+        sorted_bam = self.generate_unique_file_name(extension=".sorted.bam")
+
+        # Add files to output
+        self.add_output("sorted_bam", sorted_bam)
+
+    def define_command(self):
+        # Define command for running samtools sort
+        bam         = self.get_argument("bam")
+        samtools    = self.get_argument("samtools")
+        nr_cpus     = self.get_argument("nr_cpus")
+
+        sorted_bam     = self.get_output("sorted_bam")
+
+        cmd = "{0} sort -@ {1} -n {2} -o {3}  !LOG3!;".format(samtools, nr_cpus, bam, sorted_bam)
+
+        return cmd
