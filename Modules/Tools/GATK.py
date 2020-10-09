@@ -1564,7 +1564,6 @@ class MergeBamAlignment(_GATKBase):
         self.add_argument("bam",           is_required=True)
         self.add_argument("bam_idx",       is_required=True)
         self.add_argument("umi_bam",       is_required=True)
-        self.add_argument("umi_bam_idx",   is_required=True)
         self.add_argument("ref",           is_required=True, is_resource=True)
         self.add_argument("nr_cpus",       is_required=True, default_value=4)
         self.add_argument("mem",           is_required=True, default_value="nr_cpus * 2.5")
