@@ -1557,7 +1557,7 @@ class MergeBamAlignment(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
         super(MergeBamAlignment, self).__init__(module_id, is_docker)
-        self.output_keys  = ["bam"]
+        self.output_keys  = ["bam", "bam_idx"]
 
     def define_input(self):
         self.define_base_args()
