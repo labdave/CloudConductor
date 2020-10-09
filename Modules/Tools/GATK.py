@@ -1571,7 +1571,9 @@ class MergeBamAlignment(_GATKBase):
     def define_output(self):
         # Declare BAM output filename
         bam = self.generate_unique_file_name(extension=".umi.bam")
-        bam_idx = "{0}.bai".format(bam)
+        # MergeBamAlignment creates a file.bam and a file.bai output. We
+        # reflect that naming convention here.
+        bam_idx = "{0}.bai".format(bam[:-4])
         self.add_output("bam", bam)
         self.add_output("bam_idx", bam_idx)
 
