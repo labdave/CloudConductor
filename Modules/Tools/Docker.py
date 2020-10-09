@@ -1,4 +1,46 @@
-import os
+"""Genetic module for running a command with docker image.
+
+This module can be used to run a command with any docker image defined in the resource kit.
+The motivation of having this module is to run simple docker commands without having to add new code to CloudConductor
+
+The docker_image should be defined in the resource kit.
+
+In the "args" of the graph config, the following arguments are required:
+    inputs: a list of inputs to this module.
+    outputs: a list of output variables defined as key-value pairs.
+    commands: the command to the executed.
+Additional "args" can be defined to be used as inputs to the module.
+
+The "inputs" defined in the "args" can be used in the "commands" as environment variable,
+    similar to the way we use linux variable in bash command.
+The "inputs" can contain CloudConductor resources or variables defined in "args" of this module.
+Input variable defined as a list will be joined by SPACE.
+The "outputs" defined in the "args" are variables that will be available for downstream steps.
+Input variables can also be used when defining the outputs (same as how you use them in bash command)
+The "OUTPUT_PATH" variable stores the CC output directory obtained by self.get_output_dir().
+
+Optionally, you can defined the cpus and memory in the args of the module.
+By default the docker module uses 1 CPU and 4GB memory.
+
+[demuxtna__tna]
+    module = Docker
+    docker_image = cancer
+    final_output = demux_stats
+    input_from = utils_consolidatesamplename__tna
+
+    [[args]]
+        cpus = 32
+        memory = 16
+        inputs = R1, R2, sample_name, barcodes
+        barcodes = AGTCGACATG, TCGACATG
+        commands = python -m Cancer.run demux_inline --r1 ${R1} --r2 ${R2} --barcode "${barcodes}=${OUTPUT_PATH}${sample_name}.RNA" --unmatched ${OUTPUT_PATH}${sample_name}.non-RNA --stats ${OUTPUT_PATH}all_barcode_stats.csv --name ${sample_name} --header rna
+        [[[outputs]]]
+            R1 = ${OUTPUT_PATH}${sample_name}.RNA.R1.fastq.gz, ${OUTPUT_PATH}${sample_name}.non-RNA.R1.fastq.gz
+            R2 = ${OUTPUT_PATH}${sample_name}.RNA.R2.fastq.gz, ${OUTPUT_PATH}${sample_name}.non-RNA.R2.fastq.gz
+            demux_stats = ${OUTPUT_PATH}all_barcode_stats.csv
+            assay_type = rna, dna
+
+"""
 import logging
 from Modules import Module
 logger = logging.getLogger(__name__)
@@ -16,7 +58,7 @@ class Docker(Module):
         if not isinstance(outputs, dict):
             raise ValueError("Docker module outputs must be key-value pairs. Invalid value: %s" % outputs)
         self.output_keys = outputs.keys()
-        logger.debug("Docker module output keys: %s" % self.output_keys)
+        # logger.debug("Docker module output keys: %s" % self.output_keys)
 
     def get_input_list(self):
         """Gets a list of inputs as defined in the config args.
@@ -27,7 +69,7 @@ class Docker(Module):
         # Use sample_id as input if there is no input.
         # Otherwise CloudConductor will fail.
         inputs = self.module_args.get("inputs", ["sample_id"])
-        logger.debug("Inputs: %s" % inputs)
+        # logger.debug("Inputs: %s" % inputs)
         if inputs and not isinstance(inputs, list):
             inputs = [inputs]
         return inputs
