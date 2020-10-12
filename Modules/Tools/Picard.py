@@ -9,12 +9,13 @@ class MarkDuplicates(Module):
         self.output_keys            = ["bam", "MD_report", "bam_sorted"]
 
     def define_input(self):
-        self.add_argument("bam",        is_required=True)
-        self.add_argument("bam_idx",    is_required=True)
-        self.add_argument("is_aligned", is_required=True, default_value=True)
-        self.add_argument("picard",     is_required=True, is_resource=True)
-        self.add_argument("nr_cpus",    is_required=True, default_value=8)
-        self.add_argument("mem",        is_required=True, default_value=61)
+        self.add_argument("bam",         is_required=True)
+        self.add_argument("bam_idx",     is_required=True)
+        self.add_argument("is_aligned",  is_required=True,  default_value=True)
+        self.add_argument("picard",      is_required=True,  is_resource=True)
+        self.add_argument("nr_cpus",     is_required=True,  default_value=8)
+        self.add_argument("mem",         is_required=True,  default_value=61)
+        self.add_argument("barcode_tag", is_required=False, default_value=None)
 
         # Require java if not being run on docker
         if not self.is_docker:
@@ -44,6 +45,7 @@ class MarkDuplicates(Module):
         is_aligned  = self.get_argument("is_aligned")
         mem         = self.get_argument("mem")
         picard      = self.get_argument("picard")
+        barcode_tag = self.get_argument("barcode_tag")
 
         # Get output filenames
         output_bam  = self.get_output("bam")
@@ -72,6 +74,9 @@ class MarkDuplicates(Module):
         mark_dup_opts.append("ASSUME_SORTED=TRUE")
         mark_dup_opts.append("REMOVE_DUPLICATES=FALSE")
         mark_dup_opts.append("VALIDATION_STRINGENCY=LENIENT")
+
+        if barcode_tag is not None:
+            mark_dup_opts.append("BARCODE_TAG={0}".format(barcode_tag))
 
         # Generating command for marking duplicates
         cmd = "{0} MarkDuplicates {1} !LOG3!".format(basecmd, " ".join(mark_dup_opts))

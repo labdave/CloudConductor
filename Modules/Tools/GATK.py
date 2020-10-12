@@ -1553,8 +1553,43 @@ class CollectSequencingArtifactMetrics(_GATKBase):
         return "{0} !LOG3!".format(cmd)
 
 
-class MergeBamAlignment(_GATKBase):
+class CollectReadCounts(_GATKBase):
 
+    def __init__(self, module_id, is_docker=False):
+        super(CollectReadCounts, self).__init__(module_id, is_docker)
+        self.output_keys = ["read_count_out"]
+
+    def define_input(self):
+        self.define_base_args()
+        self.add_argument("bam",            is_required=True)
+        self.add_argument("bam_idx",        is_required=True)
+        self.add_argument("nr_cpus",        is_required=True,   default_value=1)
+        self.add_argument("mem",            is_required=True,   default_value=2)
+
+    def define_output(self):
+        # Declare recoded VCF output filename
+        read_count_out = self.generate_unique_file_name(extension=".read_count.txt")
+        self.add_output("read_count_out", read_count_out)
+
+    def define_command(self):
+        # Get input arguments
+        bam             = self.get_argument("bam")
+        gatk_cmd        = self.get_gatk_command()
+        read_count_out  = self.get_output("read_count_out")
+        interval_list   = self.get_argument("interval_list")
+
+        output_file_flag = self.get_output_file_flag()
+
+        cmd = "{0} CollectReadCounts -I {1} {3} {2} --format TSV -DF MappingQualityReadFilter ".format(gatk_cmd, bam, read_count_out, output_file_flag)
+
+        if interval_list is not None:
+            cmd = "{0} -L {1} --interval-merging-rule OVERLAPPING_ONLY".format(cmd, interval_list)
+
+        return "{0} !LOG3!".format(cmd)
+
+
+
+class MergeBamAlignment(_GATKBase):
     def __init__(self, module_id, is_docker=False):
         super(MergeBamAlignment, self).__init__(module_id, is_docker)
         self.output_keys  = ["bam", "bam_idx"]
