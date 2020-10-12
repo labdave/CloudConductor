@@ -88,7 +88,7 @@ class KubernetesStatusManager(object):
                                         if self.pod_status_dict[pod_job]['preemptions'] <= 2:
                                             logging.info(f"({pod_job}) Job was preempted, is rerunning, and is on task {container_index + 1}/{num_containers}. Preemptions {self.pod_status_dict[pod_job]['preemptions']}/2")
                                     else:
-                                        if pod_job in self.pod_status_dict and new_index > self.pod_status_dict[pod_job]['checkpoint']:
+                                        if (pod_job in self.pod_status_dict and new_index > self.pod_status_dict[pod_job]['checkpoint']) or pod_job not in self.pod_status_dict:
                                             logging.info(f"({pod_job}) Job is currently on task {container_index + 1}/{num_containers}. Current running task: ({current_running_container.name})")
                                         preempts = self.pod_status_dict[pod_job]['preemptions'] if pod_job in self.pod_status_dict else 0
                                         self.pod_status_dict[pod_job] = {"checkpoint": new_index, "preemptions": preempts, "pod_name": pod_name}
