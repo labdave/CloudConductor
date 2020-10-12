@@ -920,7 +920,7 @@ class GetReadNames(Module):
             cmds.append("{0} intersect -a {1} -b {2} -split".format(bedtools, bam, bed))
 
         # Convert BAM to SAM
-        cmds.append("{0} view".format(samtools))
+        cmds.append("{0} view {1}".format(samtools, bam))
 
         # get the read names
         cmds.append("cut -f 1 > {0} !LOG2!".format(read_names))
