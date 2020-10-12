@@ -196,6 +196,9 @@ class CloudPlatform(Platform, metaclass=abc.ABCMeta):
         # Obtain task_id that will be used
         task_id = kwargs.pop("task_id", "NONAME")
 
+        # Obtain force_standard to see if we're forcing standard instances for this proc
+        force_standard = kwargs.pop("force_standard", False)
+
         # Generate a unique instance name and associate it to the current request
         while True:
 
@@ -267,7 +270,9 @@ class CloudPlatform(Platform, metaclass=abc.ABCMeta):
 
             "disk_image": self.disk_image_obj,
 
-            "platform": self
+            "platform": self, 
+
+            "force_standard": force_standard
         })
 
         # Also add the extra information

@@ -131,8 +131,16 @@ class TaskWorker(Thread):
             self.datastore.set_task_input_args(self.task.get_ID())
 
             # Compute task resource requirements
-            cpus    = self.module.get_argument("nr_cpus")
-            mem     = self.module.get_argument("mem")
+            cpus            = self.module.get_argument("nr_cpus")
+            mem             = self.module.get_argument("mem")
+
+            # see if we're forcing standard instances
+            try:
+                force_standard  = self.module.get_argument("force_standard").lower() == 'true'
+            except RuntimeError:
+                # don't care if the input isn't defined
+                force_standard = False
+                pass
 
             # Compute disk space requirements
             docker_image    = None
@@ -154,11 +162,11 @@ class TaskWorker(Thread):
             # Create the specific processor for the task
             if has_command:
                 # Get processor capable of running job
-                self.proc = self.platform.get_instance(cpus, mem, disk_space, task_id=self.task.get_ID())
+                self.proc = self.platform.get_instance(cpus, mem, disk_space, task_id=self.task.get_ID(), force_standard=force_standard)
                 logging.debug("(%s) Successfully acquired processor!" % self.task.get_ID())
             else:
                 # Get small processor
-                self.proc = self.platform.get_instance(1, 1, disk_space, task_id=self.task.get_ID())
+                self.proc = self.platform.get_instance(1, 1, disk_space, task_id=self.task.get_ID(), force_standard=force_standard)
                 logging.debug("(%s) Successfully acquired processor!" % self.task.get_ID())
 
             # Check to see if pipeline has been cancelled

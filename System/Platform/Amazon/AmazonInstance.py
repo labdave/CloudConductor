@@ -45,6 +45,9 @@ class AmazonInstance(CloudInstance):
         # Initialize the node variable
         self.node = None
 
+        # check for force_standard
+        self.force_standard = kwargs.get("force_standard", False)
+
         self.boto_config = Config(
             retries = dict(
                 max_attempts = 20,
@@ -103,7 +106,7 @@ class AmazonInstance(CloudInstance):
             self.is_preemptible = False
 
         node = None
-        if self.is_preemptible:
+        if self.is_preemptible and not self.force_standard:
             node = self.__create_spot_instance(node_size, device_mappings)
         else:
             node = self.__create_on_demand_instance(node_size, device_mappings)
