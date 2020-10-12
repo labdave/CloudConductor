@@ -183,7 +183,7 @@ class ModuleExecutor(object):
             job_name = "get_size_%s_%s" % (self.task_id, output_file.get_type())
             file_size = self.storage_helper.get_file_size(output_file.get_path(), job_name=job_name)
             if file_size == 0:
-                logging.warning("(%s) Size of output file '%s' is %sGB. THE TASK MAY HAVE FAILED!!!!" % (self.task_id, output_file.get_path(), file_size))
+                logging.error("(%s) Size of output file '%s' is %sGB. THE TASK MAY HAVE FAILED!!!!" % (self.task_id, output_file.get_path(), file_size))
             else:
                 logging.debug("(%s) Size of output file '%s' is %sGB" % (self.task_id, output_file.get_path(), file_size))
             output_file.set_size(file_size)
