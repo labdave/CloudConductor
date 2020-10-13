@@ -3,12 +3,14 @@ from Modules import Merger
 class AggregateCNVSegments(Merger):
     def __init__(self, module_id, is_docker = False):
         super(AggregateCNVSegments, self).__init__(module_id, is_docker)
-        self.output_keys    = ["gene_cn", "cytoband_cnv"]
+        self.output_keys    = ["gene_seg", "cyto_seg"]
 
     def define_input(self):
         self.add_argument("seg_call",       is_required=True)
         self.add_argument("gene_bed",       is_resource=True)
         self.add_argument("cyto_bed",       is_resource=True)
+        self.add_argument("mem",            default_value=10)
+        self.add_argument("nr_cpus",        default_value=2)
 
     def define_output(self):
         gene_seg_file       = self.generate_unique_file_name(extension=".gene.seg")
@@ -20,6 +22,9 @@ class AggregateCNVSegments(Merger):
         segs                = self.get_argument("seg_call")
         gene_bed            = self.get_argument("gene_bed")
         cyto_bed            = self.get_argument("cyto_bed")
+
+        gene_seg            = self.get_output("gene_seg")
+        cyto_seg            = self.get_output("cyto_seg")
 
         # if there's only one sample, make it a list
         if not isinstance(segs, list):
