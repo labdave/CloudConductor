@@ -11,6 +11,7 @@ class FastQC(Module):
         self.add_argument("fastqc",     is_required=True, is_resource=True)
         self.add_argument("nr_cpus",    is_required=True, default_value=2)
         self.add_argument("mem",        is_required=True, default_value=5)
+        self.add_argument("force_standard", is_required=False, default_value=False)
 
         # Require java if not being run in docker
         if not self.is_docker:

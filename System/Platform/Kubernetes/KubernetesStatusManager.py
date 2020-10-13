@@ -32,6 +32,7 @@ class KubernetesStatusManager(object):
         self.pod_watch_reset = 0
         # list of jobs that we want to log when we have updates
         self.log_update_list = {}
+        self.pod_status_dict = {}
 
         self.monitoring_thread = Thread(target=self.__monitor_jobs)
         self.pod_monitoring_thread = Thread(target=self.__monitor_pods)
@@ -52,12 +53,14 @@ class KubernetesStatusManager(object):
     def __monitor_pods(self):
         global pod_monitoring_failure
         pod_monitoring_failure = False
+        self.pod_status_dict = {}
         while self.pod_watch_reset < 5 and self.is_monitoring:
             self.pod_watch = watch.Watch()
             for event in self.pod_watch.stream(self.core_api.list_namespaced_pod, namespace='cloud-conductor'):
                 pod = event['object']
                 if pod.kind == 'Pod':
                     pod_job = None
+                    pod_name = pod.metadata.name
                     if pod and 'job-name' in pod.metadata.labels:
                         pod_job = pod.metadata.labels['job-name']
                     if pod_job:
@@ -79,7 +82,16 @@ class KubernetesStatusManager(object):
                                             break
                                         container_index += 1
                                 if current_running_container:
-                                    logging.info(f"({pod_job}) Job is currently on task {container_index + 1}/{num_containers}. Current running task: ({current_running_container.name})")
+                                    new_index = container_index + 1
+                                    if pod_job in self.pod_status_dict and pod_name != self.pod_status_dict[pod_job]["pod_name"]:
+                                        self.pod_status_dict[pod_job] = {"checkpoint": new_index, "preemptions": self.pod_status_dict[pod_job]['preemptions'] + 1, "pod_name": pod_name}
+                                        if self.pod_status_dict[pod_job]['preemptions'] <= 2:
+                                            logging.info(f"({pod_job}) Job was preempted, is rerunning, and is on task {container_index + 1}/{num_containers}. Preemptions {self.pod_status_dict[pod_job]['preemptions']}/2")
+                                    else:
+                                        if (pod_job in self.pod_status_dict and new_index > self.pod_status_dict[pod_job]['checkpoint']) or pod_job not in self.pod_status_dict:
+                                            logging.info(f"({pod_job}) Job is currently on task {container_index + 1}/{num_containers}. Current running task: ({current_running_container.name})")
+                                        preempts = self.pod_status_dict[pod_job]['preemptions'] if pod_job in self.pod_status_dict else 0
+                                        self.pod_status_dict[pod_job] = {"checkpoint": new_index, "preemptions": preempts, "pod_name": pod_name}
                 else:
                     self.pod_watch.stop()
                     self.pod_watch_reset += 1
@@ -137,8 +149,11 @@ class KubernetesStatusManager(object):
         self.check_monitoring_status()
         self.add_job_to_log_list(job_name)
         if self.job_list and job_name in self.job_list:
-            return self.job_list[job_name].status
-        return ""
+            pod_status = [val for key, val in self.pod_status_dict.items() if job_name in key]
+            if pod_status and pod_status[0]:
+                return self.job_list[job_name].status, pod_status[0]['preemptions']
+            return self.job_list[job_name].status, 0
+        return "", 0
 
     def get_job_info(self, job_name, force_refresh=False):
         if self.job_list and job_name in self.job_list:

@@ -168,22 +168,7 @@ class KubernetesJob(Instance):
         # create the job definition
         self.job_def = self.__create_job_def()
 
-        try:
-            creation_response = api_request(self.batch_api.create_namespaced_job, self.namespace, self.job_def)
-            creation_status = creation_response.get("status", None)
-            if creation_status and isinstance(creation_status, dict) and creation_status != 'Failure':
-                job_yaml = yaml.dump(creation_response).split("\n")
-                stripped_yaml = []
-                for line in job_yaml:
-                    if ": null" not in line and "status:" not in line and "self_link" :
-                        stripped_yaml.append(line)
-                job_yaml = "\n".join(stripped_yaml)
-                logging.debug(f"({self.name}) KUBERENETES JOB YAML : \n\n{job_yaml}")
-                logging.debug(f"({self.name}) Kubernetes job successfully created! Begin monitoring.")
-            else:
-                raise RuntimeError(f"({self.name}) Failure to create the job on the cluster")
-        except Exception as e:
-            raise RuntimeError(f"({self.name}) Failure to create the job on the cluster Reason: {str(e)}")
+        self.__launch_job()
 
         # begin monitoring job for completion/failure
         self.monitoring = True
@@ -223,7 +208,13 @@ class KubernetesJob(Instance):
         return self.stop_time
 
     def get_status(self, retries=0, log_status=False, force_refresh=False):
-        job_status = self.status_manager.get_job_status(self.inst_name, self.name)
+        job_status, preemptions = self.status_manager.get_job_status(self.inst_name, self.name)
+        if preemptions >= 2 and self.preemptible:
+            # implement change from preemptible to standard
+            logging.info(f"({self.name}) Job was preempted 2 times. Switching to standard node pool.")
+            # recreate job with different node selector
+            self.__rebuild_job(preemptible=False)
+            return None
         # Save the status if the job is no longer active
         if job_status and job_status != "Failure":
             if self.start_time == 0 and job_status.start_time:
@@ -284,6 +275,41 @@ class KubernetesJob(Instance):
 
     def get_storage_price(self):
         return self.storage_price
+
+    def __rebuild_job(self, preemptible=False):
+        self.__cleanup_job()
+        self.preemptible = preemptible
+        self.node_label, self.nodepool_info = self.get_nodepool_info()
+        node_label_dict = {'poolName': str(self.node_label)}
+        job_exists = True
+        while job_exists:
+            response = api_request(self.batch_api.read_namespaced_job, name=self.inst_name, namespace=self.namespace)
+            if response and 'not found' in response.get('message', ''):
+                job_exists = False
+                break
+            time.sleep(30)
+
+        self.job_def.spec.template.spec.node_selector = node_label_dict
+        self.__launch_job(log_yaml=False)
+
+    def __launch_job(self, log_yaml=True):
+        try:
+            creation_response = api_request(self.batch_api.create_namespaced_job, self.namespace, self.job_def)
+            creation_status = creation_response.get("status", None)
+            if creation_status and isinstance(creation_status, dict) and creation_status != 'Failure':
+                if log_yaml:
+                    job_yaml = yaml.dump(creation_response).split("\n")
+                    stripped_yaml = []
+                    for line in job_yaml:
+                        if ": null" not in line and "status:" not in line and "self_link" :
+                            stripped_yaml.append(line)
+                    job_yaml = "\n".join(stripped_yaml)
+                    logging.debug(f"({self.name}) KUBERENETES JOB YAML : \n\n{job_yaml}")
+                    logging.debug(f"({self.name}) Kubernetes job successfully created! Begin monitoring.")
+            else:
+                raise RuntimeError(f"({self.name}) Failure to create the job on the cluster")
+        except Exception as e:
+            raise RuntimeError(f"({self.name}) Failure to create the job on the cluster Reason: {str(e)}")
 
     def __create_volume_claim(self):
         # create the persistent volume claim for the task
@@ -551,19 +577,17 @@ class KubernetesJob(Instance):
     def __cleanup_job(self):
         # Destroy the job
         if self.job_def:
-            status = self.get_status(force_refresh=True)
-            if status:
-                delete_response = api_request(self.batch_api.delete_namespaced_job, self.name, self.namespace)
+            delete_response = api_request(self.batch_api.delete_namespaced_job, self.name, self.namespace)
 
-                # Save the status if the job is no longer active
-                delete_status = delete_response.get("status", None)
-                if delete_status and delete_status == 'Failure':
-                    if 'not found' not in delete_response.get('message', ''):
-                        logging.warning(f"({self.name}) Failed to destroy Kubernetes Job. Message: {delete_response.get('message', '')}")
-                elif delete_status and not isinstance(delete_status, dict):
-                    delete_status = ast.literal_eval(delete_status)
-                else:
-                    logging.debug(f"({self.name}) Kubernetes job successfully destroyed.")
+            # Save the status if the job is no longer active
+            delete_status = delete_response.get("status", None)
+            if delete_status and delete_status == 'Failure':
+                if 'not found' not in delete_response.get('message', ''):
+                    logging.warning(f"({self.name}) Failed to destroy Kubernetes Job. Message: {delete_response.get('message', '')}")
+            elif delete_status and not isinstance(delete_status, dict):
+                delete_status = ast.literal_eval(delete_status)
+            else:
+                logging.debug(f"({self.name}) Kubernetes job successfully destroyed.")
             # Destroy all pods associated with the job as well
             self.__cleanup_pods()
 

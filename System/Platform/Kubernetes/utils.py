@@ -42,7 +42,7 @@ def api_request(api_func, *args, **kwargs):
                 response.update(error_body)
             except Exception:
                 logging.debug("Issue with parsing the error body into json.")
-            if 'delete' in api_func.__name__ and 'Not Found' in e.reason:
+            if 'Not Found' in e.reason:
                 break
             else:
                 time.sleep(get_api_sleep(i+1))
@@ -68,12 +68,6 @@ def api_request(api_func, *args, **kwargs):
                     "error": e,
                 }
                 continue
-            elif 'delete' in api_func.__name__ and 'not found' in exception_string:
-                response = {
-                    "status": "Failed",
-                    "error": e,
-                }
-                break
             else:
                 response = {
                     "status": "Failed",
