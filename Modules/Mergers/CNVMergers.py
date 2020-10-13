@@ -41,7 +41,7 @@ class AggregateCNVSegments(Merger):
         #     cmd += " {}".format(seg)
         # cmd += " !LOG3!"
 
-        cmd += "ls -l !LOG3!; ls -l /data/ !LOG3!"
+        cmd += "touch {};ls -l !LOG3!; ls -l /data/ !LOG3!; ls -l /data/output/ !LOG3!".format(gene_seg)
         return cmd
 
 
