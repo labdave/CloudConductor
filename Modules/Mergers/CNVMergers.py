@@ -13,13 +13,14 @@ class AggregateCNVSegments(Merger):
         self.add_argument("nr_cpus",        default_value=2)
 
     def define_output(self):
-        gene_seg_file       = self.generate_unique_file_name(extension=".gene.seg")
+        gene_seg_file       = self.generate_unique_file_name(extension=".gene.csv")
         self.add_output("gene_seg", gene_seg_file)
-        cyto_seg_file       = self.generate_unique_file_name(extension=".cyto.seg")
+        cyto_seg_file       = self.generate_unique_file_name(extension=".cyto.csv")
         self.add_output("cyto_seg", cyto_seg_file)
 
     def define_command(self):
         segs                = self.get_argument("seg_call")
+        samples             = self.get_argument("sample_id")
         gene_bed            = self.get_argument("gene_bed")
         cyto_bed            = self.get_argument("cyto_bed")
 
@@ -29,19 +30,19 @@ class AggregateCNVSegments(Merger):
         # if there's only one sample, make it a list
         if not isinstance(segs, list):
             seg = [segs]
+            samples = [samples]
+
+        for seg in segs:
+            join_seg += "{},".format(seg)
+        join_seg = join_seg.strip(",")
+        for sample in samples:
+            join_sample += "{},".format(sample)
+        join_sample = join_sample.strip(",")
 
         cmd = ""
-        # cmd += "python get_gene_cn.py {}".format(gene_bed)
-        # for seg in segs:
-        #     cmd += " {}".format(seg)
-        # cmd += " !LOG3!;"
+        cmd += "python get_gene_cn.py {0} {1} {2} {3} !LOG3!;".format(gene_bed, join_seg, join_sample, gene_seg)
+        cmd += "python get_cyto_cn.py {0} {1} {2} {3} !LOG3!;".format(cyto_bed, join_seg, join_sample, cyto_seg)
 
-        # cmd += "python get_cyto_cn.py {}".format(cyto_bed)
-        # for seg in segs:
-        #     cmd += " {}".format(seg)
-        # cmd += " !LOG3!"
-
-        cmd += "touch {};ls -l !LOG3!; ls -l /data/ !LOG3!; ls -l /data/output/ !LOG3!".format(gene_seg)
         return cmd
 
 
