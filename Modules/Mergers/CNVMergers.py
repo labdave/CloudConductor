@@ -1,5 +1,45 @@
 from Modules import Merger
 
+class AggregateCNVSegments(Merger):
+    def __init__(self, module_id, is_docker = False):
+        super(AggregateCNVSegments, self).__init__(module_id, is_docker)
+        self.output_keys    = ["gene_cn", "cytoband_cnv"]
+
+    def define_input(self):
+        self.add_argument("seg_call",       is_required=True)
+        self.add_argument("gene_bed",       is_resource=True)
+        self.add_argument("cyto_bed",       is_resource=True)
+
+    def define_output(self):
+        gene_seg_file       = self.generate_unique_file_name(extension=".gene.seg")
+        self.add_output("gene_seg", gene_seg_file)
+        cyto_seg_file       = self.generate_unique_file_name(extension=".cyto.seg")
+        self.add_output("cyto_seg", cyto_seg_file)
+
+    def define_command(self):
+        segs                = self.get_argument("seg_call")
+        gene_bed            = self.get_argument("gene_bed")
+        cyto_bed            = self.get_argument("cyto_bed")
+
+        # if there's only one sample, make it a list
+        if not isinstance(segs, list):
+            seg = [segs]
+
+        cmd = ""
+        # cmd += "python get_gene_cn.py {}".format(gene_bed)
+        # for seg in segs:
+        #     cmd += " {}".format(seg)
+        # cmd += " !LOG3!;"
+
+        # cmd += "python get_cyto_cn.py {}".format(cyto_bed)
+        # for seg in segs:
+        #     cmd += " {}".format(seg)
+        # cmd += " !LOG3!"
+
+        cmd += "ls -l !LOG3!; ls -l /data/ !LOG3!"
+        return cmd
+
+
 class MakeCNVPoN(Merger):
     def __init__(self, module_id, is_docker = False):
         super(MakeCNVPoN, self).__init__(module_id, is_docker)
