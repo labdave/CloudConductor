@@ -39,7 +39,7 @@ class AggregateCNVSegments(Merger):
             join_sample += "{},".format(sample)
         join_sample = join_sample.strip(",")
 
-        cmd = ""
+        cmd = "print(samples) !LOG3!; print(segs) !LOG3!;"  # debug
         cmd += "python get_gene_cn.py {0} {1} {2} {3} !LOG3!;".format(gene_bed, join_seg, join_sample, gene_seg)
         cmd += "python get_cyto_cn.py {0} {1} {2} {3} !LOG3!;".format(cyto_bed, join_seg, join_sample, cyto_seg)
 
