@@ -28,22 +28,37 @@ class AggregateCNVSegments(Merger):
         gene_seg            = self.get_output("gene_seg")
         cyto_seg            = self.get_output("cyto_seg")
 
+        cmd = ""
+
         # if there's only one sample, make it a list
         if not isinstance(segs, list):
             seg = [segs]
             samples = [samples]
 
-        join_seg, join_sample = "", ""
+        # need to parse and intersect the seg files
         for seg in segs:
-            join_seg += "{},".format(seg)
+            filtered_seg = seg.replace("called.seg", "filtered.seg")
+            gene_intersect_seg = seg.replace("called.seg", "gene_intersect.seg")
+            cyto_intersect_seg = seg.replace("called.seg", "cyto_intersect.seg")
+            cmd += "grep -v '@' {0} | grep -v 'CONTIG' > {1} !LOG3!;".format(seg, filtered_seg)
+            cmd += "bedtools intersect -loj -a {0} -b {1} > {2} !LOG3!;".format(gene_bed, filtered_seg, gene_intersect_seg)
+            cmd += "bedtools intersect -loj -a {0} -b {1} > {2} !LOG3!;".format(cyto_bed, filtered_seg, cyto_intersect_seg)
+
+        join_gene_seg, join_cyto_seg, join_sample = "", "", ""
+
+        for seg in segs:
+            gene_intersect_seg = seg.replace("called.seg", "gene_intersect.seg")
+            cyto_intersect_seg = seg.replace("called.seg", "cyto_intersect.seg")
+            join_gene_seg += "{},".format(gene_intersect_seg)
+            join_cyto_seg += "{},".format(cyto_intersect_seg)
         join_seg = join_seg.strip(",")
+        
         for sample in samples:
             join_sample += "{},".format(sample)
         join_sample = join_sample.strip(",")
 
-        cmd = ""  # debug
-        cmd += "python get_gene_cn.py {0} {1} {2} {3} !LOG3!;".format(gene_bed, join_seg, join_sample, gene_seg)
-        cmd += "python get_cyto_cn.py {0} {1} {2} {3} !LOG3!;".format(cyto_bed, join_seg, join_sample, cyto_seg)
+        cmd += "python get_gene_cn.py {0} {1} {2} {3} !LOG3!;".format(gene_bed, join_gene_seg, join_sample, gene_seg)
+        cmd += "python get_cyto_cn.py {0} {1} {2} {3} !LOG3!;".format(cyto_bed, join_cyto_seg, join_sample, cyto_seg)
 
         return cmd
 
