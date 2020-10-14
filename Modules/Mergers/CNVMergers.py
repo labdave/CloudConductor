@@ -1,5 +1,69 @@
 from Modules import Merger
 
+class AggregateCNVSegments(Merger):
+    def __init__(self, module_id, is_docker = False):
+        super(AggregateCNVSegments, self).__init__(module_id, is_docker)
+        self.output_keys    = ["gene_seg", "cyto_seg"]
+
+    def define_input(self):
+        self.add_argument("seg_call",       is_required=True)
+        self.add_argument("sample_id",      is_required=True)
+        self.add_argument("gene_bed",       is_resource=True)
+        self.add_argument("cyto_bed",       is_resource=True)
+        self.add_argument("mem",            default_value=10)
+        self.add_argument("nr_cpus",        default_value=2)
+
+    def define_output(self):
+        gene_seg_file       = self.generate_unique_file_name(extension=".gene.csv")
+        self.add_output("gene_seg", gene_seg_file)
+        cyto_seg_file       = self.generate_unique_file_name(extension=".cyto.csv")
+        self.add_output("cyto_seg", cyto_seg_file)
+
+    def define_command(self):
+        segs                = self.get_argument("seg_call")
+        samples             = self.get_argument("sample_id")
+        gene_bed            = self.get_argument("gene_bed")
+        cyto_bed            = self.get_argument("cyto_bed")
+
+        gene_seg            = self.get_output("gene_seg")
+        cyto_seg            = self.get_output("cyto_seg")
+
+        cmd = ""
+
+        # if there's only one sample, make it a list
+        if not isinstance(segs, list):
+            seg = [segs]
+            samples = [samples]
+
+        # need to parse and intersect the seg files
+        for seg in segs:
+            filtered_seg = seg.replace("called.seg", "filtered.seg")
+            gene_intersect_seg = seg.replace("called.seg", "gene_intersect.seg")
+            cyto_intersect_seg = seg.replace("called.seg", "cyto_intersect.seg")
+            cmd += "grep -v '@' {0} | grep -v 'CONTIG' > {1};".format(seg, filtered_seg)
+            cmd += "bedtools intersect -loj -a {0} -b {1} > {2};".format(gene_bed, filtered_seg, gene_intersect_seg)
+            cmd += "bedtools intersect -loj -a {0} -b {1} > {2};".format(cyto_bed, filtered_seg, cyto_intersect_seg)
+
+        join_gene_seg, join_cyto_seg, join_sample = "", "", ""
+
+        for seg in segs:
+            gene_intersect_seg = seg.replace("called.seg", "gene_intersect.seg")
+            cyto_intersect_seg = seg.replace("called.seg", "cyto_intersect.seg")
+            join_gene_seg += "{},".format(gene_intersect_seg)
+            join_cyto_seg += "{},".format(cyto_intersect_seg)
+        join_gene_seg = join_gene_seg.strip(",")
+        join_cyto_seg = join_cyto_seg.strip(",")
+        
+        for sample in samples:
+            join_sample += "{},".format(sample)
+        join_sample = join_sample.strip(",")
+
+        cmd += "python get_gene_cn.py {0} {1} {2} {3} !LOG3!;".format(gene_bed, join_gene_seg, join_sample, gene_seg)
+        cmd += "python get_cyto_cn.py {0} {1} {2} {3} !LOG3!;".format(cyto_bed, join_cyto_seg, join_sample, cyto_seg)
+
+        return cmd
+
+
 class MakeCNVPoN(Merger):
     def __init__(self, module_id, is_docker = False):
         super(MakeCNVPoN, self).__init__(module_id, is_docker)
