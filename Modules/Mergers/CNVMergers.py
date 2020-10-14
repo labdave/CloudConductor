@@ -51,7 +51,8 @@ class AggregateCNVSegments(Merger):
             cyto_intersect_seg = seg.replace("called.seg", "cyto_intersect.seg")
             join_gene_seg += "{},".format(gene_intersect_seg)
             join_cyto_seg += "{},".format(cyto_intersect_seg)
-        join_seg = join_seg.strip(",")
+        join_gene_seg = join_gene_seg.strip(",")
+        join_cyto_seg = join_cyto_seg.strip(",")
         
         for sample in samples:
             join_sample += "{},".format(sample)
