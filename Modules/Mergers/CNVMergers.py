@@ -40,9 +40,11 @@ class AggregateCNVSegments(Merger):
             filtered_seg = seg.replace("called.seg", "filtered.seg")
             gene_intersect_seg = seg.replace("called.seg", "gene_intersect.seg")
             cyto_intersect_seg = seg.replace("called.seg", "cyto_intersect.seg")
-            cmd += "grep -v '@' {0} | grep -v 'CONTIG' > {1} !LOG3!;".format(seg, filtered_seg)
-            cmd += "bedtools intersect -loj -a {0} -b {1} > {2} !LOG3!;".format(gene_bed, filtered_seg, gene_intersect_seg)
-            cmd += "bedtools intersect -loj -a {0} -b {1} > {2} !LOG3!;".format(cyto_bed, filtered_seg, cyto_intersect_seg)
+            cmd += "grep -v '@' {0} | grep -v 'CONTIG' > {1};".format(seg, filtered_seg)
+            cmd += "bedtools intersect -loj -a {0} -b {1} > {2};".format(gene_bed, filtered_seg, gene_intersect_seg)
+            cmd += "bedtools intersect -loj -a {0} -b {1} > {2};".format(cyto_bed, filtered_seg, cyto_intersect_seg)
+            cmd += "head {} !LOG3!;".format(gene_intersect_seg)
+            cmd += "head {} !LOG3!;".format(cyto_intersect_seg)
 
         join_gene_seg, join_cyto_seg, join_sample = "", "", ""
 
@@ -57,6 +59,7 @@ class AggregateCNVSegments(Merger):
         for sample in samples:
             join_sample += "{},".format(sample)
         join_sample = join_sample.strip(",")
+
 
         cmd += "python get_gene_cn.py {0} {1} {2} {3} !LOG3!;".format(gene_bed, join_gene_seg, join_sample, gene_seg)
         cmd += "python get_cyto_cn.py {0} {1} {2} {3} !LOG3!;".format(cyto_bed, join_cyto_seg, join_sample, cyto_seg)
