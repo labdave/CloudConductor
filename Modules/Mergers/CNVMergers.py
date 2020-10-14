@@ -33,6 +33,7 @@ class AggregateCNVSegments(Merger):
             seg = [segs]
             samples = [samples]
 
+        join_seg, join_sample = "", ""
         for seg in segs:
             join_seg += "{},".format(seg)
         join_seg = join_seg.strip(",")
