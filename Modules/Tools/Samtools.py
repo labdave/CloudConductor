@@ -315,7 +315,7 @@ class Sort_by_Name(Module):
     def __init__(self, module_id, is_docker=False):
         super(Sort_by_Name, self).__init__(module_id, is_docker)
         #add output key, sorted bam
-        self.output_keys = ["sorted_bam"]
+        self.output_keys = ["bam"]
 
     def define_input(self):
         self.add_argument("bam",            is_required=True)
@@ -327,7 +327,7 @@ class Sort_by_Name(Module):
         sorted_bam = self.generate_unique_file_name(extension=".sorted.bam")
 
         # Add files to output
-        self.add_output("sorted_bam", sorted_bam)
+        self.add_output("bam", sorted_bam)
 
     def define_command(self):
         # Define command for running samtools sort
@@ -335,7 +335,7 @@ class Sort_by_Name(Module):
         samtools    = self.get_argument("samtools")
         nr_cpus     = self.get_argument("nr_cpus")
 
-        sorted_bam     = self.get_output("sorted_bam")
+        sorted_bam     = self.get_output("bam")
 
         cmd = "{0} sort -@ {1} -n {2} -o {3}  !LOG3!;".format(samtools, nr_cpus, bam, sorted_bam)
 
