@@ -49,7 +49,7 @@ class KubernetesCluster(Platform):
         task_id = kwargs.pop("task_id", "NONAME")
 
         # Obtain force_standard to see if we're forcing standard instances for this proc
-        force_standard = kwargs.pop("force_standard", False)
+        force_standard = kwargs.pop("force_standard", 'false')
 
         job_name = f'{self.name[:20]}-{task_id[:25]}-{self.generate_unique_id()}'
 

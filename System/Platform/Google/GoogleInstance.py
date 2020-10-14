@@ -37,7 +37,7 @@ class GoogleInstance(CloudInstance):
         self.node = None
 
         # check for force_standard
-        self.force_standard = kwargs.get("force_standard", False)
+        self.force_standard = kwargs.get("force_standard", 'false')
 
         # Set AWS credentials as SSH options
         self.set_ssh_option("SendEnv", "AWS_ACCESS_KEY_ID")

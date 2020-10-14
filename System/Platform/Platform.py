@@ -197,7 +197,7 @@ class CloudPlatform(Platform, metaclass=abc.ABCMeta):
         task_id = kwargs.pop("task_id", "NONAME")
 
         # Obtain force_standard to see if we're forcing standard instances for this proc
-        force_standard = kwargs.pop("force_standard", False)
+        force_standard = kwargs.pop("force_standard", 'false')
 
         # Generate a unique instance name and associate it to the current request
         while True:
