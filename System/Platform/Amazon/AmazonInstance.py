@@ -46,7 +46,7 @@ class AmazonInstance(CloudInstance):
         self.node = None
 
         # check for force_standard
-        self.force_standard = kwargs.get("force_standard", False)
+        self.force_standard = kwargs.get("force_standard", 'false')
 
         self.boto_config = Config(
             retries = dict(

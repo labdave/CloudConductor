@@ -177,9 +177,10 @@ class Module(object, metaclass=abc.ABCMeta):
     def get_argument(self, key):
         # Return value of an input argument
         if key not in self.arguments:
-            logging.error("Attempt to get undeclared input '%s' for module with id '%s' of type %s!" % (key,
-                                                                                                        self.module_id,
-                                                                                                        self.__class__.__name__))
+            if key != 'force_standard':
+                logging.error("Attempt to get undeclared input '%s' for module with id '%s' of type %s!" % (key,
+                                                                                                            self.module_id,
+                                                                                                            self.__class__.__name__))
             raise RuntimeError("Attempt to get undeclared input type for module!")
         val = self.arguments[key].get_value()
 
