@@ -7,6 +7,7 @@ class AggregateCNVSegments(Merger):
 
     def define_input(self):
         self.add_argument("seg_call",       is_required=True)
+        self.add_argument("sample_id",      is_required=True)
         self.add_argument("gene_bed",       is_resource=True)
         self.add_argument("cyto_bed",       is_resource=True)
         self.add_argument("mem",            default_value=10)
