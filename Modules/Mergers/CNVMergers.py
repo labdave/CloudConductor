@@ -28,6 +28,10 @@ class AggregateCNVSegments(Merger):
         gene_seg            = self.get_output("gene_seg")
         cyto_seg            = self.get_output("cyto_seg")
 
+        join_gene_seg       = self.generate_unique_file_name(".join_gene_seg")
+        join_cyto_seg       = self.generate_unique_file_name(".join_cyto_seg")
+        join_sample         = self.generate_unique_file_name(".join_sample")
+
         cmd = ""
 
         # if there's only one sample, make it a list
@@ -40,26 +44,22 @@ class AggregateCNVSegments(Merger):
             filtered_seg = seg.replace("called.seg", "filtered.seg")
             gene_intersect_seg = seg.replace("called.seg", "gene_intersect.seg")
             cyto_intersect_seg = seg.replace("called.seg", "cyto_intersect.seg")
-            cmd += "grep -v '@' {0} | grep -v 'CONTIG' > {1};".format(seg, filtered_seg)
-            cmd += "bedtools intersect -loj -a {0} -b {1} > {2};".format(gene_bed, filtered_seg, gene_intersect_seg)
-            cmd += "bedtools intersect -loj -a {0} -b {1} > {2};".format(cyto_bed, filtered_seg, cyto_intersect_seg)
+            cmd += "grep -v '@' {0} | grep -v 'CONTIG' > {1}; ".format(seg, filtered_seg)
+            cmd += "bedtools intersect -loj -a {0} -b {1} > {2}; ".format(gene_bed, filtered_seg, gene_intersect_seg)
+            cmd += "bedtools intersect -loj -a {0} -b {1} > {2}; ".format(cyto_bed, filtered_seg, cyto_intersect_seg)
 
-        join_gene_seg, join_cyto_seg, join_sample = "", "", ""
-
+        # command becomes too long, need to store data in a file
         for seg in segs:
             gene_intersect_seg = seg.replace("called.seg", "gene_intersect.seg")
             cyto_intersect_seg = seg.replace("called.seg", "cyto_intersect.seg")
-            join_gene_seg += "{},".format(gene_intersect_seg)
-            join_cyto_seg += "{},".format(cyto_intersect_seg)
-        join_gene_seg = join_gene_seg.strip(",")
-        join_cyto_seg = join_cyto_seg.strip(",")
-        
-        for sample in samples:
-            join_sample += "{},".format(sample)
-        join_sample = join_sample.strip(",")
+            cmd += "echo {0} >> {1}; ".format(gene_intersect_seg, join_gene_seg)
+            cmd += "echo {0} >> {1}; ".format(cyto_intersect_seg, join_cyto_seg)
 
-        cmd += "python get_gene_cn.py {0} {1} {2} {3} !LOG3!;".format(gene_bed, join_gene_seg, join_sample, gene_seg)
-        cmd += "python get_cyto_cn.py {0} {1} {2} {3} !LOG3!;".format(cyto_bed, join_cyto_seg, join_sample, cyto_seg)
+        for sample in samples:
+            cmd += "echo {0} >> {1}; ".format(sample, join_sample)
+
+        cmd += "python get_gene_cn.py {0} {1} {2} {3} !LOG3!; ".format(gene_bed, join_gene_seg, join_sample, gene_seg)
+        cmd += "python get_cyto_cn.py {0} {1} {2} {3} !LOG3!; ".format(cyto_bed, join_cyto_seg, join_sample, cyto_seg)
 
         return cmd
 
