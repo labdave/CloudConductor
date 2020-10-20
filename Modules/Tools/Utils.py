@@ -769,6 +769,7 @@ class ReplaceGVCFSampleName(Module):
 
         return cmd
 
+
 class GetDemuxFASTQ(Module):
 
     def __init__(self, module_id, is_docker=False):
@@ -914,11 +915,12 @@ class GetReadNames(Module):
         # Generating the commands that will be piped together
         cmds = list()
 
-        # intresect BAM with a given BED
-        cmds.append("{0} intersect -a {1} -b {2} -split".format(bedtools, bam, bed))
+        # Intersect BAM with a given BED
+        if bed is not None:
+            cmds.append("{0} intersect -a {1} -b {2} -split".format(bedtools, bam, bed))
 
         # Convert BAM to SAM
-        cmds.append("{0} view".format(samtools))
+        cmds.append("{0} view {1}".format(samtools, bam))
 
         # get the read names
         cmds.append("cut -f 1 > {0} !LOG2!".format(read_names))

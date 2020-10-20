@@ -78,7 +78,7 @@ class Module(object, metaclass=abc.ABCMeta):
 
     def add_output(self, key, value, is_path=True, **kwargs):
         if key in self.output:
-            logging.error("In module %s, the output key '%s' is defined multiple time!" % (self.module_id, key))
+            logging.error("In module %s, the output key '%s' is defined multiple times!" % (self.module_id, key))
             raise RuntimeError("Output key '%s' has been defined multiple times!" % key)
 
         if is_path and not isinstance(value, GAPFile) and value is not None:
