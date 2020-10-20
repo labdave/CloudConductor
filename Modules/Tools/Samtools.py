@@ -310,6 +310,57 @@ class Fastq(Module):
         # Generate command for obtaining the FASTQ reads
         return "{0} fastq {1} {2} !LOG3!".format(samtools, " ".join(opts), bam)
 
+class Fastq_pair_only(Module):
+    def __init__(self, module_id, is_docker=False):
+        super(Fastq,self).__init__(module_id, is_docker)
+        self.output_keys    = ["R1", "R2"]
+
+    def define_input(self):
+        self.add_argument("bam",            is_required=True)
+        self.add_argument("bam_idx",        is_required=True)
+        self.add_argument("samtools",       is_required=True,   is_resource=True)
+        self.add_argument("nr_cpus",        is_required=True,   default_value=4)
+        self.add_argument("mem",            is_required=True,   default_value=10)
+        self.add_argument("exclude_flag",   is_required=False)
+        self.add_argument("include_flag",   is_required=False)
+
+    def define_output(self):
+        # Generate unique fastq paths
+        R1 = self.generate_unique_file_name(extension=".R1.fastq")
+        R2 = self.generate_unique_file_name(extension=".R2.fastq")
+
+        # Add files to output
+        self.add_output("R1", R1)
+        self.add_output("R2", R2)
+
+    def define_command(self):
+        # Get arguments for generating command
+        bam         = self.get_argument("bam")
+        samtools    = self.get_argument("samtools")
+        nr_cpus     = self.get_argument("nr_cpus")
+        include     = self.get_argument("include_flag")
+        exclude     = self.get_argument("exclude_flag")
+
+        # Get output paths for R1 and R2
+        R1 = self.get_output("R1")
+        R2 = self.get_output("R2")
+
+        # Generate options list
+        opts = [
+            "-@ {0}".format(nr_cpus),
+            "-1 {0}".format(R1),
+            "-2 {0}".format(R2)
+        ]
+
+        # Add include/exclude flags if present
+        if include is not None:
+            opts.append("-f {0}".format(include))
+        if exclude is not None:
+            opts.append("-F {0}".format(exclude))
+
+        # Generate command for obtaining the FASTQ reads
+        return "{0} fastq {1} -s {2} {3} !LOG3!".format(samtools, " ".join(opts), "/dev/null", bam)
+
 #takes bam and sorts it by name
 class Sort_by_Name(Module):
     def __init__(self, module_id, is_docker=False):
