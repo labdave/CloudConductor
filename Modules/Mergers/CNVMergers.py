@@ -32,7 +32,7 @@ class AggregateCNVSegments(Merger):
         join_cyto_seg       = self.generate_unique_file_name(".join_cyto_seg")
         join_sample         = self.generate_unique_file_name(".join_sample")
 
-        cmd = ""
+        cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7 = "", "", "", "", "", "", ""
 
         # if there's only one sample, make it a list
         if not isinstance(segs, list):
@@ -44,24 +44,24 @@ class AggregateCNVSegments(Merger):
             filtered_seg = seg.replace("called.seg", "filtered.seg")
             gene_intersect_seg = seg.replace("called.seg", "gene_intersect.seg")
             cyto_intersect_seg = seg.replace("called.seg", "cyto_intersect.seg")
-            cmd += "grep -v '@' {0} | grep -v 'CONTIG' > {1}; ".format(seg, filtered_seg)
-            cmd += "bedtools intersect -loj -a {0} -b {1} > {2}; ".format(gene_bed, filtered_seg, gene_intersect_seg)
-            cmd += "bedtools intersect -loj -a {0} -b {1} > {2}; ".format(cyto_bed, filtered_seg, cyto_intersect_seg)
+            cmd1 += "grep -v '@' {0} | grep -v 'CONTIG' > {1}; ".format(seg, filtered_seg)
+            cmd2 += "bedtools intersect -loj -a {0} -b {1} > {2}; ".format(gene_bed, filtered_seg, gene_intersect_seg)
+            cmd3 += "bedtools intersect -loj -a {0} -b {1} > {2}; ".format(cyto_bed, filtered_seg, cyto_intersect_seg)
 
         # command becomes too long, need to store data in a file
         for seg in segs:
             gene_intersect_seg = seg.replace("called.seg", "gene_intersect.seg")
             cyto_intersect_seg = seg.replace("called.seg", "cyto_intersect.seg")
-            cmd += "echo {0} >> {1}; ".format(gene_intersect_seg, join_gene_seg)
-            cmd += "echo {0} >> {1}; ".format(cyto_intersect_seg, join_cyto_seg)
+            cmd3 += "echo {0} >> {1}; ".format(gene_intersect_seg, join_gene_seg)
+            cmd4 += "echo {0} >> {1}; ".format(cyto_intersect_seg, join_cyto_seg)
 
         for sample in samples:
-            cmd += "echo {0} >> {1}; ".format(sample, join_sample)
+            cmd5 += "echo {0} >> {1}; ".format(sample, join_sample)
 
-        cmd += "python get_gene_cn.py {0} {1} {2} {3} !LOG3!; ".format(gene_bed, join_gene_seg, join_sample, gene_seg)
-        cmd += "python get_cyto_cn.py {0} {1} {2} {3} !LOG3!; ".format(cyto_bed, join_cyto_seg, join_sample, cyto_seg)
+        cmd6 += "python get_gene_cn.py {0} {1} {2} {3} !LOG3!; ".format(gene_bed, join_gene_seg, join_sample, gene_seg)
+        cmd7 += "python get_cyto_cn.py {0} {1} {2} {3} !LOG3!; ".format(cyto_bed, join_cyto_seg, join_sample, cyto_seg)
 
-        return cmd
+        return [cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7]
 
 
 class MakeCNVPoN(Merger):
