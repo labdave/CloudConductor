@@ -36,6 +36,9 @@ class GoogleInstance(CloudInstance):
         # Initialize the node variable
         self.node = None
 
+        # check for force_standard
+        self.force_standard = kwargs.get("force_standard", 'false')
+
         # Set AWS credentials as SSH options
         self.set_ssh_option("SendEnv", "AWS_ACCESS_KEY_ID")
         self.set_ssh_option("SendEnv", "AWS_SECRET_ACCESS_KEY")
@@ -76,7 +79,7 @@ class GoogleInstance(CloudInstance):
         ]
 
         # Create instance
-        if self.name.startswith("helper-"):
+        if self.name.startswith("helper-") or self.force_standard:
             # don't want helper instances to be preemptible
             self.is_preemptible = False
 

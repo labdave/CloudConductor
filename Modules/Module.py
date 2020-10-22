@@ -78,7 +78,7 @@ class Module(object, metaclass=abc.ABCMeta):
 
     def add_output(self, key, value, is_path=True, **kwargs):
         if key in self.output:
-            logging.error("In module %s, the output key '%s' is defined multiple time!" % (self.module_id, key))
+            logging.error("In module %s, the output key '%s' is defined multiple times!" % (self.module_id, key))
             raise RuntimeError("Output key '%s' has been defined multiple times!" % key)
 
         if is_path and not isinstance(value, GAPFile) and value is not None:
@@ -177,9 +177,10 @@ class Module(object, metaclass=abc.ABCMeta):
     def get_argument(self, key):
         # Return value of an input argument
         if key not in self.arguments:
-            logging.error("Attempt to get undeclared input '%s' for module with id '%s' of type %s!" % (key,
-                                                                                                        self.module_id,
-                                                                                                        self.__class__.__name__))
+            if key != 'force_standard':
+                logging.error("Attempt to get undeclared input '%s' for module with id '%s' of type %s!" % (key,
+                                                                                                            self.module_id,
+                                                                                                            self.__class__.__name__))
             raise RuntimeError("Attempt to get undeclared input type for module!")
         val = self.arguments[key].get_value()
 

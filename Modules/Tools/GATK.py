@@ -1551,3 +1551,88 @@ class CollectSequencingArtifactMetrics(_GATKBase):
         cmd = "{0} -I {1} -R {2} {3} {4}".format(cmd, bam, ref, output_file_flag, artifact_bias_matrics)
 
         return "{0} !LOG3!".format(cmd)
+
+
+class CollectReadCounts(_GATKBase):
+
+    def __init__(self, module_id, is_docker=False):
+        super(CollectReadCounts, self).__init__(module_id, is_docker)
+        self.output_keys = ["read_count_out"]
+
+    def define_input(self):
+        self.define_base_args()
+        self.add_argument("bam",            is_required=True)
+        self.add_argument("bam_idx",        is_required=True)
+        self.add_argument("nr_cpus",        is_required=True,   default_value=1)
+        self.add_argument("mem",            is_required=True,   default_value=2)
+
+    def define_output(self):
+        # Declare recoded VCF output filename
+        read_count_out = self.generate_unique_file_name(extension=".read_count.txt")
+        self.add_output("read_count_out", read_count_out)
+
+    def define_command(self):
+        # Get input arguments
+        bam             = self.get_argument("bam")
+        gatk_cmd        = self.get_gatk_command()
+        read_count_out  = self.get_output("read_count_out")
+        interval_list   = self.get_argument("interval_list")
+
+        output_file_flag = self.get_output_file_flag()
+
+        cmd = "{0} CollectReadCounts -I {1} {3} {2} --format TSV -DF MappingQualityReadFilter ".format(gatk_cmd, bam, read_count_out, output_file_flag)
+
+        if interval_list is not None:
+            cmd = "{0} -L {1} --interval-merging-rule OVERLAPPING_ONLY".format(cmd, interval_list)
+
+        return "{0} !LOG3!".format(cmd)
+
+
+
+class MergeBamAlignment(_GATKBase):
+    def __init__(self, module_id, is_docker=False):
+        super(MergeBamAlignment, self).__init__(module_id, is_docker)
+        self.output_keys  = ["bam", "bam_idx"]
+
+    def define_input(self):
+        self.define_base_args()
+        self.add_argument("bam",           is_required=True)
+        self.add_argument("bam_idx",       is_required=True)
+        self.add_argument("umi_bam",       is_required=True)
+        self.add_argument("ref",           is_required=True, is_resource=True)
+        self.add_argument("nr_cpus",       is_required=True, default_value=4)
+        self.add_argument("mem",           is_required=True, default_value="nr_cpus * 2.5")
+
+    def define_output(self):
+        # Declare BAM output filename
+        bam = self.generate_unique_file_name(extension=".umi.bam")
+        # MergeBamAlignment creates a file.bam and a file.bai output. We
+        # reflect that naming convention here.
+        bam_idx = "{0}.bai".format(bam[:-4])
+        self.add_output("bam", bam)
+        self.add_output("bam_idx", bam_idx)
+
+    def define_command(self):
+        # Get arguments needed to generate a MergeBamAlignment command
+        bam        = self.get_argument("bam")
+        umi_bam    = self.get_argument("umi_bam")
+        output_bam = self.get_output("bam")
+        ref        = self.get_argument("ref")
+
+        # Get JVM options and GATK command
+        gatk_cmd = self.get_gatk_command()
+
+        # Generating the options for merging aligned BAM with UMI BAM
+        opts = list()
+        opts.append("-ALIGNED {0}".format(bam))
+        opts.append("-UNMAPPED {0}".format(umi_bam))
+        opts.append("-O {0}".format(output_bam))
+        opts.append("-R {0}".format(ref))
+        opts.append("--EXPECTED_ORIENTATIONS FR")
+        opts.append("--MAX_GAPS -1")
+        opts.append("--SORT_ORDER coordinate")
+        opts.append("--CREATE_INDEX true")
+        opts.append("--ALIGNER_PROPER_PAIR_FLAGS false")
+
+        # Generate command for splitting reads
+        return "{0} MergeBamAlignment {1} !LOG3!".format(gatk_cmd, " ".join(opts))
