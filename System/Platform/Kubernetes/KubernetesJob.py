@@ -512,7 +512,9 @@ class KubernetesJob(Instance):
         job_template = client.V1PodTemplateSpec()
         job_labels = {}
         job_labels[self.inst_name] = 'CC-Job'
-        job_template.metadata = client.V1ObjectMeta(labels=job_labels)
+        # add annotation to prevent autoscaler from killing nodes running jobs
+        annotations = {'cluster-autoscaler.kubernetes.io/safe-to-evict': 'false'}
+        job_template.metadata = client.V1ObjectMeta(labels=job_labels, annotations=annotations)
         job_template.spec = client.V1PodSpec(
             init_containers=init_containers,
             containers=containers,
