@@ -310,7 +310,6 @@ class Fastq(Module):
         # Generate command for obtaining the FASTQ reads
         return "{0} fastq {1} {2} !LOG3!".format(samtools, " ".join(opts), bam)
 
-<<<<<<< HEAD
 class Fastq_pair_only(Module):
     def __init__(self, module_id, is_docker=False):
         super(Fastq_pair_only,self).__init__(module_id, is_docker)
@@ -392,7 +391,6 @@ class Sort_by_Name(Module):
 
         cmd = "{0} sort -@ {1} -n {2} -o {3}  !LOG3!;".format(samtools, nr_cpus, bam, sorted_bam)
 
-=======
 
 class AddReplaceRG(Module):
     def __init__(self, module_id, is_docker = False):
@@ -422,5 +420,4 @@ class AddReplaceRG(Module):
         # Generating indexing command
         cmd = '{0} addreplacerg -@ {1} -r "{2}" -o {3} {4} !LOG3!'.format(
             samtools, nr_cpus, read_group, out_bam, in_bam)
->>>>>>> fa3bd25a4bc07ea420d2e8be5cfe0eea6a6203a5
         return cmd
