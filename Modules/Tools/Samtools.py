@@ -390,6 +390,8 @@ class Sort_by_Name(Module):
         sorted_bam     = self.get_output("bam")
 
         cmd = "{0} sort -@ {1} -n {2} -o {3}  !LOG3!;".format(samtools, nr_cpus, bam, sorted_bam)
+        
+        return cmd
 
 
 class AddReplaceRG(Module):
