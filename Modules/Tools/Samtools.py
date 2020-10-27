@@ -349,6 +349,7 @@ class Fastq_pair_only(Module):
         # Generate options list
         opts = [
             "-@ {0}".format(nr_cpus),
+            "-N",
             "-1 {0}".format(R1),
             "-2 {0}".format(R2)
         ]
