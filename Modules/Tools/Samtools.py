@@ -317,7 +317,6 @@ class Fastq_pair_only(Module):
 
     def define_input(self):
         self.add_argument("bam",            is_required=True)
-        self.add_argument("bam_idx",        is_required=True)
         self.add_argument("samtools",       is_required=True,   is_resource=True)
         self.add_argument("nr_cpus",        is_required=True,   default_value=4)
         self.add_argument("mem",            is_required=True,   default_value=10)
