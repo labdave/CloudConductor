@@ -10,7 +10,7 @@ LABEL description="Bioinformatics cloud workflow management system."
 LABEL tags="NGS Cloud CloudConductor GoogleCloud AWS Bioinformatics Workflow Pipeline"
 
 # Maintainer
-MAINTAINER davelab  <lab.dave@gmail.com>
+LABEL Maintainer davelab  <lab.dave@gmail.com>
 
 # update the OS related packages
 RUN apt-get update && \
