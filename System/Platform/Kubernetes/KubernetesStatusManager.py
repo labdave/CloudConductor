@@ -55,48 +55,53 @@ class KubernetesStatusManager(object):
         pod_monitoring_failure = False
         self.pod_status_dict = {}
         while self.pod_watch_reset < 5 and self.is_monitoring:
-            self.pod_watch = watch.Watch()
-            for event in self.pod_watch.stream(self.core_api.list_namespaced_pod, namespace='cloud-conductor'):
-                pod = event['object']
-                if pod.kind == 'Pod':
-                    pod_job = None
-                    pod_name = pod.metadata.name
-                    if pod and 'job-name' in pod.metadata.labels:
-                        pod_job = pod.metadata.labels['job-name']
-                    if pod_job:
-                        if pod_job in self.log_update_list:
-                            self.pod_watch_reset = 0
-                            if pod.status.init_container_statuses and pod.status.container_statuses:
-                                num_containers = len(pod.status.init_container_statuses) + len(pod.status.container_statuses)
-                                current_running_container = None
-                                container_index = 0
-                                for container in pod.status.init_container_statuses:
-                                    if container.state.running:
-                                        current_running_container = container
-                                        break
-                                    container_index += 1
-                                if not current_running_container:
-                                    for container in pod.status.container_statuses:
+            try:
+                self.pod_watch = watch.Watch()
+                for event in self.pod_watch.stream(self.core_api.list_namespaced_pod, namespace='cloud-conductor'):
+                    pod = event['object']
+                    if pod.kind == 'Pod':
+                        pod_job = None
+                        pod_name = pod.metadata.name
+                        if pod and 'job-name' in pod.metadata.labels:
+                            pod_job = pod.metadata.labels['job-name']
+                        if pod_job:
+                            if pod_job in self.log_update_list:
+                                self.pod_watch_reset = 0
+                                if pod.status.init_container_statuses and pod.status.container_statuses:
+                                    num_containers = len(pod.status.init_container_statuses) + len(pod.status.container_statuses)
+                                    current_running_container = None
+                                    container_index = 0
+                                    for container in pod.status.init_container_statuses:
                                         if container.state.running:
                                             current_running_container = container
                                             break
                                         container_index += 1
-                                if current_running_container:
-                                    new_index = container_index + 1
-                                    if pod_job in self.pod_status_dict and pod_name != self.pod_status_dict[pod_job]["pod_name"]:
-                                        self.pod_status_dict[pod_job] = {"checkpoint": new_index, "preemptions": self.pod_status_dict[pod_job]['preemptions'] + 1, "pod_name": pod_name}
-                                        if self.pod_status_dict[pod_job]['preemptions'] <= 2:
-                                            logging.info(f"({pod_job}) Job was preempted, is rerunning, and is on task {container_index + 1}/{num_containers}. Preemptions {self.pod_status_dict[pod_job]['preemptions']}/2")
-                                    else:
-                                        if (pod_job in self.pod_status_dict and new_index > self.pod_status_dict[pod_job]['checkpoint']) or pod_job not in self.pod_status_dict:
-                                            logging.info(f"({pod_job}) Job is currently on task {container_index + 1}/{num_containers}. Current running task: ({current_running_container.name})")
-                                        preempts = self.pod_status_dict[pod_job]['preemptions'] if pod_job in self.pod_status_dict else 0
-                                        self.pod_status_dict[pod_job] = {"checkpoint": new_index, "preemptions": preempts, "pod_name": pod_name}
-                else:
-                    self.pod_watch.stop()
-                    self.pod_watch_reset += 1
-                    logging.warning(f"No pod info with event. We will try to reset the pod watch.")
-                    break
+                                    if not current_running_container:
+                                        for container in pod.status.container_statuses:
+                                            if container.state.running:
+                                                current_running_container = container
+                                                break
+                                            container_index += 1
+                                    if current_running_container:
+                                        new_index = container_index + 1
+                                        if pod_job in self.pod_status_dict and pod_name != self.pod_status_dict[pod_job]["pod_name"]:
+                                            self.pod_status_dict[pod_job] = {"checkpoint": new_index, "preemptions": self.pod_status_dict[pod_job]['preemptions'] + 1, "pod_name": pod_name}
+                                            if self.pod_status_dict[pod_job]['preemptions'] <= 2:
+                                                logging.info(f"({pod_job}) Job was preempted, is rerunning, and is on task {container_index + 1}/{num_containers}. Preemptions {self.pod_status_dict[pod_job]['preemptions']}/2")
+                                        else:
+                                            if (pod_job in self.pod_status_dict and new_index > self.pod_status_dict[pod_job]['checkpoint']) or pod_job not in self.pod_status_dict:
+                                                logging.info(f"({pod_job}) Job is currently on task {container_index + 1}/{num_containers}. Current running task: ({current_running_container.name})")
+                                            preempts = self.pod_status_dict[pod_job]['preemptions'] if pod_job in self.pod_status_dict else 0
+                                            self.pod_status_dict[pod_job] = {"checkpoint": new_index, "preemptions": preempts, "pod_name": pod_name}
+                    else:
+                        self.pod_watch.stop()
+                        self.pod_watch_reset += 1
+                        logging.warning(f"No pod info with event. We will try to reset the pod watch.")
+                        break
+            except Exception as e:
+                logging.warning(f"Exception caught in podnnnn watch. Will try to reset the watch. Exception caught: \n{str(e)}")
+                self.pod_watch.stop()
+                self.pod_watch_reset += 1
         if self.pod_watch_reset >= 5:
             pod_monitoring_failure = True
             logging.error("Failure to setup the pod watch. Will not be able to get pod status from the Kubernetes cluster.")
@@ -105,25 +110,29 @@ class KubernetesStatusManager(object):
         global job_monitoring_failure
         job_monitoring_failure = False
         while self.job_watch_reset < 5 and self.is_monitoring:
-            self.job_watch = watch.Watch()
-            self.job_list = {}
-            for event in self.job_watch.stream(self.batch_api.list_namespaced_job, namespace='cloud-conductor'):
-                job_name = event['object'].metadata.name
-                if job_name:
-                    self.job_watch_reset = 0
-                    self.job_list[str(job_name)] = event['object']
-                    if job_name in self.log_update_list:
-                        status_str = str(event['object'].status).replace("\n", "")
-                        logging.info(f"({job_name}) Job Status: {status_str}")
-                        if event['object'].status.succeeded:
-                            self.remove_job_from_log_list(job_name)
-                else:
-                    self.job_watch.stop()
-                    self.job_watch_reset += 1
-                    logging.warning(f"No job info with event. We will try to reset the job watch.")
-                    break
+            try:
+                self.job_watch = watch.Watch()
+                self.job_list = {}
+                for event in self.job_watch.stream(self.batch_api.list_namespaced_job, namespace='cloud-conductor'):
+                    job_name = event['object'].metadata.name
+                    if job_name:
+                        self.job_watch_reset = 0
+                        self.job_list[str(job_name)] = event['object']
+                        if job_name in self.log_update_list:
+                            status_str = str(event['object'].status).replace("\n", "")
+                            logging.info(f"({job_name}) Job Status: {status_str}")
+                            if event['object'].status.succeeded:
+                                self.remove_job_from_log_list(job_name)
+                    else:
+                        self.job_watch.stop()
+                        self.job_watch_reset += 1
+                        logging.warning(f"No job info with event. We will try to reset the job watch.")
+                        break
+            except Exception as e:
+                logging.warning(f"Exception caught in job watch. Will try to reset the watch. Exception caught: \n{str(e)}")
+                self.job_watch.stop()
+                self.job_watch_reset += 1
         if self.job_watch_reset >= 5:
-
             job_monitoring_failure = True
             logging.error("Failure to setup the job watch. Will not be able to get job status from the Kubernetes cluster.")
 
@@ -138,7 +147,7 @@ class KubernetesStatusManager(object):
             response = api_request(self.batch_api.list_namespaced_job, namespace='cloud-conductor')
             if response and response.get("items"):
                 self.job_list = {job.get("metadata", {}).get("name"): job for job in response.get("items")}
-        except Exception as e:
+        except Exception:
             logging.error("Error with updating the job list to check statuses.")
 
     def check_monitoring_status(self):
