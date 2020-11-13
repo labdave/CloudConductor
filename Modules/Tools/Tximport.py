@@ -9,6 +9,7 @@ class Tximport(Module):
     def define_input(self):
         self.add_argument("quant_file",         is_required=True)
         self.add_argument("tx2gene",            is_required=True, is_resource=True)
+        self.add_argument("anno",               is_required=True, is_resource=True)
         self.add_argument("tximport_script",    is_required=True, is_resource=True)
         self.add_argument("nr_cpus",            is_required=True, default_value=4)
         self.add_argument("mem",                is_required=True, default_value="nr_cpus * 2")
@@ -31,12 +32,15 @@ class Tximport(Module):
         tximport_script = self.get_argument("tximport_script")
         quant_file      = self.get_argument("quant_file")
         tx2gene         = self.get_argument("tx2gene")
+        anno            = self.get_argument("anno")
 
         output_dir = self.get_output_dir()
 
         if not self.is_docker:
-            cmd = "sudo Rscript --vanilla {0} {1} {2} {3} !LOG3!".format(tximport_script,quant_file,output_dir,tx2gene)
+            cmd = "sudo Rscript --vanilla {0} {1} {2} {3} {4} !LOG3!".format(tximport_script,quant_file,tx2gene,
+                  anno,output_dir)
         else:
-            cmd = "Rscript --vanilla {0} {1} {2} {3} !LOG3!".format(tximport_script,quant_file,output_dir,tx2gene)
+            cmd = "Rscript --vanilla {0} {1} {2} {3} {4} !LOG3!".format(tximport_script,quant_file,tx2gene,anno,
+                  output_dir)
 
         return cmd
