@@ -1,5 +1,6 @@
 import logging
 import copy
+import re
 from itertools import zip_longest
 
 from System.Datastore import GAPFile
@@ -538,6 +539,12 @@ class GetReadGroup(Module):
         # Generating the read group information from command output
         rg_id = ":".join(fastq_header_data[0:4])  # Read Group ID
         rg_pu = fastq_header_data[-1]  # Read Group Platform Unit
+
+        if re.search("[AGCT]", rg_pu):
+            # If A, G, C, or T is in the read group platform unit, it's likely
+            # UMI data. Get the second to last field instead (yes, this is hacky)
+            rg_pu = fastq_header_data[-2]
+
         rg_sm = sample_name if not isinstance(sample_name, list) else sample_name[0]    # Read Group Sample
         rg_lb = lib_name if not isinstance(lib_name, list) else lib_name[0]             # Read Group Library ID
         rg_pl = seq_platform if not isinstance(seq_platform, list) else seq_platform[0] # Read Group Platform used
