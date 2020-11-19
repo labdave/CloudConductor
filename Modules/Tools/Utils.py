@@ -1050,3 +1050,50 @@ class SubsetFASTQ(Module):
             return f'{r1_cmd} !LOG2!; {r2_cmd} !LOG2!'
 
         return f'{r1_cmd} !LOG2!'
+
+
+class GenoUnzip(Module):
+    def __init__(self, module_id, is_docker=False):
+        super(GenoUnzip, self).__init__(module_id, is_docker)
+        self.output_keys = ["R1", "R2"]
+
+    def define_input(self):
+        self.add_argument("R1",         is_required=True)
+        self.add_argument("R2")
+        self.add_argument("nr_cpus",    is_required=True, default_value=2)
+        self.add_argument("mem",        is_required=True, default_value=4)
+
+    def define_output(self):
+        # Declare R1 output name
+        R1          = self.get_argument("R1")
+        R2          = self.get_argument("R2")
+
+        self.add_output("R1", R1)
+        self.add_output("R2", R2)
+
+    def define_command(self):
+        # Get the input arguments
+        R1_in       = self.get_argument("R1")
+        R2_in       = self.get_argument("R2")
+        
+        # Get the output arguments
+        R1_out = self.get_output("R1")
+        R2_out = self.get_output("R2")
+
+        # check if you can gunzip - if not, then rename to genozip and 
+        # genounzip. This will give us the completely unzipped version.
+        # Then, we gzip it back to gz
+
+        cmd = "wget <genozip hg38 ref> -O geno_ref !LOG3!;"
+
+        R1 = R1_in.rstrip(".gz")
+        cmd += f"gunzip {R1} || mv {R1} {R1_geno} && genozip/genounzip --ref geno_ref {R1_geno}.genozip !LOG3!;"
+        cmd += f"gzip {R1} !LOG3!;"
+        cmd += f"mv {R1}.gz {R1_out};"
+
+        R2 = R2_in.rstrip(".gz")
+        cmd += f"gunzip {R2} || mv {R2} {R2_geno} && genozip/genounzip --ref geno_ref {R2_geno}.genozip !LOG3!;"
+        cmd += f"gzip {R2} !LOG3!;"
+        cmd += f"mv {R2}.gz {R2_out};"
+        
+        return cmd
