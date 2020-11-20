@@ -1090,7 +1090,7 @@ class MoveUMIToBAMTag(Module):
         # e.g. MN01031:94:000H32JLF:1:23104:26502:11304:UMIABC <read info> ==>
         # MN01031:94:000H32JLF:1:23104:26502:11304:UMIABC <read info> RX:Z:UMIABC
         cmd += " | awk '/^@/ {print;next} {N=split($1,n,\":\");" \
-               "print $0 \"\t{0}:Z:\" n[N]}'".format(barcode_tag)
+               "print $0 \"\t%s:Z:\" n[N]}'" % barcode_tag
 
         # Compress back into a BAM
         cmd += " | {0} view -b - ".format(samtools)
