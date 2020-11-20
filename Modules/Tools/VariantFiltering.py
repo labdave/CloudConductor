@@ -34,6 +34,9 @@ class VariantFiltering(Merger):
 		single_sample_merge						= self.generate_unique_file_name("single_sample_merge.RData")
 		filt_variants_val						=self.generate_unique_file_name("filt_variants_val.RData")
 		wl_variants_val							=self.generate_unique_file_name("wl_variants_val.RData")
+		all_variants_maf						=self.generate_unique_file_name("all_variants_maf.maf")
+		filt_variants_maf						=self.generate_unique_file_name("filt_variants_maf.maf")
+		wl_variants_maf							=self.generate_unique_file_name("wl_variants_maf.maf")
 
 
 		self.add_output("all_variants",		all_variants)
@@ -42,6 +45,9 @@ class VariantFiltering(Merger):
 		self.add_output("single_sample_merge",		single_sample_merge)
 		self.add_output("filt_variants_val", filt_variants_val)
 		self.add_output("wl_variants_val", wl_variants_val)
+		self.add_output("all_variants_maf", all_variants_maf)
+		self.add_output("filt_variants_maf", filt_variants_maf)
+		self.add_output("wl_variants_maf", wl_variants_maf)
 
 
 	def define_command(self):
@@ -70,10 +76,13 @@ class VariantFiltering(Merger):
 		single_sample_merge				= self.get_output("single_sample_merge")
 		filt_variants_val 				=self.get_output("filt_variants_val")
 		wl_variants_val					=self.get_output("wl_variants_val")
+		all_variants_maf				=self.get_output("all_variants_maf")
+		filt_variants_maf				=self.get_output("filt_variants_maf")
+		wl_variants_maf					=self.get_output("wl_variants_maf")
 
     
 		# add arguments
-		cmd = " Rscript single_sample_VCF_merge_and_filter.R {0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13}".format(haplotypecaller_vcf, strelka2_vcf, deepvariant_vcf, bam, rna_bam, ref, ref_idx, all_variants, filt_variants, wl_variants, single_sample_merge, filt_variants_val, wl_variants_val, sample_id)
+		cmd = " Rscript single_sample_VCF_merge_and_filter.R {0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13}".format(haplotypecaller_vcf, strelka2_vcf, deepvariant_vcf, bam, rna_bam, ref, ref_idx, all_variants, filt_variants, wl_variants, single_sample_merge, filt_variants_val, wl_variants_val, sample_id, all_variants_maf, filt_variants_maf, wl_variants_maf)
 
 
 		
