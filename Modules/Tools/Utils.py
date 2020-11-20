@@ -1052,16 +1052,16 @@ class SubsetFASTQ(Module):
         return f'{r1_cmd} !LOG2!'
 
 
-class GenoUnzip(Module):
+class SpringUnzip(Module):
     def __init__(self, module_id, is_docker=False):
-        super(GenoUnzip, self).__init__(module_id, is_docker)
+        super(SpringUnzip, self).__init__(module_id, is_docker)
         self.output_keys = ["R1", "R2"]
 
     def define_input(self):
         self.add_argument("R1",         is_required=True)
-        self.add_argument("R2")
-        self.add_argument("nr_cpus",    is_required=True, default_value=2)
-        self.add_argument("mem",        is_required=True, default_value=4)
+        self.add_argument("R2",         is_required=True)
+        self.add_argument("nr_cpus",    is_required=True, default_value=4)
+        self.add_argument("mem",        is_required=True, default_value=20)
 
     def define_output(self):
         # Declare R1 output name
@@ -1084,16 +1084,12 @@ class GenoUnzip(Module):
         # genounzip. This will give us the completely unzipped version.
         # Then, we gzip it back to gz
 
-        cmd = "wget <genozip hg38 ref> -O geno_ref !LOG3!;"
+        cmd = ""
 
         R1 = R1_in.rstrip(".gz")
-        cmd += f"gunzip {R1} || mv {R1} {R1_geno} && genozip/genounzip --ref geno_ref {R1_geno}.genozip !LOG3!;"
-        cmd += f"gzip {R1} !LOG3!;"
-        cmd += f"mv {R1}.gz {R1_out};"
+        cmd += f"gunzip {R1} || \{ mv {R1} {R1}.spring && spring -d -i {R1}.spring -o {R1_out} -g !LOG3!; \}"
 
         R2 = R2_in.rstrip(".gz")
-        cmd += f"gunzip {R2} || mv {R2} {R2_geno} && genozip/genounzip --ref geno_ref {R2_geno}.genozip !LOG3!;"
-        cmd += f"gzip {R2} !LOG3!;"
-        cmd += f"mv {R2}.gz {R2_out};"
+        cmd += f"gunzip {R2} || \{ mv {R2} {R2}.spring && spring -d -i {R2}.spring -o {R2_out} -g !LOG3!; \}"
         
         return cmd
