@@ -1087,9 +1087,9 @@ class SpringUnzip(Module):
         cmd = ""
 
         R1 = R1_in.rstrip(".gz")
-        cmd += f"gunzip {R1} || \{ mv {R1} {R1}.spring && spring -d -i {R1}.spring -o {R1_out} -g !LOG3!; \}"
+        cmd += f"gunzip {R1} || {{ mv {R1} {R1}.spring && spring -d -i {R1}.spring -o {R1_out} -g !LOG3!; }}"
 
         R2 = R2_in.rstrip(".gz")
-        cmd += f"gunzip {R2} || \{ mv {R2} {R2}.spring && spring -d -i {R2}.spring -o {R2_out} -g !LOG3!; \}"
+        cmd += f"gunzip {R2} || {{ mv {R2} {R2}.spring && spring -d -i {R2}.spring -o {R2_out} -g !LOG3!; }}"
         
         return cmd
