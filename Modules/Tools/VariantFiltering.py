@@ -5,7 +5,7 @@ class VariantFiltering(Merger):
 	def __init__(self, module_id, is_docker=False):
 		super(VariantFiltering, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
-		self.output_keys 				= ["all_variants", "filt_variants", "wl_variants", "single_sample_merge", "filt_variants_val", "wl_variants_val"]
+		self.output_keys 				= ["all_variants", "filt_variants", "wl_variants", "single_sample_merge", "filt_variants_val", "wl_variants_val", "all_variants_maf", "filt_variants_maf", "wl_variants_maf"]
 
 
 	def define_input(self):
