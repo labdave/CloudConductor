@@ -1089,11 +1089,11 @@ class MoveUMIToBAMTag(Module):
         # Use awk to move the last element of the read name to the RX tag
         # e.g. MN01031:94:000H32JLF:1:23104:26502:11304:UMIABC <read info> ==>
         # MN01031:94:000H32JLF:1:23104:26502:11304:UMIABC <read info> RX:Z:UMIABC
-        cmd += "awk '/^@/ {print;next} {N=split($1,n,\":\");" \
-                   "print $0 \"\t{0}:Z:\" n[N]}'".format(barcode_tag)
+        cmd += " | awk '/^@/ {print;next} {N=split($1,n,\":\");" \
+               "print $0 \"\t{0}:Z:\" n[N]}'".format(barcode_tag)
 
         # Compress back into a BAM
-        cmd += "{0} view -b - ".format(samtools)
+        cmd += " | {0} view -b - ".format(samtools)
 
         # Write to output and log it
         cmd += " > {0} !LOG3!".format(out_bam)
