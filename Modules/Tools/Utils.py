@@ -1,5 +1,6 @@
 import logging
 import copy
+import re
 from itertools import zip_longest
 
 from System.Datastore import GAPFile
@@ -538,6 +539,12 @@ class GetReadGroup(Module):
         # Generating the read group information from command output
         rg_id = ":".join(fastq_header_data[0:4])  # Read Group ID
         rg_pu = fastq_header_data[-1]  # Read Group Platform Unit
+
+        if re.search("[AGCT]", rg_pu):
+            # If A, G, C, or T is in the read group platform unit, it's likely
+            # UMI data. Get the second to last field instead (yes, this is hacky)
+            rg_pu = fastq_header_data[-2]
+
         rg_sm = sample_name if not isinstance(sample_name, list) else sample_name[0]    # Read Group Sample
         rg_lb = lib_name if not isinstance(lib_name, list) else lib_name[0]             # Read Group Library ID
         rg_pl = seq_platform if not isinstance(seq_platform, list) else seq_platform[0] # Read Group Platform used
@@ -1051,6 +1058,46 @@ class SubsetFASTQ(Module):
 
         return f'{r1_cmd} !LOG2!'
 
+class MoveUMIToBAMTag(Module):
+    def __init__(self, module_id, is_docker = False):
+        super(MoveUMIToBAMTag, self).__init__(module_id, is_docker)
+        self.output_keys = ["bam"]
+        self.does_process_output = True
+
+    def define_input(self):
+        self.add_argument("bam",            is_required=True)
+        self.add_argument("barcode_tag",    is_required=True, default_value="RX")
+        self.add_argument("samtools",       is_required=True, is_resource=True)
+        self.add_argument("nr_cpus",        is_required=True, default_value=2)
+        self.add_argument("mem",            is_required=True, default_value=4)
+
+    def define_output(self):
+        bam = self.generate_unique_file_name(extension=".umi.bam")
+        self.add_output("bam", bam)
+
+    def define_command(self):
+        # Get arguments to run SAMTOOLS
+        samtools = self.get_argument("samtools")
+        barcode_tag = self.get_argument("barcode_tag")
+        in_bam = self.get_argument("bam")
+        out_bam = self.get_output("bam")
+
+        # View input BAM as SAM along with header
+        cmd = "{0} view -h {1}".format(samtools, in_bam)
+
+        # Use awk to move the last element of the read name to the RX tag
+        # e.g. MN01031:94:000H32JLF:1:23104:26502:11304:UMIABC <read info> ==>
+        # MN01031:94:000H32JLF:1:23104:26502:11304:UMIABC <read info> RX:Z:UMIABC
+        cmd += " | awk '/^@/ {print;next} {N=split($1,n,\":\");" \
+               "print $0 \"\t%s:Z:\" n[N]}'" % barcode_tag
+
+        # Compress back into a BAM
+        cmd += " | {0} view -b - ".format(samtools)
+
+        # Write to output and log it
+        cmd += " > {0} !LOG3!".format(out_bam)
+        return cmd
+
 
 class SpringUnzip(Module):
     def __init__(self, module_id, is_docker=False):
@@ -1093,3 +1140,4 @@ class SpringUnzip(Module):
         cmd += f"gunzip {R2} || {{ mv {R2} {R2}.spring && spring -d -i {R2}.spring -o {R2_out} -g }} !LOG3!;"
         
         return cmd
+
