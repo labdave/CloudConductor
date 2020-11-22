@@ -1377,8 +1377,8 @@ class FilterSamReads(_GATKBase):
         self.add_argument("interval_list",  is_required=False)
         self.add_argument("include_reads",  is_required=False, default_value=True)
         self.add_argument("exclude_reads",  is_required=False, default_value=False)
-        self.add_argument("nr_cpus",        is_required=True, default_value=4)
-        self.add_argument("mem",            is_required=True, default_value=26)
+        self.add_argument("nr_cpus",        is_required=True, default_value=32)
+        self.add_argument("mem",            is_required=True, default_value=208)
 
     def define_output(self):
         # Get the sample name to use it in file name creation
