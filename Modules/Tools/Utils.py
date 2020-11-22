@@ -1050,3 +1050,46 @@ class SubsetFASTQ(Module):
             return f'{r1_cmd} !LOG2!; {r2_cmd} !LOG2!'
 
         return f'{r1_cmd} !LOG2!'
+
+
+class SpringUnzip(Module):
+    def __init__(self, module_id, is_docker=False):
+        super(SpringUnzip, self).__init__(module_id, is_docker)
+        self.output_keys = ["R1", "R2"]
+
+    def define_input(self):
+        self.add_argument("R1",         is_required=True)
+        self.add_argument("R2",         is_required=True)
+        self.add_argument("nr_cpus",    is_required=True, default_value=4)
+        self.add_argument("mem",        is_required=True, default_value=20)
+
+    def define_output(self):
+        # Declare R1 output name
+        R1          = self.get_argument("R1")
+        R2          = self.get_argument("R2")
+
+        self.add_output("R1", R1)
+        self.add_output("R2", R2)
+
+    def define_command(self):
+        # Get the input arguments
+        R1_in       = self.get_argument("R1")
+        R2_in       = self.get_argument("R2")
+        
+        # Get the output arguments
+        R1_out = self.get_output("R1")
+        R2_out = self.get_output("R2")
+
+        # check if you can gunzip - if not, then rename to genozip and 
+        # genounzip. This will give us the completely unzipped version.
+        # Then, we gzip it back to gz
+
+        cmd = ""
+
+        R1 = R1_in.rstrip(".gz")
+        cmd += f"gunzip {R1} || {{ mv {R1} {R1}.spring && spring -d -i {R1}.spring -o {R1_out} -g }} !LOG3!;"
+
+        R2 = R2_in.rstrip(".gz")
+        cmd += f"gunzip {R2} || {{ mv {R2} {R2}.spring && spring -d -i {R2}.spring -o {R2_out} -g }} !LOG3!;"
+        
+        return cmd

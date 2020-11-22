@@ -520,7 +520,7 @@ class GenotypeGenomicsDB(_GATKBase):
         self.define_base_args()
         self.add_argument("genomicsDB", is_required=True)
         self.add_argument("nr_cpus",    is_required=True, default_value=4)
-        self.add_argument("mem",        is_required=True, default_value=16)
+        self.add_argument("mem",        is_required=True, default_value=26)
 
     def define_output(self):
         # Declare VCF output filename
@@ -1321,7 +1321,7 @@ class CollectGcBiasMetrics(_GATKBase):
         self.add_argument("bam_idx",        is_required=True)
         self.add_argument("ref",            is_required=True, is_resource=True)
         self.add_argument("nr_cpus",        is_required=True, default_value=4)
-        self.add_argument("mem",            is_required=True, default_value=16)
+        self.add_argument("mem",            is_required=True, default_value=26)
 
     def define_output(self):
         # Get the sample name to use it in file name creation
@@ -1378,7 +1378,7 @@ class FilterSamReads(_GATKBase):
         self.add_argument("include_reads",  is_required=False, default_value=True)
         self.add_argument("exclude_reads",  is_required=False, default_value=False)
         self.add_argument("nr_cpus",        is_required=True, default_value=4)
-        self.add_argument("mem",            is_required=True, default_value=16)
+        self.add_argument("mem",            is_required=True, default_value=26)
 
     def define_output(self):
         # Get the sample name to use it in file name creation
@@ -1449,7 +1449,7 @@ class CollectOxoGMetrics(_GATKBase):
         self.add_argument("bam_idx",        is_required=True)
         self.add_argument("ref",            is_required=True, is_resource=True)
         self.add_argument("nr_cpus",        is_required=True, default_value=4)
-        self.add_argument("mem",            is_required=True, default_value=16)
+        self.add_argument("mem",            is_required=True, default_value=26)
 
     def define_output(self):
         # Get the sample name to use it in file name creation
@@ -1498,7 +1498,7 @@ class CollectSequencingArtifactMetrics(_GATKBase):
         self.add_argument("bam_idx",        is_required=True)
         self.add_argument("ref",            is_required=True, is_resource=True)
         self.add_argument("nr_cpus",        is_required=True, default_value=4)
-        self.add_argument("mem",            is_required=True, default_value=16)
+        self.add_argument("mem",            is_required=True, default_value=26)
 
     def define_output(self):
         # Get the sample name to use it in file name creation
