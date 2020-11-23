@@ -60,7 +60,7 @@ class VariantFiltering(Merger):
 			if 'deepvariant' in vcf:
 				deepvariant_vcf=vcf
 				continue
-			if 'haplotypecaller' in vcf:
+			if 'haplotyper' in vcf:
 				haplotypecaller_vcf=vcf
 				continue
 		# get output
