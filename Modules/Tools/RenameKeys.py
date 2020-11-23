@@ -45,9 +45,9 @@ class RenameUMI(Module):
         cmd = "echo 'Wrapping input bam as umi_bam key...' !LOG3!"
         return cmd
 
-class Rename_transcriptome_bam__bam(Module):
+class RenameTranscriptomeBamToBam(Module):
     def __init__(self, module_id, is_docker=False):
-        super(Rename_transcriptome_bam__bam, self).__init__(module_id, is_docker)
+        super(RenameTranscriptomeBamToBam, self).__init__(module_id, is_docker)
         self.output_keys = ["bam"]
 
     def define_input(self):
@@ -64,9 +64,9 @@ class Rename_transcriptome_bam__bam(Module):
         cmd = "echo 'Wrapping input transcriptome_mapped_bam as bam key...' !LOG3!"
         return cmd
 
-class Rename_bam__transcriptome_bam(Module):
+class RenameBamToTranscriptomeBam(Module):
     def __init__(self, module_id, is_docker=False):
-        super(Rename_bam__transcriptome_bam, self).__init__(module_id, is_docker)
+        super(RenameBamToTranscriptomeBam, self).__init__(module_id, is_docker)
         self.output_keys = ["transcriptome_mapped_bam"]
 
     def define_input(self):
