@@ -537,26 +537,28 @@ class KubernetesJob(Instance):
             module_log = ''
             init_container_statuses = pod['status']['init_container_statuses']
             container_index = 0
-            for status in init_container_statuses:
-                if not status['ready']:
-                    failed_container = pod['spec']['init_containers'][container_index]
-                    failed_container['log'] = api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
-                    failed_container['module_log'] = module_log
-                    return failed_container
-                else:
-                    module_log += '\n' + api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
-                container_index += 1
+            if init_container_statuses:
+                for status in init_container_statuses:
+                    if not status['ready']:
+                        failed_container = pod['spec']['init_containers'][container_index]
+                        failed_container['log'] = api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
+                        failed_container['module_log'] = module_log
+                        return failed_container
+                    else:
+                        module_log += '\n' + api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
+                    container_index += 1
             container_statuses = pod['status']['container_statuses']
             container_index = 0
-            for status in container_statuses:
-                if not status['ready']:
-                    failed_container = pod['spec']['containers'][container_index]
-                    failed_container['log'] = api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
-                    failed_container['module_log'] = module_log
-                    return failed_container
-                else:
-                    module_log += '\n' + api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
-                container_index += 1
+            if container_statuses:
+                for status in container_statuses:
+                    if not status['ready']:
+                        failed_container = pod['spec']['containers'][container_index]
+                        failed_container['log'] = api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
+                        failed_container['module_log'] = module_log
+                        return failed_container
+                    else:
+                        module_log += '\n' + api_request(self.core_api.read_namespaced_pod_log, pod_name, self.namespace, container=status['name'], follow=False, pretty='true')
+                    container_index += 1
         logging.warning(f"Failed to retrieve failed container in job {self.inst_name}")
         return None
 
