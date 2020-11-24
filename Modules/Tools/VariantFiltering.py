@@ -82,7 +82,7 @@ class VariantFiltering(Merger):
 
     
 		# add arguments
-		cmd = " Rscript single_sample_VCF_merge_and_filter.R {0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13}".format(haplotypecaller_vcf, strelka2_vcf, deepvariant_vcf, bam, rna_bam, ref, ref_idx, all_variants, filt_variants, wl_variants, single_sample_merge, filt_variants_val, wl_variants_val, sample_id, all_variants_maf, filt_variants_maf, wl_variants_maf)
+		cmd = " Rscript single_sample_VCF_merge_and_filter.R {0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16}".format(haplotypecaller_vcf, strelka2_vcf, deepvariant_vcf, bam, rna_bam, ref, ref_idx, all_variants, filt_variants, wl_variants, single_sample_merge, filt_variants_val, wl_variants_val, sample_id, all_variants_maf, filt_variants_maf, wl_variants_maf)
 
 
 		
