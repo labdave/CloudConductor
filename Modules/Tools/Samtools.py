@@ -4,10 +4,11 @@ import logging
 class Index(Module):
     def __init__(self, module_id, is_docker = False):
         super(Index, self).__init__(module_id, is_docker)
-        self.output_keys = ["bam_idx"]
+        self.output_keys = ["bam_idx","transcriptome_bam_idx"]
 
     def define_input(self):
         self.add_argument("bam",        is_required=True)
+        self.add_argument("sorted_transcriptome_bam")
         self.add_argument("samtools",   is_required=True, is_resource=True)
         self.add_argument("nr_cpus",    is_required=True, default_value=3)
         self.add_argument("mem",        is_required=True, default_value=10)
@@ -26,18 +27,55 @@ class Index(Module):
         # Add new bams as output
         self.add_output("bam_idx", bams_idx, is_path=True)
 
+        # logic for the STAR generated Transcriptome BAM
+        sorted_transcriptome_bams = self.get_argument("sorted_transcriptome_bam")
+
+        if sorted_transcriptome_bams:
+            # Check if the input is a list
+            if isinstance(sorted_transcriptome_bams, list):
+                transcriptome_bam_index = [sorted_transcriptome_bam + ".bai" for sorted_transcriptome_bam in
+                                           sorted_transcriptome_bams]
+            else:
+                transcriptome_bam_index = sorted_transcriptome_bams + ".bai"
+
+            # Add new bams as output
+            self.add_output("transcriptome_bam_idx", transcriptome_bam_index, is_path=True)
+
+
     def define_command(self):
         # Define command for running samtools index from a platform
-        bam         = self.get_argument("bam")
-        samtools    = self.get_argument("samtools")
-        bam_idx     = self.get_output("bam_idx")
+        bam                         = self.get_argument("bam")
+        sorted_transcriptome_bam    = self.get_argument("sorted_transcriptome_bam")
+        samtools                    = self.get_argument("samtools")
+
+        bam_idx                     = self.get_output("bam_idx")
+        transcriptome_bam_idx       = self.get_output("transcriptome_bam_idx")
 
         # Generating indexing command
-        cmd = ""
+        bam_idx_cmd                 = ""
+        transcriptome_bam_idx_cmd   = ""
+
+
         if isinstance(bam, list):
+
             for b_in, b_out in zip(bam, bam_idx):
-                cmd += "{0} index {1} {2} !LOG3! & ".format(samtools, b_in, b_out)
-            cmd += "wait"
+                bam_idx_cmd += "{0} index {1} {2} !LOG3! & ".format(samtools, b_in, b_out)
+            bam_idx_cmd += "wait"
+        else:
+            bam_idx_cmd = "{0} index {1} {2} !LOG3!".format(samtools, bam, bam_idx)
+
+        if sorted_transcriptome_bam:
+            if isinstance(sorted_transcriptome_bam, list):
+                for b_in, b_out in zip(sorted_transcriptome_bam, transcriptome_bam_idx):
+                    transcriptome_bam_idx_cmd += "{0} index {1} {2} !LOG3! & ".format(samtools, b_in,
+                                                                                                      b_out)
+                transcriptome_bam_idx_cmd += "wait"
+            else:
+                transcriptome_bam_idx_cmd = "{0} index {1} {2} !LOG3!".format(samtools, sorted_transcriptome_bam,
+                                                                              transcriptome_bam_idx)
+
+            cmd = f'{bam_idx_cmd};{transcriptome_bam_idx_cmd}'
+            return cmd
         else:
             cmd = "{0} index {1} {2} !LOG3!".format(samtools, bam, bam_idx)
         return cmd
