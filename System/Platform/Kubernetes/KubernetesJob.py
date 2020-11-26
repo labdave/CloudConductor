@@ -77,6 +77,8 @@ class KubernetesJob(Instance):
 
         self.status_manager.check_monitoring_status()
 
+        self.run('mkdir_tmp_dir', 'sudo mkdir -p /data/tmp')
+
     def get_nodepool_info(self):
         node_pool_dict = self.node_pools
         if self.preemptible and self.preemptible_node_pools:
@@ -465,6 +467,7 @@ class KubernetesJob(Instance):
                 args = [v['original_cmd'].replace("sudo ", "")]
             args = " && ".join(args)
             args = args.replace("\n", " ")
+            args = args.replace("java.io.tmpdir=/tmp/", "java.io.tmpdir=/data/tmp/")
 
             if "awk " in args:
                 args = re.sub("'\"'\"'", "'", args)
