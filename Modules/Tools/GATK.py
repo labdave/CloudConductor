@@ -83,8 +83,8 @@ class HaplotypeCaller(_GATKBase):
         self.add_argument("BQSR_report",            is_required=False)
         self.add_argument("use_bqsr",               is_required=True, default_value=True)
         self.add_argument("output_type",            is_required=True, default_value="gvcf")
-        self.add_argument("nr_cpus",                is_required=True, default_value=32)
-        self.add_argument("mem",                    is_required=True, default_value=208)
+        self.add_argument("nr_cpus",                is_required=True, default_value=8)
+        self.add_argument("mem",                    is_required=True, default_value=48)
         self.add_argument("use_soft_clipped_bases", is_required=True, default_value=True)
 
     def define_output(self):
@@ -189,7 +189,7 @@ class PrintReads(_GATKBase):
         self.add_argument("bam",                is_required=True)
         self.add_argument("bam_idx",            is_required=True)
         self.add_argument("BQSR_report",        is_required=True)
-        self.add_argument("nr_cpus",            is_required=True, default_value=32)
+        self.add_argument("nr_cpus",            is_required=True, default_value=2)
         self.add_argument("mem",                is_required=True, default_value="nr_cpus * 2.5")
 
     def define_output(self):
@@ -247,7 +247,7 @@ class ApplyBQSR(_GATKBase):
         self.add_argument("bam",                is_required=True)
         self.add_argument("bam_idx",            is_required=True)
         self.add_argument("BQSR_report",        is_required=True)
-        self.add_argument("nr_cpus",            is_required=True, default_value=32)
+        self.add_argument("nr_cpus",            is_required=True, default_value=2)
         self.add_argument("mem",                is_required=True, default_value="nr_cpus * 2.5")
 
     def define_output(self):
@@ -309,8 +309,8 @@ class BaseRecalibrator(_GATKBase):
         self.add_argument("bam",                is_required=True)
         self.add_argument("bam_idx",            is_required=True)
         self.add_argument("dbsnp",              is_required=True, is_resource=True)
-        self.add_argument("nr_cpus",            is_required=True, default_value=32)
-        self.add_argument("mem",                is_required=True, default_value=208)
+        self.add_argument("nr_cpus",            is_required=True, default_value=4)
+        self.add_argument("mem",                is_required=True, default_value=12)
 
     def define_output(self):
         # Declare BQSR report file
@@ -374,8 +374,8 @@ class IndexVCF(_GATKBase):
     def define_input(self):
         self.define_base_args()
         self.add_argument("vcf",               is_required=True)
-        self.add_argument("nr_cpus",            is_required=True, default_value=32)
-        self.add_argument("mem",                is_required=True, default_value=208)
+        self.add_argument("nr_cpus",            is_required=True, default_value=2)
+        self.add_argument("mem",                is_required=True, default_value=13)
 
     def define_output(self):
         # Declare merged GVCF output filename
@@ -455,8 +455,8 @@ class CollectReadCounts(_GATKBase):
         self.define_base_args()
         self.add_argument("bam",            is_required=True)
         self.add_argument("bam_idx",        is_required=True)
-        self.add_argument("nr_cpus",        is_required=True,   default_value=32)
-        self.add_argument("mem",            is_required=True,   default_value=208)
+        self.add_argument("nr_cpus",        is_required=True,   default_value=1)
+        self.add_argument("mem",            is_required=True,   default_value=2)
 
     def define_output(self):
         # Declare recoded VCF output filename
@@ -488,8 +488,8 @@ class BedToIntervalList(_GATKBase):
     def define_input(self):
         self.define_base_args()
         self.add_argument("bed",        is_required=True, is_resource=True)
-        self.add_argument("nr_cpus",    is_required=True, default_value=32)
-        self.add_argument("mem",        is_required=True, default_value=208)
+        self.add_argument("nr_cpus",    is_required=True, default_value=1)
+        self.add_argument("mem",        is_required=True, default_value=2)
 
     def define_output(self):
         # Declare recoded VCF output filename
@@ -519,8 +519,8 @@ class GenotypeGenomicsDB(_GATKBase):
     def define_input(self):
         self.define_base_args()
         self.add_argument("genomicsDB", is_required=True)
-        self.add_argument("nr_cpus",    is_required=True, default_value=32)
-        self.add_argument("mem",        is_required=True, default_value=208)
+        self.add_argument("nr_cpus",    is_required=True, default_value=4)
+        self.add_argument("mem",        is_required=True, default_value=26)
 
     def define_output(self):
         # Declare VCF output filename
@@ -579,7 +579,7 @@ class SplitNCigarReads(_GATKBase):
         self.define_base_args()
         self.add_argument("bam",                is_required=True)
         self.add_argument("bam_idx",            is_required=True)
-        self.add_argument("nr_cpus",            is_required=True, default_value=32)
+        self.add_argument("nr_cpus",            is_required=True, default_value=2)
         self.add_argument("mem",                is_required=True, default_value="nr_cpus * 2.5")
 
     def define_output(self):
@@ -630,8 +630,8 @@ class Mutect2(_GATKBase):
         self.add_argument("pon_vcf_tbi",        is_required=False)
         self.add_argument("max_mnp_distance",   is_required=False)
         self.add_argument("germline_vcf",       is_required=False,  is_resource=True)
-        self.add_argument("nr_cpus",            is_required=True,   default_value=32)
-        self.add_argument("mem",                is_required=True,   default_value=208)
+        self.add_argument("nr_cpus",            is_required=True,   default_value=8)
+        self.add_argument("mem",                is_required=True,   default_value=30)
 
     def define_output(self):
         # Declare VCF output filename
@@ -800,7 +800,7 @@ class DepthOfCoverage(_GATKBase):
         self.add_argument("unsafe",             is_required=False, default_value='ALLOW_N_CIGAR_READS')
         self.add_argument("count_type",         is_required=False, default_value='COUNT_FRAGMENTS')
         self.add_argument("per_base_summary",   is_required=False, default_value=None)
-        self.add_argument("nr_cpus",            is_required=True, default_value=32)
+        self.add_argument("nr_cpus",            is_required=True, default_value=8)
         self.add_argument("mem",                is_required=True, default_value="nr_cpus * 2")
 
     def define_output(self):
@@ -1067,8 +1067,8 @@ class CollectAllelicCounts(_GATKBase):
         self.add_argument("bam_idx", is_required=True)
         self.add_argument("ref", is_required=True, is_resource=True)
         self.add_argument("interval_list", is_required=True)
-        self.add_argument("nr_cpus", is_required=True, default_value=32)
-        self.add_argument("mem", is_required=True, default_value=208)
+        self.add_argument("nr_cpus", is_required=True, default_value=8)
+        self.add_argument("mem", is_required=True, default_value=30)
 
     def define_output(self):
         # Get the sample name to use it in file name creation
@@ -1114,8 +1114,8 @@ class ModelSegments(_GATKBase):
         self.define_base_args()
         self.add_argument("sample_name", is_required=True)
         self.add_argument("denoise_copy_ratio", is_required=True)
-        self.add_argument("nr_cpus", is_required=True, default_value=32)
-        self.add_argument("mem", is_required=True, default_value=208)
+        self.add_argument("nr_cpus", is_required=True, default_value=4)
+        self.add_argument("mem", is_required=True, default_value=8)
 
     def define_output(self):
         # Get the sample name to use it in file name creation
@@ -1180,8 +1180,8 @@ class CallCopyRatioSegments(_GATKBase):
         self.define_base_args()
         self.add_argument("sample_name", is_required=True)
         self.add_argument("cr_seg", is_required=True)
-        self.add_argument("nr_cpus", is_required=True, default_value=32)
-        self.add_argument("mem", is_required=True, default_value=208)
+        self.add_argument("nr_cpus", is_required=True, default_value=4)
+        self.add_argument("mem", is_required=True, default_value=8)
 
     def define_output(self):
         # Get the sample name to use it in file name creation
@@ -1278,8 +1278,8 @@ class CreateSomaticPanelOfNormals(_GATKBase):
         self.define_base_args()
         self.add_argument("sample_name",    is_required=True)
         self.add_argument("genomicsDB",     is_required=True)
-        self.add_argument("nr_cpus",        is_required=True, default_value=32)
-        self.add_argument("mem",            is_required=True, default_value=208)
+        self.add_argument("nr_cpus",        is_required=True, default_value=4)
+        self.add_argument("mem",            is_required=True, default_value=8)
 
     def define_output(self):
 
@@ -1320,8 +1320,8 @@ class CollectGcBiasMetrics(_GATKBase):
         self.add_argument("bam",            is_required=True)
         self.add_argument("bam_idx",        is_required=True)
         self.add_argument("ref",            is_required=True, is_resource=True)
-        self.add_argument("nr_cpus",        is_required=True, default_value=32)
-        self.add_argument("mem",            is_required=True, default_value=208)
+        self.add_argument("nr_cpus",        is_required=True, default_value=4)
+        self.add_argument("mem",            is_required=True, default_value=26)
 
     def define_output(self):
         # Get the sample name to use it in file name creation
@@ -1448,8 +1448,8 @@ class CollectOxoGMetrics(_GATKBase):
         self.add_argument("bam",            is_required=True)
         self.add_argument("bam_idx",        is_required=True)
         self.add_argument("ref",            is_required=True, is_resource=True)
-        self.add_argument("nr_cpus",        is_required=True, default_value=32)
-        self.add_argument("mem",            is_required=True, default_value=208)
+        self.add_argument("nr_cpus",        is_required=True, default_value=4)
+        self.add_argument("mem",            is_required=True, default_value=26)
 
     def define_output(self):
         # Get the sample name to use it in file name creation
@@ -1497,8 +1497,8 @@ class CollectSequencingArtifactMetrics(_GATKBase):
         self.add_argument("bam",            is_required=True)
         self.add_argument("bam_idx",        is_required=True)
         self.add_argument("ref",            is_required=True, is_resource=True)
-        self.add_argument("nr_cpus",        is_required=True, default_value=32)
-        self.add_argument("mem",            is_required=True, default_value=208)
+        self.add_argument("nr_cpus",        is_required=True, default_value=4)
+        self.add_argument("mem",            is_required=True, default_value=26)
 
     def define_output(self):
         # Get the sample name to use it in file name creation
@@ -1563,8 +1563,8 @@ class CollectReadCounts(_GATKBase):
         self.define_base_args()
         self.add_argument("bam",            is_required=True)
         self.add_argument("bam_idx",        is_required=True)
-        self.add_argument("nr_cpus",        is_required=True,   default_value=32)
-        self.add_argument("mem",            is_required=True,   default_value=208)
+        self.add_argument("nr_cpus",        is_required=True,   default_value=1)
+        self.add_argument("mem",            is_required=True,   default_value=2)
 
     def define_output(self):
         # Declare recoded VCF output filename
@@ -1600,8 +1600,8 @@ class MergeBamAlignment(_GATKBase):
         self.add_argument("bam_idx",       is_required=True)
         self.add_argument("umi_bam",       is_required=True)
         self.add_argument("ref",           is_required=True, is_resource=True)
-        self.add_argument("nr_cpus",       is_required=True, default_value=32)
-        self.add_argument("mem",           is_required=True, default_value=208)
+        self.add_argument("nr_cpus",       is_required=True, default_value=4)
+        self.add_argument("mem",           is_required=True, default_value="nr_cpus * 2.5")
 
     def define_output(self):
         # Declare BAM output filename
