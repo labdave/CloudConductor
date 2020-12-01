@@ -217,11 +217,11 @@ class StarStats(_QCParser):
 
     def define_input(self):
         super(StarStats, self).define_input()
-        self.add_argument("stats",   is_required=True)
+        self.add_argument("final_log",   is_required=True)
 
     def define_command(self):
         # Get options from kwargs
-        input_file      = self.get_argument("stats")
+        input_file      = self.get_argument("final_log")
         qc_parser       = self.get_argument("qc_parser")
         sample_name     = self.get_argument("sample_name")
         parser_note     = self.get_argument("note")
