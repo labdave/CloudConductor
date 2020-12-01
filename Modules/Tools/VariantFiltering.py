@@ -28,15 +28,15 @@ class VariantFiltering(Merger):
 	def define_output(self):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
-		all_variants							= self.generate_unique_file_name("all_variants.csv")
-		filt_variants							= self.generate_unique_file_name("filt_variants.csv")
-		wl_variants							  	= self.generate_unique_file_name("wl_variants.csv")
+		all_variants							= self.generate_unique_file_name("all_variants.txt")
+		filt_variants							= self.generate_unique_file_name("filt_variants.txt")
+		wl_variants							  	= self.generate_unique_file_name("wl_variants.txt")
 		single_sample_merge						= self.generate_unique_file_name("single_sample_merge.RData")
 		filt_variants_val						=self.generate_unique_file_name("filt_variants_val.RData")
 		wl_variants_val							=self.generate_unique_file_name("wl_variants_val.RData")
-		all_variants_maf						=self.generate_unique_file_name("all_variants_maf.maf")
-		filt_variants_maf						=self.generate_unique_file_name("filt_variants_maf.maf")
-		wl_variants_maf							=self.generate_unique_file_name("wl_variants_maf.maf")
+		all_variants_maf						=self.generate_unique_file_name("all_variants_maf.txt")
+		filt_variants_maf						=self.generate_unique_file_name("filt_variants_maf.txt")
+		wl_variants_maf							=self.generate_unique_file_name("wl_variants_maf.txt")
 
 
 		self.add_output("all_variants",		all_variants)
