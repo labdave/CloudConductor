@@ -91,8 +91,8 @@ class CollectInsertSizeMetrics(Module):
         self.output_keys    = ["insert_size_report", "insert_size_histogram"]
 
     def define_input(self):
-        self.add_argument("bam",                is_required=True)
-        self.add_argument("bam_idx",            is_required=True)
+        self.add_argument("bam")
+        self.add_argument("bam_idx")
         self.add_argument("sorted_transcriptome_bam")
         self.add_argument("transcriptome_bam_idx")
         self.add_argument("picard",             is_required=True, is_resource=True)
@@ -136,9 +136,6 @@ class CollectInsertSizeMetrics(Module):
         # Generate base cmd for running on docker
         else:
             basecmd = str(picard)
-
-        if sorted_transcriptome_bam:
-            bam = None
 
         # Generate cmd to run picard insert size metrics on genome BAM
         if bam:
