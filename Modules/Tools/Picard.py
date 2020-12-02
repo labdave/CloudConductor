@@ -93,6 +93,8 @@ class CollectInsertSizeMetrics(Module):
     def define_input(self):
         self.add_argument("bam",                is_required=True)
         self.add_argument("bam_idx",            is_required=True)
+        self.add_argument("sorted_transcriptome_bam")
+        self.add_argument("transcriptome_bam_idx")
         self.add_argument("picard",             is_required=True, is_resource=True)
         self.add_argument("num_reads",          is_required=True, default_value=1000000)
         self.add_argument("nr_cpus",            is_required=True, default_value=8)
@@ -114,10 +116,11 @@ class CollectInsertSizeMetrics(Module):
     def define_command(self):
 
         # Obtaining the arguments
-        bam         = self.get_argument("bam")
-        picard      = self.get_argument("picard")
-        num_reads   = self.get_argument("num_reads")
-        mem         = self.get_argument("mem")
+        bam                         = self.get_argument("bam")
+        sorted_transcriptome_bam    = self.get_argument("sorted_transcriptome_bam")
+        picard                      = self.get_argument("picard")
+        num_reads                   = self.get_argument("num_reads")
+        mem                         = self.get_argument("mem")
 
         # Output file
         report_out  = self.get_output("insert_size_report")
@@ -134,9 +137,20 @@ class CollectInsertSizeMetrics(Module):
         else:
             basecmd = str(picard)
 
-        # Generate cmd to run picard insert size metrics
-        cmd = "{0} CollectInsertSizeMetrics HISTOGRAM_FILE={1} INPUT={2} OUTPUT={3} STOP_AFTER={4} !LOG2!".format\
+        if sorted_transcriptome_bam:
+            bam = None
+
+        # Generate cmd to run picard insert size metrics on genome BAM
+        if bam:
+            cmd = "{0} CollectInsertSizeMetrics HISTOGRAM_FILE={1} INPUT={2} OUTPUT={3} STOP_AFTER={4} !LOG2!".format\
                 (basecmd, hist_out, bam, report_out, num_reads)
+
+        elif sorted_transcriptome_bam:
+            cmd = "{0} CollectInsertSizeMetrics HISTOGRAM_FILE={1} INPUT={2} OUTPUT={3} STOP_AFTER={4} !LOG2!".format \
+                (basecmd, hist_out, sorted_transcriptome_bam, report_out, num_reads)
+
+        else:
+            raise Exception("Neither BAM nor sorted transcriptomic BAM provided.")
 
         return cmd
 
