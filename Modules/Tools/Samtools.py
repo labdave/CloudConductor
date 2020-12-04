@@ -49,12 +49,9 @@ class Index(Module):
         samtools                    = self.get_argument("samtools")
 
         bam_idx                     = self.get_output("bam_idx")
-        transcriptome_bam_idx       = self.get_output("transcriptome_bam_idx")
 
         # Generating indexing command
         bam_idx_cmd                 = ""
-        transcriptome_bam_idx_cmd   = ""
-
 
         if isinstance(bam, list):
 
@@ -64,7 +61,12 @@ class Index(Module):
         else:
             bam_idx_cmd = "{0} index {1} {2} !LOG3!".format(samtools, bam, bam_idx)
 
+
         if sorted_transcriptome_bam:
+            transcriptome_bam_idx       = self.get_output("transcriptome_bam_idx")
+
+            transcriptome_bam_idx_cmd   = ""
+
             if isinstance(sorted_transcriptome_bam, list):
                 for b_in, b_out in zip(sorted_transcriptome_bam, transcriptome_bam_idx):
                     transcriptome_bam_idx_cmd += "{0} index {1} {2} !LOG3! & ".format(samtools, b_in,
@@ -76,8 +78,9 @@ class Index(Module):
 
             cmd = f'{bam_idx_cmd};{transcriptome_bam_idx_cmd}'
             return cmd
-        else:
-            return bam_idx_cmd
+
+
+        return bam_idx_cmd
 
 
 class Sort(Module):
