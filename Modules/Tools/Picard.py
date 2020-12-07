@@ -137,11 +137,14 @@ class CollectInsertSizeMetrics(Module):
         else:
             basecmd = str(picard)
 
+        if sorted_transcriptome_bam:
+            bam = None
+
         # Generate cmd to run picard insert size metrics on genome BAM
         if bam:
             cmd = "{0} CollectInsertSizeMetrics HISTOGRAM_FILE={1} INPUT={2} OUTPUT={3} STOP_AFTER={4} !LOG2!".format\
                 (basecmd, hist_out, bam, report_out, num_reads)
-
+        # Generate cmd to run picard insert size metrics on transcriptome BAM
         elif sorted_transcriptome_bam:
             cmd = "{0} CollectInsertSizeMetrics HISTOGRAM_FILE={1} INPUT={2} OUTPUT={3} STOP_AFTER={4} !LOG2!".format \
                 (basecmd, hist_out, sorted_transcriptome_bam, report_out, num_reads)
