@@ -26,7 +26,9 @@ RUN git clone https://github.com/labdave/CloudConductor.git
 # upgrade pip, setuptools, and wheel Python modules
 RUN python3 -m pip install pip --upgrade && \
 	python3 -m pip install setuptools wheel && \
-    python3 -m pip install -r /CloudConductor/requirements.txt
+    python3 -m pip install -r /CloudConductor/requirements.txt && \
+    python3 -m pip uninstall -y Aries-storage Aries-core && \
+    python3 -m pip install Aries-storage==0.1.318
 
 # Install gcloud
 RUN curl -sSL https://sdk.cloud.google.com > /tmp/gcl &&\
