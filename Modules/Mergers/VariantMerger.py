@@ -33,10 +33,6 @@ class VariantMerger(Merger):
         merged_wl_wide = self.get_output("merged_wl_wide")
 
         # Ensuring the input vcf list is an actual list, even if a list of one VCF
-        if not isinstance(filt_list, list):
-            filt_list = [filt_list]
-        if not isinstance(wl_list, list):
-            wl_list = [wl_list]
 
 
         # Generating command
