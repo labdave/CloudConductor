@@ -4,7 +4,7 @@ class VariantMerger(Merger):
 
     def __init__(self, module_id, is_docker=True):
         super(VariantMerger, self).__init__(module_id, is_docker)
-        self.output_keys    = ["merged_filt_long, merged_filt_wide, merged_wl_long, merged_wl_wide"]
+        self.output_keys    = ["merged_filt_long", "merged_filt_wide", "merged_wl_long", "merged_wl_wide"]
 
     def define_input(self):
         self.add_argument("nr_cpus",                        is_required=True, default_value=8)
@@ -31,9 +31,6 @@ class VariantMerger(Merger):
         merged_filt_wide = self.get_output("merged_filt_wide")
         merged_wl_long       = self.get_output("merged_wl_long")
         merged_wl_wide = self.get_output("merged_wl_wide")
-
-        # Ensuring the input vcf list is an actual list, even if a list of one VCF
-
 
         # Generating command
         cmd = "Rscript multisample_merge.R {0} {1} {2} {3} {4}".format(input_dir, merged_filt_long, merged_filt_wide, merged_wl_long, merged_wl_wide)
