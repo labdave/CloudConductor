@@ -10,8 +10,8 @@ class VariantMerger(Merger):
     def define_input(self):
         self.add_argument("nr_cpus",            is_required=True, default_value=8)
         self.add_argument("mem",                is_required=True, default_value=48)
-        self.add_argument("filt_variants_val",  is_required=True)
-        self.add_argument("wl_variants_val",    is_required=True)
+        self.add_argument("filt_variants",  is_required=True)
+        self.add_argument("wl_variants",    is_required=True)
 
 
 
