@@ -104,7 +104,7 @@ class RenameRnaBamToBam(Module):
 
 class RenameSortedBamToBam(Module):
     def __init__(self, module_id, is_docker=False):
-        super(RenameRnaBamToBam, self).__init__(module_id, is_docker)
+        super(RenameSortedBamToBam, self).__init__(module_id, is_docker)
         self.output_keys = ["bam"]
 
     def define_input(self):
