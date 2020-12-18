@@ -101,3 +101,22 @@ class RenameRnaBamToBam(Module):
     def define_command(self):
         cmd = "echo 'Wrapping input rna_bam as bam key...' !LOG3!"
         return cmd
+
+class RenameSortedBamToBam(Module):
+def __init__(self, module_id, is_docker=False):
+    super(RenameRnaBamToBam, self).__init__(module_id, is_docker)
+    self.output_keys = ["bam"]
+
+def define_input(self):
+    self.add_argument("sorted_bam", is_required=True)
+    self.add_argument("nr_cpus", default_value=1)
+    self.add_argument("mem", default_value=5)
+
+def define_output(self):
+    # get bam file names from the sample sheet
+    bam = self.get_argument("sorted_bam")
+    self.add_output("bam", bam)
+
+def define_command(self):
+    cmd = "echo 'Wrapping input sorted_bam as bam key...' !LOG3!"
+    return cmd
