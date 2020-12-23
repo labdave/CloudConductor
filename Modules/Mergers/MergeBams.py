@@ -49,7 +49,7 @@ class MergeBams(Merger):
             return None
 
         # Generating the merging command
-        if sorted_input:
+        if sorted_input != "False" and sorted_input != '0':
             merge_cmd = "%s merge -f -c -@%d %s %s" % (samtools,
                                                        nr_cpus,
                                                        output_bam,
