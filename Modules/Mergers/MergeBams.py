@@ -64,4 +64,7 @@ class MergeBams(Merger):
             merge_cmd = "%s cat -o %s %s" % (samtools,
                                              output_bam,
                                              " ".join(bam_list))
+            # Return command for
+            return "%s !LOG2!" % (merge_cmd)
+
 
