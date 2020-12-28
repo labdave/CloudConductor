@@ -11,11 +11,10 @@ class Purity(Merger):
 	def define_input(self):
 		# Module creator needs to define which arguments have is_resource=True
 		# Module creator needs to rename arguments as required by CC
-		self.add_argument("vcf_gz",				is_required=True)
+		self.add_argument("wl_variants",		is_required=True)
 		self.add_argument("nr_cpus",			default_value=1)
 		self.add_argument("mem",				default_value=5)
-		self.add_argument("whitelist",			is_required=True, is_resource=True)
-		self.add_argument("e",					default_value=False)
+		self.add_argument("min_dpmax", 			default_value=5)
 
 
 	def define_output(self):
@@ -27,29 +26,15 @@ class Purity(Merger):
 
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC
-		vcf_gz							= self.get_argument("vcf_gz")
-		whitelist						= self.get_argument("whitelist")
-		e								= self.get_argument("e")
+		wl_variants						= self.get_argument("wl_variants")
+		min_dpmax 						= self.get_argument("min_dpmax")
 
-		for vcf in vcf_gz:
-			if 'variants.vcf' in vcf:
-				strelka_vcf = vcf.rstrip('.gz')
-				continue
-			if 'deepvariant' in vcf:
-				deepvariant_vcf = vcf.rstrip('.gz')
-				continue
-			if 'haplotypecaller' in vcf:
-				haplotypecaller_vcf = vcf.rstrip('.gz')
-				continue
 		# get output
 		purity_estimate					= self.get_output("purity_estimate")
 
 		# add arguments
-		cmd = " bash vcf_pipeline.sh -w {0} -d {1} -s {2} -g {3} -o {4}".format(
-			whitelist, deepvariant_vcf, strelka_vcf, haplotypecaller_vcf, purity_estimate)
-
-		if e:
-			cmd += " -e {0}".format(ext_whitelist)
+		cmd = "python3 new_format_parser.py {0} {1} {2}".format(
+			wl_variants, purity_estimate, min_dpmax)
 
 		# add logging
 		cmd += " !LOG3!"
