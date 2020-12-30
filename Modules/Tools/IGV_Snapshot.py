@@ -41,7 +41,7 @@ class IGV_Snapshot(Module):
 
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC
-		all_merged_cons_vcf					= self.get_argument("all_merged_cons_vcf")
+		sv_vcf						= self.get_argument("all_merged_cons_vcf")
 		wl_variants					= self.get_argument("wl_variants")
 		bam							= self.get_argument("bam")
 		non_split_bam				= self.get_argument("non_split_bam")
@@ -59,8 +59,8 @@ class IGV_Snapshot(Module):
 		# get output
 		igv_snapshot_dir			= self.get_output("igv_snapshot_dir")
 
-		if all_merged_cons_vcf is not None:
-			vcf = all_merged_cons_vcf
+		if sv_vcf is not None:
+			vcf = sv_vcf
 			columns = 5
 			thresh_column = 7
 
@@ -129,11 +129,11 @@ class IGV_Snapshot(Module):
 			columns = 3
 
 			# command
-			cmd = "python filter_rows.py -o filtered.tsv -c {0} -i {1} !LOG3!;".format(
+			cmd = "python filter_rows.py -o filtered.tsv -i {1} !LOG3!;".format(
 				columns, vcf)
 
 			cmd += "python igv_script_creator.py -f filtered.tsv -o snv.script"
-			cmd += " -b {0} -z {1} -t {2} -r {3} -d {4}/nonsquished_splitreads !LOG3!;".format(
+			cmd += " -b {0} -z {1} -t {2} -r {3} -d {4}/nonsquished !LOG3!;".format(
 				bam, zoom, bed, repeat_blacklist, igv_snapshot_dir)
 
 			cmd += "cat snv.script !LOG3!;"

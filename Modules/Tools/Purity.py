@@ -1,7 +1,7 @@
-from Modules import Merger
+from Modules import Module
 
 # Module created using CC_module_helper.py
-class Purity(Merger):
+class Purity(Module):
 	def __init__(self, module_id, is_docker=False):
 		super(Purity, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
