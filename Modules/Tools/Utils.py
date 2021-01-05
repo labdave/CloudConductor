@@ -1099,14 +1099,15 @@ class MoveUMIToBAMTag(Module):
         return cmd
 
 
-class SpringUnzip(Module):
+class SpringDecompress(Module):
     def __init__(self, module_id, is_docker=False):
-        super(SpringUnzip, self).__init__(module_id, is_docker)
+        super(SpringDecompress, self).__init__(module_id, is_docker)
         self.output_keys = ["R1", "R2"]
 
     def define_input(self):
         self.add_argument("R1",         is_required=True)
         self.add_argument("R2",         is_required=True)
+        self.add_argument("spring",     is_required=True, is_resource=True)
         self.add_argument("nr_cpus",    is_required=True, default_value=4)
         self.add_argument("mem",        is_required=True, default_value=20)
 
@@ -1115,29 +1116,72 @@ class SpringUnzip(Module):
         R1          = self.get_argument("R1")
         R2          = self.get_argument("R2")
 
-        self.add_output("R1", R1)
-        self.add_output("R2", R2)
+        # check if the given R1 is a list or one file
+        if isinstance(R1, list):
+            if all(r1.endswith(".spring") for r1 in R1):
+                R1 = [r1.replace(".spring", ".gz") if r1.endswith(".spring") else r1 for r1 in R1]
+                self.add_output("R1", R1)
+            else:
+                self.add_output("R1", R1)
+        else:
+            if R1.endswith(".spring"):
+                R1 = R1.replace(".spring", ".gz") if R1.endswith(".spring") else R1
+                self.add_output("R1", R1)
+            else:
+                self.add_output("R1", R1)
+
+        # check if the given R2 is a list or one file
+        if isinstance(R2, list):
+            if all(r2.endswith(".spring") for r2 in R2):
+                R2 = [r2.replace(".spring", ".gz") if r2.endswith(".spring") else r2 for r2 in R2]
+                self.add_output("R2", R2)
+            else:
+                self.add_output("R2", R2)
+        else:
+            if R2.endswith(".spring"):
+                R2 = R2.replace(".spring", ".gz") if R2.endswith(".spring") else R2
+                self.add_output("R2", R2)
+            else:
+                self.add_output("R2", R2)
 
     def define_command(self):
         # Get the input arguments
         R1_in       = self.get_argument("R1")
         R2_in       = self.get_argument("R2")
-        
+        spring      = self.get_argument("spring")
+        num_cpus    = self.get_argument("nr_cpus")
+
         # Get the output arguments
         R1_out = self.get_output("R1")
         R2_out = self.get_output("R2")
 
-        # check if you can gunzip - if not, then rename to genozip and 
-        # genounzip. This will give us the completely unzipped version.
-        # Then, we gzip it back to gz
+        # a list to hold all the commands
+        r1_cmd = []
+        r2_cmd = []
 
-        cmd = ""
+        if isinstance(R1_in, list):
+            if all(r1.endswith(".spring") for r1 in R1_in):
+                for r1_in, r1_out in zip(R1_in, R1_out):
+                    r1_cmd.append(f'{spring} -d -i {r1_in} -o {r1_out} -g -t {num_cpus}')
+                r1_cmd = ";".join(r1_cmd)
+        else:
+            if R1_in.endswith(".spring"):
+                 r1_cmd = f'{spring} -d -i {R1_in} -o {R1_out} -g -t {num_cpus}'
 
-        R1 = R1_in.rstrip(".gz")
-        cmd += f"gunzip {R1} || {{ mv {R1} {R1}.spring && spring -d -i {R1}.spring -o {R1_out} -g }} !LOG3!;"
+        if isinstance(R2_in, list):
+            if all(r2.endswith(".spring") for r2 in R2_in):
+                for r2_in, r2_out in zip(R2_in, R2_out):
+                    r2_cmd.append(f'{spring} -d -i {r2_in} -o {r2_out} -g -t {num_cpus}')
+                r2_cmd = ";".join(r2_cmd)
+        else:
+            if R2_in.endswith(".spring"):
+                r2_cmd = f'{spring} -d -i {R2_in} -o {R2_out} -g -t {num_cpus}'
 
-        R2 = R2_in.rstrip(".gz")
-        cmd += f"gunzip {R2} || {{ mv {R2} {R2}.spring && spring -d -i {R2}.spring -o {R2_out} -g }} !LOG3!;"
-        
-        return cmd
+        print(f'r1_cmd ====> {r1_cmd}')
+        print(f'r2_cmd ====> {r2_cmd}')
 
+        if r1_cmd and r2_cmd:
+            cmd = f'{";".join([r1_cmd, r2_cmd])} !LOG3!'
+            return cmd
+        else:
+            return ""
