@@ -49,19 +49,22 @@ class MergeBams(Merger):
             return None
 
         # Generating the merging command
-        if sorted_input:
+        if sorted_input != "False" and sorted_input != '0':
             merge_cmd = "%s merge -f -c -@%d %s %s" % (samtools,
                                                        nr_cpus,
                                                        output_bam,
                                                        " ".join(bam_list))
+            # Generate command to make index
+            index_cmd = "%s index %s %s" % (samtools, output_bam, output_bam_idx)
+
+            # Return command for
+            return "%s !LOG2! && %s !LOG2!" % (merge_cmd, index_cmd)
+
         else:
             merge_cmd = "%s cat -o %s %s" % (samtools,
                                              output_bam,
                                              " ".join(bam_list))
+            # Return command for
+            return "%s !LOG2!" % (merge_cmd)
 
-        # Generate command to make index
-        index_cmd = "%s index %s %s" % (samtools, output_bam, output_bam_idx)
-
-        # Return command for
-        return "%s !LOG2! && %s !LOG2!" % (merge_cmd, index_cmd)
 
