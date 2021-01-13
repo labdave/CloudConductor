@@ -12,7 +12,7 @@ class EBV_detection(Module):
     def define_input(self):
         # Module creator needs to define which arguments have is_resource=True
         # Module creator needs to rename arguments as required by CC
-        self.add_argument("bam",                        is_required=True)
+        self.add_argument("rna_bam",                     is_required=True)
         self.add_argument("sample_id",                  is_required=True)
         self.add_argument("nr_cpus",                    default_value=8)
         self.add_argument("mem",                        default_value=20.0)
@@ -40,7 +40,7 @@ class EBV_detection(Module):
 
     def define_command(self):
         # Module creator needs to use renamed arguments as required by CC
-        bam                     = self.get_argument("bam")
+        bam                     = self.get_argument("rna_bam")
         ref_masked_ebv          = "/usr/local/bin/masked_ebv_genome_idx_STAR"
         nr_cpus                 = self.get_argument("nr_cpus")
         f                       = self.get_argument("f")
