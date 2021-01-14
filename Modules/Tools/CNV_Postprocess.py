@@ -21,7 +21,7 @@ class CNV_Postprocess(Module):
 	def define_output(self):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
-		sample_id				= self.get_argument(sample_id)
+		sample_id				= self.get_argument("sample_id")
 		norm_seg				= self.generate_unique_file_name(".{}.norm.seg".format(sample_id))
 		self.add_output("norm_seg",		norm_seg)
 
