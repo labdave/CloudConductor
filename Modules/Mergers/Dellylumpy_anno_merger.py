@@ -17,6 +17,7 @@ class Dellylumpy_anno_merger(Merger):
 		self.add_argument("translocation_table",	is_required=True)
 		self.add_argument("nr_cpus",				default_value=2)
 		self.add_argument("mem",					default_value=10.0)
+		self.add_argument("merge_distance",         default_value=500)
 
 	def define_output(self):
 		# Module creator needs to define what the outputs are
@@ -29,6 +30,7 @@ class Dellylumpy_anno_merger(Merger):
 		# Module creator needs to use renamed arguments as required by CC
 		all_merged_cons_vcf				= self.get_argument("all_merged_cons_vcf")
 		translocation_table				= self.get_argument("translocation_table")
+		merge_distance                  = self.get_argument("merge_distance")
 
 		# get output
 		anno_vcf						= self.get_output("anno_vcf")
@@ -40,6 +42,7 @@ class Dellylumpy_anno_merger(Merger):
 		cmd += " -dl {0}".format(all_merged_cons_vcf)
 		cmd += " -dw {0}".format(translocation_table)
 		cmd += " -out {0}".format(anno_vcf)
+		cmd += " -dist {0}".format(merge_distance)
 
 		# add logging
 		cmd += " !LOG3!"
