@@ -1148,16 +1148,21 @@ class SpringDecompress(Module):
             if r1_in.endswith(".spring"):
                 r1_cmd.append(f'{spring} -d -i {r1_in} -o {r1_out} -g -t {num_cpus}')
         
-        r1_cmd = ";".join(r1_cmd)
+        r1_cmd = ";".join(r1_cmd) if r1_cmd else None
 
         for r2_in, r2_out in zip(R2_in, R2_out):
             if r2_in.endswith(".spring"):
                 r2_cmd.append(f'{spring} -d -i {r2_in} -o {r2_out} -g -t {num_cpus}')
 
-        r2_cmd = ";".join(r2_cmd)
+        r2_cmd = ";".join(r2_cmd) if r2_cmd else None
+
+        if not r1_cmd and not r2_cmd:
+            return ""
 
         if r1_cmd and r2_cmd:
             cmd = f'{";".join([r1_cmd, r2_cmd])} !LOG3!'
             return cmd
-        else:
-            return ""
+        elif r1_cmd and not r2_cmd:
+            return r1_cmd
+        elif not r1_cmd and r2_cmd:
+            return r2_cmd
