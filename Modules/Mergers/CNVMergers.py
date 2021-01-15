@@ -6,7 +6,7 @@ class AggregateCNVSegments(Merger):
         self.output_keys    = ["gene_seg", "cyto_seg"]
 
     def define_input(self):
-        self.add_argument("seg_call",       is_required=True)
+        self.add_argument("norm_seg",       is_required=True)
         self.add_argument("sample_id",      is_required=True)
         self.add_argument("gene_bed",       is_resource=True)
         self.add_argument("cyto_bed",       is_resource=True)
@@ -20,7 +20,7 @@ class AggregateCNVSegments(Merger):
         self.add_output("cyto_seg", cyto_seg_file)
 
     def define_command(self):
-        segs                = self.get_argument("seg_call")
+        segs                = self.get_argument("norm_seg")
         samples             = self.get_argument("sample_id")
         gene_bed            = self.get_argument("gene_bed")
         cyto_bed            = self.get_argument("cyto_bed")
