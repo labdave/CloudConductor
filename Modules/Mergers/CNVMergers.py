@@ -41,17 +41,17 @@ class AggregateCNVSegments(Merger):
 
         # need to parse and intersect the seg files
         for seg in segs:
-            filtered_seg = seg.replace("called.seg", "filtered.seg")
-            gene_intersect_seg = seg.replace("called.seg", "gene_intersect.seg")
-            cyto_intersect_seg = seg.replace("called.seg", "cyto_intersect.seg")
+            filtered_seg = seg.replace("norm.seg", "filtered.seg")
+            gene_intersect_seg = seg.replace("norm.seg", "gene_intersect.seg")
+            cyto_intersect_seg = seg.replace("norm.seg", "cyto_intersect.seg")
             cmd1 += "grep -v '@' {0} | grep -v 'CONTIG' > {1}; ".format(seg, filtered_seg)
             cmd2 += "bedtools intersect -loj -a {0} -b {1} > {2}; ".format(gene_bed, filtered_seg, gene_intersect_seg)
             cmd3 += "bedtools intersect -loj -a {0} -b {1} > {2}; ".format(cyto_bed, filtered_seg, cyto_intersect_seg)
 
         # command becomes too long, need to store data in a file
         for seg in segs:
-            gene_intersect_seg = seg.replace("called.seg", "gene_intersect.seg")
-            cyto_intersect_seg = seg.replace("called.seg", "cyto_intersect.seg")
+            gene_intersect_seg = seg.replace("norm.seg", "gene_intersect.seg")
+            cyto_intersect_seg = seg.replace("norm.seg", "cyto_intersect.seg")
             cmd3 += "echo {0} >> {1}; ".format(gene_intersect_seg, join_gene_seg)
             cmd4 += "echo {0} >> {1}; ".format(cyto_intersect_seg, join_cyto_seg)
 
