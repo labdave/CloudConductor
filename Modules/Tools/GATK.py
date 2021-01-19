@@ -1164,9 +1164,10 @@ class ModelSegments(_GATKBase):
         cmd = "{0} ModelSegments".format(gatk_cmd)
 
         # add the rest of the arguments to command
-        cmd = "{0} --denoised-copy-ratios {1} --output-prefix {2} {3} {4} --number-of-changepoints-penalty-factor 5".format(cmd, denoise_copy_ratio, prefix,
+        cmd = "{0} --denoised-copy-ratios {1} --output-prefix {2} {3} {4}".format(cmd, denoise_copy_ratio, prefix,
                                                                                   output_file_flag, out_dir)
 
+        cmd = "{0} --number-of-changepoints-penalty-factor 5 --kernel-variance-copy-ratio 0.5"
         return "{0} !LOG3!".format(cmd)
 
 
