@@ -1108,8 +1108,8 @@ class SpringDecompress(Module):
         self.add_argument("R1",         is_required=True)
         self.add_argument("R2",         is_required=True)
         self.add_argument("spring",     is_required=True, is_resource=True)
-        self.add_argument("nr_cpus",    is_required=True, default_value=4)
-        self.add_argument("mem",        is_required=True, default_value=20)
+        self.add_argument("nr_cpus",    is_required=True, default_value=32)
+        self.add_argument("mem",        is_required=True, default_value="nr_cpus * 4")
 
     def define_output(self):
         # Declare R1 output name
