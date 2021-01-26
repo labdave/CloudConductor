@@ -18,10 +18,10 @@ class CreateTranslocationPanelOfNormals(Merger):
 
     def define_output(self):
         # FILE NAME IN ALL MERGERS DEPENDS ON THIS: CHANGE WITH CAUTION
-        filtered_pon        = self.generate_unique_file_name("filtered.pon.tsv")
-        unfiltered_pon      = self.generate_unique_file_name("unfiltered.pon.tsv")
-        self.add_output("pon",        filtered_pon)
-        self.add_output("full_pon", unfiltered_pon)
+        pon      = self.generate_unique_file_name("filtered.pon.tsv")
+        full_pon = self.generate_unique_file_name("unfiltered.pon.tsv")
+        self.add_output("pon",      pon)
+        self.add_output("full_pon", full_pon)
 
 
     def define_command(self):
@@ -32,8 +32,8 @@ class CreateTranslocationPanelOfNormals(Merger):
         min_samples             = self.get_argument("min_samples")
 
         # Get output
-        filtered_pon            = self.get_output("filtered_pon")
-        unfiltered_pon          = self.get_output("unfiltered_pon")
+        filtered_pon            = self.get_output("pon")
+        unfiltered_pon          = self.get_output("full_pon")
         
         
         # Start creating command
