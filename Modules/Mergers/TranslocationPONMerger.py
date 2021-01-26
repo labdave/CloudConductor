@@ -41,9 +41,9 @@ class CreateTranslocationPanelOfNormals(Merger):
 
         # Create a comma-separated list of input files
         if isinstance(vcf_list, list):
-            cmd += " -i {1}".format(','.join(vcf_list))
+            cmd += " -i {0}".format(','.join(vcf_list))
         else:
-            cmd += " -i {1}".format(vcf_list)
+            cmd += " -i {0}".format(vcf_list)
 
         # Add arguments and outputs
         cmd += " -u {0} -f {1} -d {2} -n {3} -r {4}".format(unfiltered_pon,
