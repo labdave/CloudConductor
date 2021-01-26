@@ -92,7 +92,7 @@ class AnnotateSVPON(Module):
 
         # Inputs
         self.add_argument("anno_vcf",                   is_required=True)
-        self.add_argument("pon_tsv",                   is_required=True, is_resource=True)
+        self.add_argument("translocation_pon",          is_required=True, is_resource=True)
                 
     def define_output(self):
         anno_vcf = self.generate_unique_file_name("anno.vcf")
@@ -102,13 +102,13 @@ class AnnotateSVPON(Module):
 
         # Get inputs
         input_table              = self.get_argument("anno_vcf")
-        pon_tsv                  = self.get_argument("pon_tsv")
+        translocation_pon        = self.get_argument("translocation_pon")
 
         # Get output path
         output_table             = self.get_output("anno_vcf")
 
         # Add module and arguments
-        cmd = "python annotate_sv_pon.py {0} {1} {2}".format(input_table, output_table, pon_tsv)
+        cmd = "python annotate_sv_pon.py {0} {1} {2}".format(input_table, output_table, translocation_pon)
 
         # Add logging
         cmd += " !LOG3!"
