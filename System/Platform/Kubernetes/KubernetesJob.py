@@ -47,6 +47,9 @@ class KubernetesJob(Instance):
         # define how long the job lasts after completion
         self.termination_seconds = 600
 
+        # Get script task
+        self.script_task = kwargs.pop("script_task", None)
+
         # Obtain location specific information
         self.region = kwargs.pop("region")
         self.zone = kwargs.pop("zone")
@@ -76,7 +79,8 @@ class KubernetesJob(Instance):
 
         self.node_label, self.nodepool_info = self.get_nodepool_info()
 
-        self.status_manager.check_monitoring_status()
+        if not self.script_task:
+            self.status_manager.check_monitoring_status()
 
         self.run('mkdir_tmp_dir', 'sudo mkdir -p /data/tmp')
 
@@ -138,14 +142,16 @@ class KubernetesJob(Instance):
         self.processes[job_name] = task
 
     def destroy(self):
-        self.__cleanup_job()
+        if not self.script_task:
+            self.__cleanup_job()
 
         if self.start_time > 0 and self.stop_time == 0:
             self.stop_time = time.time()
         # stop monitoring the job
         self.monitoring = False
-
-        self.__cleanup_volume_claim()
+        
+        if not self.script_task:
+            self.__cleanup_volume_claim()
 
     def wait_process(self, proc_name):
         if proc_name == "return_logs" and self.failed_container:
@@ -165,41 +171,45 @@ class KubernetesJob(Instance):
             logging.debug(f"({self.name}) Starting creation of Kubernetes followup job.")
 
         # create the persistent volume claim for the job if one doesn't already exist
-        if not self.pvc_name:
+        if not self.pvc_name and not self.script_task:
             self.__create_volume_claim()
+        elif self.script_task:
+            self.script_task.storage_request = self.disk_space
 
         # create the job definition
         self.job_def = self.__create_job_def()
 
-        self.__launch_job()
+        # launch and monitor the job if we're not just generating a script
+        if not self.script_task:
+            self.__launch_job()
 
-        # begin monitoring job for completion/failure
-        self.monitoring = True
-        while self.monitoring:
-            time.sleep(5)
-            job_status = self.get_status(log_status=True)
-            if job_status and (job_status.succeeded or (job_status.failed and job_status.failed >= self.default_num_cmd_retries and not job_status.active)):
-                self.monitoring = False
-                if job_status.succeeded:
-                    self.stop_time = job_status.completion_time.timestamp()
-                    logging.info(f"({self.name}) Process complete!")
-                    if return_last_task_log:
-                        logging.debug("Returning logs from last process.")
-                        logs = self.__get_container_log(self.job_containers[len(self.job_containers)-1].name)
-                        return logs, ''
-                elif job_status.failed and job_status.failed >= self.default_num_cmd_retries and not job_status.active:
-                    logging.warning(f"{self.name}) Job marked as failed. Status response:\n{str(job_status)}")
-                    # check for this last ( only when job is no longer active ) because our job is allowed to fail multiple times
-                    # job_status will hold the number of times it has failed
-                    if job_status and job_status.conditions:
-                        self.stop_time = job_status.conditions[0].last_transition_time.timestamp()
-                    else:
-                        self.stop_time = time.time()
-                    self.failed_container = self.__get_failed_container()
-                    if self.failed_container:
-                        logging.error(f"({self.name}) Instance failed during task: {self.failed_container['name']} with command {self.failed_container['args']}.")
-                        logging.error(f"({self.name}) Logs from failed task: \n {self.failed_container['log']}")
-                    raise RuntimeError(f"({self.name}) Instance failed!")
+            # begin monitoring job for completion/failure
+            self.monitoring = True
+            while self.monitoring:
+                time.sleep(5)
+                job_status = self.get_status(log_status=True)
+                if job_status and (job_status.succeeded or (job_status.failed and job_status.failed >= self.default_num_cmd_retries and not job_status.active)):
+                    self.monitoring = False
+                    if job_status.succeeded:
+                        self.stop_time = job_status.completion_time.timestamp()
+                        logging.info(f"({self.name}) Process complete!")
+                        if return_last_task_log:
+                            logging.debug("Returning logs from last process.")
+                            logs = self.__get_container_log(self.job_containers[len(self.job_containers)-1].name)
+                            return logs, ''
+                    elif job_status.failed and job_status.failed >= self.default_num_cmd_retries and not job_status.active:
+                        logging.warning(f"{self.name}) Job marked as failed. Status response:\n{str(job_status)}")
+                        # check for this last ( only when job is no longer active ) because our job is allowed to fail multiple times
+                        # job_status will hold the number of times it has failed
+                        if job_status and job_status.conditions:
+                            self.stop_time = job_status.conditions[0].last_transition_time.timestamp()
+                        else:
+                            self.stop_time = time.time()
+                        self.failed_container = self.__get_failed_container()
+                        if self.failed_container:
+                            logging.error(f"({self.name}) Instance failed during task: {self.failed_container['name']} with command {self.failed_container['args']}.")
+                            logging.error(f"({self.name}) Logs from failed task: \n {self.failed_container['log']}")
+                        raise RuntimeError(f"({self.name}) Instance failed!")
 
     def finalize(self):
         pass
@@ -383,6 +393,15 @@ class KubernetesJob(Instance):
             requests={'cpu': cpu_request_max*.8, 'memory': str(mem_request_max-1)+'G'}
         )
 
+        # update script task with job info
+        if self.script_task:
+            self.script_task.cpu_request = cpu_request_max*.8
+            self.script_task.cpu_max = cpu_request_max
+            self.script_task.memory_request = mem_request_max-1
+            self.script_task.memory_max = mem_request_max
+            self.script_task.instance_name = self.inst_name
+            self.script_task.force_standard = not self.preemptible
+
         # place the job in the appropriate node pool
         node_label_dict = {'poolName': str(self.node_label)}
 
@@ -416,6 +435,10 @@ class KubernetesJob(Instance):
                             )
                         )
                     )
+
+                    # specify volumes for script task
+                    if self.script_task:
+                        self.script_task.extra_volumes.append({"path": pv["path"], "name": pv["volume_name"], "read_only": pv["read_only"], "claim_name": pv["pvc_name"]})
 
         # incorporate configured secrets
         if self.gcp_secret_configured:
@@ -498,6 +521,9 @@ class KubernetesJob(Instance):
                 )
             )
 
+            if self.script_task:
+                self.script_task.commands[formatted_container_name] = ({"name": formatted_container_name, "docker_image": container_image, "command": entrypoint, "args": [args]})
+
         job_spec = dict(
             backoff_limit=self.default_num_cmd_retries
         )
@@ -530,6 +556,11 @@ class KubernetesJob(Instance):
         )
 
         job_def.spec = client.V1JobSpec(template=job_template, **job_spec)
+
+        if self.script_task:
+            self.script_task.num_retries = self.default_num_cmd_retries
+            self.script_task.labels = job_labels
+            self.script_task.annotations = annotations
 
         return job_def
 

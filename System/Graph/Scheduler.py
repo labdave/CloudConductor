@@ -6,12 +6,15 @@ from System.Graph import TaskWorker
 
 class Scheduler(object):
 
-    def __init__(self, task_graph, datastore, platform):
+    def __init__(self, task_graph, datastore, platform, script_tasks):
 
         # Initialize pipeline definition variables
         self.task_graph     = task_graph
         self.datastore      = datastore
         self.platform       = platform
+        
+        # Initialize task dict for script generation
+        self.script_tasks = script_tasks
 
         # Initialize set of task workers
         self.task_workers = {}
@@ -47,11 +50,12 @@ class Scheduler(object):
                 # Start running tasks that are ready to run but aren't currently
                 if task_worker is None and self.task_graph.parents_complete(task_id) and not task.is_deprecated():
                     logging.info("Launching task: '%s'" % task_id)
-                    self.task_workers[task_id] = TaskWorker(task, self.datastore, self.platform)
+                    self.task_workers[task_id] = TaskWorker(task, self.datastore, self.platform, self.script_tasks[task_id])
                     self.task_workers[task_id].start()
 
             # Sleeping for 5 seconds before checking again
-            time.sleep(5)
+            if len(self.script_tasks) == 0:
+                time.sleep(5)
 
     def __finalize_task_worker(self, task_worker):
 

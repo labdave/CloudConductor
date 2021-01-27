@@ -5,7 +5,7 @@ import os
 import time
 from collections import OrderedDict
 
-from System.Graph import Graph, Scheduler
+from System.Graph import Graph, Scheduler, ScriptTask
 from System.Datastore import ResourceKit, SampleSet, Datastore
 from System.Validators import GraphValidator, InputValidator, SampleValidator
 from System.Platform import StorageHelper, DockerHelper
@@ -20,7 +20,8 @@ class GAPipeline(object):
                  sample_data_config,
                  platform_config,
                  platform_module,
-                 final_output_dir):
+                 final_output_dir,
+                 generate_script):
 
         # GAP run id
         self.pipeline_id    = pipeline_id
@@ -36,6 +37,10 @@ class GAPipeline(object):
 
         # Final output directory where output is saved
         self.__final_output_dir     = final_output_dir
+
+        # Flag to just generate the task script ( do not run commands)
+        self.__generate_script = generate_script
+        self.script_tasks = OrderedDict()
 
         # Obtain pipeline name and append to final output dir
 
@@ -65,17 +70,21 @@ class GAPipeline(object):
         # Load the graph
         self.graph = Graph(self.__graph_config)
 
+        for k, v in self.graph.adj_list.items():
+            self.script_tasks[k] = ScriptTask(k)
+            self.script_tasks[k].parents = v
+
         # Load platform
         plat_module     = importlib.import_module(self.__plat_module)
         plat_class      = plat_module.__dict__[self.__plat_module]
-        self.platform   = plat_class(self.pipeline_id, self.__platform_config, self.__final_output_dir)
+        self.platform   = plat_class(self.pipeline_id, self.__platform_config, self.__final_output_dir, self.__generate_script)
 
         # Initialize the platform
         self.platform.init_platform()
 
         # Create datastore and scheduler
         self.datastore = Datastore(self.graph, self.resource_kit, self.sample_data, self.platform)
-        self.scheduler = Scheduler(self.graph, self.datastore, self.platform)
+        self.scheduler = Scheduler(self.graph, self.datastore, self.platform, self.script_tasks)
 
     def validate(self):
 
@@ -132,14 +141,24 @@ class GAPipeline(object):
     def publish_report(self, err=False, err_msg=None, git_version=None):
         # Create and publish GAP pipeline report
         try:
-            report = self.__make_pipeline_report(err, err_msg, git_version)
-
+            
             # Generate report name and path
-            report_path = f"{CC_MAIN_DIR}/{self.pipeline_id}_final_report.json"
+            if not self.__generate_script:
+                report = self.__make_pipeline_report(err, err_msg, git_version)
+                report_path = f"{CC_MAIN_DIR}/{self.pipeline_id}_final_report.json"
 
-            # Publish report locally
-            with open(report_path, "w") as out:
-                out.write(str(report))
+                # Publish report locally
+                with open(report_path, "w") as out:
+                    out.write(str(report))
+            else:
+                report_path = f"{CC_MAIN_DIR}/{self.pipeline_id}_cc_script.json"
+
+                # Publish report locally
+                with open(report_path, "w") as out:
+                    report = OrderedDict()
+                    report["git_commit"] = git_version
+                    report["tasks"] = self.script_tasks
+                    out.write(json.dumps(report, default=lambda o: o.__dict__, indent=4))
 
             # Publish report on the platform
             if self.platform is not None:
