@@ -500,14 +500,38 @@ class BGZipBED(Module):
         return cmd
 
 
-class GetReadGroup(Module):
+class GetFASTQHeader(Module):
     def __init__(self, module_id, is_docker = False):
-        super(GetReadGroup, self).__init__(module_id, is_docker)
-        self.output_keys = ["read_group"]
-        self.does_process_output = True
+        super(GetFASTQHeader, self).__init__(module_id, is_docker)
+        self.output_keys = ["fastq_header"]
 
     def define_input(self):
         self.add_argument("R1",             is_required=True)
+        self.add_argument("nr_cpus",        is_required=True, default_value=1)
+        self.add_argument("mem",            is_required=True, default_value=1)
+
+    def define_output(self):
+        self.add_output("fastq_header", None, is_path=False)
+
+    def define_command(self):
+        # Get arguments to run BWA aligner
+        R1              = self.get_argument("R1")
+
+        if R1.endswith(".gz"):
+            fastq_header = "zcat %s | head -n 1" % R1
+        else:
+            fastq_header = "head -n 1 %s" % R1
+
+        self.set_output("fastq_header", fastq_header)
+
+class MakeReadGroup(Module):
+
+    def __init__(self, module_id, is_docker = False):
+        super(MakeReadGroup, self).__init__(module_id, is_docker)
+        self.output_keys = ["read_group"]
+
+    def define_input(self):
+        self.add_argument("fastq_header",   is_required=True)
         self.add_argument("sample_name",    is_required=True)
         self.add_argument("lib_name",       is_required=True)
         self.add_argument("seq_platform",   is_required=True, default_value="Illumina")
@@ -518,23 +542,13 @@ class GetReadGroup(Module):
         self.add_output("read_group", None, is_path=False)
 
     def define_command(self):
-        # Get arguments to run BWA aligner
-        R1              = self.get_argument("R1")
-        if R1.endswith(".gz"):
-            cmd = "zcat %s | head -n 1" % R1
-        else:
-            cmd = "head -n 1 %s" % R1
-        return cmd
-
-    def process_cmd_output(self, out, err):
-
         # Obtain necessary data
-        lib_name = self.get_argument("lib_name")
-        seq_platform = self.get_argument("seq_platform")
-        fastq_header_data = out.lstrip("@").strip("\n").split(":")
+        sample_name   = self.get_argument("sample_name")
+        lib_name      = self.get_argument("lib_name")
+        seq_platform  = self.get_argument("seq_platform")
+        fastq_header  = self.get_argument("fastq_header")
 
-        # Obtain the sample name(s)
-        sample_name = self.get_argument("sample_name")
+        fastq_header_data   = fastq_header.lstrip("@").strip("\n").split(":")
 
         # Generating the read group information from command output
         rg_id = ":".join(fastq_header_data[0:4])  # Read Group ID
@@ -545,9 +559,9 @@ class GetReadGroup(Module):
             # UMI data. Get the second to last field instead (yes, this is hacky)
             rg_pu = fastq_header_data[-2]
 
-        rg_sm = sample_name if not isinstance(sample_name, list) else sample_name[0]    # Read Group Sample
-        rg_lb = lib_name if not isinstance(lib_name, list) else lib_name[0]             # Read Group Library ID
-        rg_pl = seq_platform if not isinstance(seq_platform, list) else seq_platform[0] # Read Group Platform used
+        rg_sm = sample_name if not isinstance(sample_name, list) else sample_name[0]  # Read Group Sample
+        rg_lb = lib_name if not isinstance(lib_name, list) else lib_name[0]  # Read Group Library ID
+        rg_pl = seq_platform if not isinstance(seq_platform, list) else seq_platform[0]  # Read Group Platform used
         read_group_header = "\\t".join(["@RG", "ID:%s" % rg_id, "PU:%s" % rg_pu,
                                         "SM:%s" % rg_sm, "LB:%s" % rg_lb, "PL:%s" % rg_pl])
 
