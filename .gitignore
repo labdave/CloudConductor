@@ -5,6 +5,7 @@ cc_log.txt
 cc_log*
 failed_module_log.txt
 *_final_report.json
+*_cc_script.json
 
 # pycharm
 .idea/
