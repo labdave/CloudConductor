@@ -33,8 +33,11 @@ class TranslocationFiltering(Module):
 		filt_translocations = self.get_output("filt_translocations")
 		fish_translocations = self.get_output("fish_translocations")
     
+		# Save the input
+		cmd = "cp {0} {1}".format(vcf, all_translocations)
+
 		# add arguments
-		cmd = "Rscript filter_translocations.R"
+		cmd += "; Rscript filter_translocations.R"
 
 		cmd += " -i {0}".format(vcf)
 		cmd += " -t {0}".format(filt_translocations)
