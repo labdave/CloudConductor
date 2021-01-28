@@ -67,6 +67,12 @@ class CNV_Aggregate_Global(Module):
         self.add_output("cyto_seg",     cyto_seg)
         self.add_output("arm_seg",      arm_seg)
 
+        norm_seg                = self.get_argument("norm_seg")
+        cyto_intersect_seg      = norm_seg.replace("norm.seg", "cyto_intersect.seg")
+        arm_intersect_seg       = norm_seg.replace("norm.seg", "arm_intersect.seg")
+        self.add_output("cyto_intersect_seg",     cyto_intersect_seg)
+        self.add_output("arm_intersect_seg",      arm_intersect_seg)
+
     def define_command(self):
         # Module creator needs to use renamed arguments as required by CC
         norm_seg                = self.get_argument("norm_seg")
@@ -114,6 +120,10 @@ class CNV_Aggregate_Focal(Module):
         sample_id               = self.get_argument("sample_id")
         gene_seg                = self.generate_unique_file_name(".{}.gene.seg".format(sample_id))
         self.add_output("gene_seg",     gene_seg)
+
+        norm_seg                = self.get_argument("norm_seg")
+        gene_intersect_seg      = norm_seg.replace("norm.seg", "gene_intersect.seg")
+        self.add_output("gene_intersect_seg",     gene_intersect_seg)
 
     def define_command(self):
         # Module creator needs to use renamed arguments as required by CC
