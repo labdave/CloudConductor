@@ -43,7 +43,7 @@ class CNV_Aggregate_Global(Module):
     def __init__(self, module_id, is_docker=False):
         super(CNV_Aggregate_Global, self).__init__(module_id, is_docker)
         # Add output keys here if needed
-        self.output_keys        = ["cyto_seg", "arm_seg"]
+        self.output_keys        = ["cyto_seg", "arm_seg", "cyto_intersect_seg", "arm_intersect_seg"]
 
 
     def define_input(self):
@@ -101,7 +101,7 @@ class CNV_Aggregate_Focal(Module):
     def __init__(self, module_id, is_docker=False):
         super(CNV_Aggregate_Focal, self).__init__(module_id, is_docker)
         # Add output keys here if needed
-        self.output_keys        = ["gene_seg"]
+        self.output_keys        = ["gene_seg", "gene_intersect_seg"]
 
 
     def define_input(self):
