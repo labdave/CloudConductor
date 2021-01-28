@@ -1116,7 +1116,7 @@ class ModelSegments(_GATKBase):
         self.add_argument("denoise_copy_ratio", is_required=True)
         self.add_argument("nr_cpus",            default_value=4)
         self.add_argument("mem",                default_value=8)
-        self.add_argument("global",             is_required=True)
+        self.add_argument("mode",               is_required=True)
 
     def define_output(self):
         # Get the sample name to use it in file name creation
@@ -1162,7 +1162,7 @@ class ModelSegments(_GATKBase):
         output_file_flag        = self.get_output_file_flag()
 
         # Get argument to see if it is focal or global
-        global_flag             = self.get_argument("global")
+        mode             = self.get_argument("mode")
 
         # Generate the command line for DenoiseReadCounts
         cmd = "{0} ModelSegments".format(gatk_cmd)
@@ -1171,7 +1171,7 @@ class ModelSegments(_GATKBase):
         cmd = "{0} --denoised-copy-ratios {1} --output-prefix {2} {3} {4}".format(cmd, denoise_copy_ratio, prefix,
                                                                                   output_file_flag, out_dir)
         # add arguments for global
-        if global_flag:
+        if mode == "global":
             cmd = "{0} --number-of-changepoints-penalty-factor 5 --kernel-variance-copy-ratio 0.25".format(cmd)
     
         # return command
