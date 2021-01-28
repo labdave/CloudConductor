@@ -53,6 +53,8 @@ class CNV_Aggregate_Global(Module):
         self.add_argument("mem",        default_value=4)
         self.add_argument("sample_id",  is_required=True)
         self.add_argument("norm_seg",   is_required=True)
+        self.add_argument("cyto_bed",   is_resource=True)
+        self.add_argument("arm_bed",   is_resource=True)
 
 
     def define_output(self):
@@ -76,6 +78,9 @@ class CNV_Aggregate_Global(Module):
         cyto_intersect_seg      = norm_seg.replace("norm.seg", "cyto_intersect.seg")
         arm_intersect_seg       = norm_seg.replace("norm.seg", "arm_intersect.seg")
         sample_id               = self.get_argument("sample_id")
+
+        cyto_bed                = self.get_argument("cyto_bed")
+        arm_bed                 = self.get_argument("arm_bed")
         
         # add command
         cmd = ""
@@ -100,6 +105,7 @@ class CNV_Aggregate_Focal(Module):
         self.add_argument("mem",        default_value=4)
         self.add_argument("sample_id",  is_required=True)
         self.add_argument("norm_seg",   is_required=True)
+        self.add_argument("arm_bed",   is_resource=True)
 
 
     def define_output(self):
@@ -118,6 +124,8 @@ class CNV_Aggregate_Focal(Module):
 
         gene_intersect_seg      = norm_seg.replace("norm.seg", "gene_intersect.seg")
         sample_id               = self.get_argument("sample_id")
+
+        gene_bed                = self.get_argument("gene_bed")
         
         # add command
         cmd = ""
