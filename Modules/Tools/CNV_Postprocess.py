@@ -52,7 +52,6 @@ class CNV_Aggregate_Global(Module):
         # Module creator needs to rename arguments as required by CC
         self.add_argument("nr_cpus",    default_value=1)
         self.add_argument("mem",        default_value=4)
-        self.add_argument("global",     is_required=True)
         self.add_argument("sample_id",  is_required=True)
         self.add_argument("norm_seg",   is_required=True)
 
@@ -100,7 +99,6 @@ class CNV_Aggregate_Focal(Module):
         # Module creator needs to rename arguments as required by CC
         self.add_argument("nr_cpus",    default_value=1)
         self.add_argument("mem",        default_value=4)
-        self.add_argument("global",     is_required=True)
         self.add_argument("sample_id",  is_required=True)
         self.add_argument("norm_seg",   is_required=True)
 
