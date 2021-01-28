@@ -54,7 +54,7 @@ class CNV_Aggregate_Global(Module):
         self.add_argument("sample_id",  is_required=True)
         self.add_argument("norm_seg",   is_required=True)
         self.add_argument("cyto_bed",   is_resource=True)
-        self.add_argument("arm_bed",   is_resource=True)
+        self.add_argument("arm_bed",    is_resource=True)
 
 
     def define_output(self):
@@ -105,7 +105,7 @@ class CNV_Aggregate_Focal(Module):
         self.add_argument("mem",        default_value=4)
         self.add_argument("sample_id",  is_required=True)
         self.add_argument("norm_seg",   is_required=True)
-        self.add_argument("arm_bed",   is_resource=True)
+        self.add_argument("gene_bed",   is_resource=True)
 
 
     def define_output(self):
