@@ -27,11 +27,11 @@ class AggregateCNVSegments(Merger):
 
         long_arm_seg, long_cyto_seg, long_gene_seg = "", "", ""
         for item in arm_seg:
-            long_arm_seg += "^{}".format(item)
+            long_arm_seg += "{}^".format(item)
         for item in cyto_seg:
-            long_cyto_seg += "^{}".format(item)
+            long_cyto_seg += "{}^".format(item)
         for item in gene_seg:
-            long_gene_seg += "^{}".format(item)
+            long_gene_seg += "{}^".format(item)
 
         merged_arm_seg      = self.get_output("merged_arm_seg")
         merged_cyto_seg     = self.get_output("merged_cyto_seg")
