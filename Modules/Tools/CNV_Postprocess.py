@@ -90,7 +90,7 @@ class CNV_Aggregate_Global(Module):
         
         # add command
         cmd = ""
-        cmd += "grep -v MEAN_LOG2_COPY_RATIO {0} | grep -v GL > tmp !LOG3!; ".format(norm_seg)
+        cmd += "grep -v MEAN_LOG2_COPY_RATIO {0} | grep -v GL | grep -v KI > tmp !LOG3!; ".format(norm_seg)
         cmd += "bedtools intersect -loj -a {0} -b tmp > {1} !LOG3!; ".format(cyto_bed, cyto_intersect_seg)
         cmd += "bedtools intersect -loj -a {0} -b tmp > {1} !LOG3!; ".format(arm_bed, arm_intersect_seg)
         cmd += "python3 get_cyto_cn.py {0} {1} {2} {3} !LOG3!; ".format(cyto_bed, cyto_intersect_seg, cyto_seg, sample_id)
@@ -140,7 +140,7 @@ class CNV_Aggregate_Focal(Module):
         
         # add command
         cmd = ""
-        cmd += "grep -v MEAN_LOG2_COPY_RATIO {0} | grep -v GL > tmp !LOG3!; ".format(norm_seg)
+        cmd += "grep -v MEAN_LOG2_COPY_RATIO {0} | grep -v GL | grep -v KI > tmp !LOG3!; ".format(norm_seg)
         cmd += "bedtools intersect -loj -a {0} -b tmp > {1} !LOG3!; ".format(gene_bed, gene_intersect_seg)
         cmd += "python3 get_gene_cn.py {0} {1} {2} {3} !LOG3!; ".format(gene_bed, gene_intersect_seg, gene_seg, sample_id)
 
