@@ -63,7 +63,7 @@ class AnnotateSVGenes(Module):
         output_table             = self.get_output("anno_vcf")
 
         # Add module and arguments
-        cmd = "python annotate_sv_genes.py {0} {1} {3}".format(
+        cmd = "python annotate_sv_genes.py {0} {1} {2}".format(
             input_table, output_table, gene_bed)
 
         # Add logging
