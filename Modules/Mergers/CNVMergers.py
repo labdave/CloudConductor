@@ -13,11 +13,11 @@ class AggregateCNVSegments(Merger):
         self.add_argument("nr_cpus",        default_value=2)
 
     def define_output(self):
-        merged_gene_seg     = self.generate_unique_file_name(extension=".merged.gene.csv")
+        merged_gene_seg     = self.generate_unique_file_name(extension=".merged.gene.tsv")
         self.add_output("merged_gene_seg",  merged_gene_seg)
-        merged_cyto_seg     = self.generate_unique_file_name(extension=".merged.cyto.csv")
+        merged_cyto_seg     = self.generate_unique_file_name(extension=".merged.cyto.tsv")
         self.add_output("merged_cyto_seg",  merged_cyto_seg)
-        merged_arm_seg      = self.generate_unique_file_name(extension=".merged.arm.csv")
+        merged_arm_seg      = self.generate_unique_file_name(extension=".merged.arm.tsv")
         self.add_output("merged_arm_seg",   merged_arm_seg)
 
     def define_command(self):
