@@ -25,7 +25,7 @@ class AggregateCNVSegments(Merger):
         cyto_seg            = self.get_argument("cyto_seg")
         gene_seg            = self.get_argument("gene_seg")
 
-        long_arm_seg, long_cyto_seg, long_gene_seg = arm_seg[0], cyto_seg[0], gene_seg[0]
+        long_arm_seg, long_cyto_seg, long_gene_seg = "", "", ""
         for item in arm_seg:
             long_arm_seg += "|{}".format(item)
         for item in cyto_seg:
@@ -38,9 +38,9 @@ class AggregateCNVSegments(Merger):
         merged_gene_seg     = self.get_output("merged_gene_seg")
 
         cmd = ""
-        cmd += "python merge_tables.py {0} {1} !LOG3!; ".format(long_arm_seg, merged_arm_seg)
-        cmd += "python merge_tables.py {0} {1} !LOG3!; ".format(long_cyto_seg, merged_cyto_seg)
-        cmd += "python merge_tables.py {0} {1} !LOG3!; ".format(long_gene_seg, merged_gene_seg)
+        cmd += "python merge_tables.py {0} {1} !LOG3!; ".format(long_arm_seg.strip("|"), merged_arm_seg)
+        cmd += "python merge_tables.py {0} {1} !LOG3!; ".format(long_cyto_seg.strip("|"), merged_cyto_seg)
+        cmd += "python merge_tables.py {0} {1} !LOG3!; ".format(long_gene_seg.strip("|"), merged_gene_seg)
 
 
         return cmd
