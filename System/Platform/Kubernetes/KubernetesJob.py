@@ -64,6 +64,7 @@ class KubernetesJob(Instance):
         self.k8s_provider = kwargs.pop("provider")
 
         self.preemptible = kwargs.pop("preemptible", False)
+        self.final_output_dir = kwargs.pop("final_output_dir", "")
 
         all_pools = kwargs.pop("pools", [])
         self.extra_persistent_volumes = kwargs.pop("persistent_volumes", [])
@@ -109,7 +110,7 @@ class KubernetesJob(Instance):
         # cmd = re.sub(r"{ (.*[\s\S]+);}", r"\1", cmd)
 
         # Checking if logging is required
-        if "!LOG" in cmd:
+        if "!LOG" in cmd or (self.script_task and self.script_task.post_processing_required and job_name == self.script_task.task_id):
 
             # Generate name of log file
             log_file = f"{job_name}.log"
@@ -123,10 +124,16 @@ class KubernetesJob(Instance):
             log_cmd_all     = f" |& tee -a {log_file}"
 
             # Replacing the placeholders with the logging pipes
-            cmd = cmd.replace("!LOG0!", log_cmd_null)
-            cmd = cmd.replace("!LOG1!", log_cmd_stdout)
-            cmd = cmd.replace("!LOG2!", log_cmd_stderr)
-            cmd = cmd.replace("!LOG3!", log_cmd_all)
+            if self.script_task and self.script_task.post_processing_required and job_name == self.script_task.task_id:
+                if "!LOG" in cmd:
+                    cmd = re.sub("!LOG[0-9]!", log_cmd_stdout, cmd)
+                else:
+                    cmd += f" {log_cmd_stdout}"
+            else:
+                cmd = cmd.replace("!LOG0!", log_cmd_null)
+                cmd = cmd.replace("!LOG1!", log_cmd_stdout)
+                cmd = cmd.replace("!LOG2!", log_cmd_stderr)
+                cmd = cmd.replace("!LOG3!", log_cmd_all)
 
         # Save original command
         original_cmd = cmd
@@ -139,7 +146,37 @@ class KubernetesJob(Instance):
             "docker_image": docker_image,
             "docker_entrypoint": docker_entrypoint
         }
-        self.processes[job_name] = task
+        final_output = self.final_output_dir.replace("//", "") + self.script_task.task_id.replace("-", "_")
+        submodule_arg = "" if not self.script_task.submodule_name else ' -sm '+self.script_task.submodule_name
+        if self.script_task and self.script_task.update_input_required and job_name == self.script_task.task_id:
+            # if the input for the given task needs to be updated because a parent's output will update
+            update_command_task = {
+                "original_cmd": 'cd /CloudConductor && git pull && git checkout "${GIT_COMMIT}" && python ModuleRunner -m '+self.script_task.module_name+submodule_arg+' -inputs "${MODULE_INPUTS}" -c '+self.wrk_out_dir+'/command.txt -o '+self.wrk_out_dir+'/output_values.json',
+                "num_retries": self.default_num_cmd_retries,
+                "docker_image": "davelabhub/cloudconductor",
+                "docker_entrypoint": None,
+            }
+            self.processes["update_command_task"] = update_command_task
+            task["original_cmd"] = f"cat {self.wrk_out_dir}/command.txt | bash"
+            self.processes[job_name] = task
+        if self.script_task and self.script_task.post_processing_required and job_name == self.script_task.task_id:
+            self.processes[job_name] = task
+            process_output_task = {
+                "original_cmd": 'cd /CloudConductor && git pull && git checkout "${GIT_COMMIT}" && python ModuleRunner -m '+self.script_task.module_name+submodule_arg+' -inputs "${MODULE_INPUTS}" -ro '+log_file+' -o '+self.wrk_out_dir+'/output_values.json',
+                "num_retries": self.default_num_cmd_retries,
+                "docker_image": "davelabhub/cloudconductor",
+                "docker_entrypoint": None,
+            }
+            self.processes["process_output"] = process_output_task
+            save_output_values = {
+                "original_cmd": f"rclone copyto {self.wrk_out_dir}/output_values.json {final_output}/output_values.json",
+                "num_retries": self.default_num_cmd_retries,
+                "docker_image": "rclone/rclone:1.52",
+                "docker_entrypoint": None,
+            }
+            self.processes["save_output_json"] = save_output_values
+        else:
+            self.processes[job_name] = task
 
     def destroy(self):
         if not self.script_task:
@@ -177,7 +214,7 @@ class KubernetesJob(Instance):
             self.script_task.storage_request = self.disk_space
 
         # create the job definition
-        self.job_def = self.__create_job_def()
+        self.job_def = self.__create_job_def(return_last_task_log)
 
         # launch and monitor the job if we're not just generating a script
         if not self.script_task:
@@ -352,14 +389,12 @@ class KubernetesJob(Instance):
                 else:
                     raise RuntimeError(f"({self.name}) Failure to create a Persistent Volume Claim on the cluster. Response: {str(pvc_response)}")
 
-    def __create_job_def(self, rerun=False):
+    def __create_job_def(self, post_processing_required=False):
         # initialize the job def body
         self.inst_name = self.name
         if self.job_count > 1:
             self.inst_name = self.inst_name + '-' + str(self.job_count)
-        if not rerun:
-            self.job_names[self.inst_name] = self.job_count
-            self.job_count += 1
+        self.job_count += 1
         job_def = client.V1Job(kind="Job")
         job_def.metadata = client.V1ObjectMeta(namespace=self.namespace, name=self.inst_name)
 
@@ -521,8 +556,8 @@ class KubernetesJob(Instance):
                 )
             )
 
-            if self.script_task:
-                self.script_task.commands[formatted_container_name] = ({"name": formatted_container_name, "docker_image": container_image, "command": entrypoint, "args": [args]})
+            if self.script_task and container_name not in self.script_task.commands:
+                self.script_task.commands[container_name] = ({"name": formatted_container_name, "docker_image": container_image, "command": entrypoint, "args": [args]})
 
         job_spec = dict(
             backoff_limit=self.default_num_cmd_retries

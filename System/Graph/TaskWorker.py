@@ -3,6 +3,7 @@ import time
 import os
 import math
 import logging
+import json
 
 from System.Workers import Thread
 from System.Graph import ModuleExecutor
@@ -147,7 +148,12 @@ class TaskWorker(Thread):
             docker_image    = None
             input_files     = self.datastore.get_task_input_files(self.task.get_ID())
             if self.script_task:
+                # if generating a task script save the input files
                 self.script_task.input_files = [x.path for x in input_files]
+                self.script_task.module_name = self.task.get_module_name()
+                self.script_task.submodule_name = self.task.get_submodule_name()
+                self.script_task.input_values = {x: self.module.get_argument(x) for x in self.module.get_arguments()}
+                self.script_task.post_processing_required = self.module.does_process_output
             if self.task.get_docker_image_id() is not None:
                 docker_image    = self.datastore.get_docker_image(docker_id=self.task.get_docker_image_id())
             disk_space      = self.__compute_disk_requirements(input_files, docker_image)
@@ -234,8 +240,6 @@ class TaskWorker(Thread):
                                 # wait for all processes
                                 out, err = self.proc.wait(return_last_task_log=True)
                             self.module.process_cmd_output(out, err)
-                        else:
-                            self.script_task.post_processing_required = True
 
                     if not self.module.is_resumable:
                         self.proc.add_checkpoint(False)  # mark a checkpoint after the command(s) have been run
@@ -256,8 +260,6 @@ class TaskWorker(Thread):
                                 # wait for all processes
                                 out, err = self.proc.wait(return_last_task_log=True)
                             self.module.process_cmd_output(out, err)
-                        else:
-                            self.script_task.post_processing_required = True
 
                     if not self.module.is_resumable:
                         self.proc.add_checkpoint(False)  # mark a checkpoint after the command has been run

@@ -229,6 +229,9 @@ def main():
     # Configure system resource limits
     configure_res_limit()
 
+    if args.generate_script:
+        args.platform_module = "KubernetesCluster"
+
     # Create pipeline object
     pipeline = GAPipeline(pipeline_id=args.pipeline_name,
                           graph_config=args.graph_config,

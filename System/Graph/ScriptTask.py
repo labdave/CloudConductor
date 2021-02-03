@@ -9,6 +9,8 @@ class ScriptTask(object):
         self.task_id                    = task_id
         self.instance_name              = ""
         self.parents                    = []
+        self.module_name                = ""
+        self.submodule_name             = ""
         self.cpu_request                = None
         self.cpu_max                    = None
         self.memory_request             = None
@@ -17,6 +19,7 @@ class ScriptTask(object):
         self.calculate_storage          = False
         self.commands                   = OrderedDict()
         self.input_files                = []
+        self.input_values               = {}
         self.output_files               = []
         self.extra_volumes              = []
         self.labels                     = []
@@ -39,6 +42,7 @@ class ScriptTask(object):
         task["calculate_storage"]           = self.calculate_storage
         task["commands"]                    = self.commands
         task["input_files"]                 = self.input_files
+        task["input_values"]                = self.input_values
         task["output_files"]                = self.output_files
         task["extra_volumes"]               = self.extra_volumes
         task["labels"]                      = self.labels
