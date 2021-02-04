@@ -1058,6 +1058,7 @@ class SubsetFASTQ(Module):
 
         return f'{r1_cmd} !LOG2!'
 
+<<<<<<< HEAD
 class MoveUMIToBAMTag(Module):
     def __init__(self, module_id, is_docker = False):
         super(MoveUMIToBAMTag, self).__init__(module_id, is_docker)
@@ -1185,3 +1186,37 @@ class SpringDecompress(Module):
             return cmd
         else:
             return ""
+=======
+
+class pcrDupInsert(Module):
+    def __init__(self, module_id, is_docker=False):
+        super(pcrDupInsert, self).__init__(module_id, is_docker)
+        self.output_keys = ["dup_insert","nodup_insert","ercc_insert"]
+
+    def define_input(self):
+        self.add_argument("bam", is_required=True)
+        self.add_argument("nr_cpus", is_required=True, default_value=2)
+        self.add_argument("mem", is_required=True, default_value=4)
+
+    def define_output(self):
+        dups = self.generate_unique_file_name(extension=".pcr_dup_out.txt")
+        nodups = self.generate_unique_file_name(extension=".pcr_nodup_out.txt")
+        ercc = self.generate_unique_file_name(extension=".pcr_ercc_out.txt")
+        
+        self.add_output("dup_insert", dups)
+        self.add_output("nodup_insert", nodups)
+        self.add_output("ercc_insert", ercc)
+
+
+    def define_command(self):
+        bam    = self.get_argument("bam")
+        cpus   = self.get_argument("nr_cpus")
+        dups   = self.get_output("dup_insert")
+        nodups = self.get_output("nodup_insert")
+        ercc   = self.get_output("ercc_insert")
+        
+        cmd = "bash misc_scripts/insert_size_pcr_dup_dt.sh {0} {1} {2} {3} {4} !LOG3!".format(bam,cpus,dups, nodups, ercc)
+        return cmd
+
+
+>>>>>>> pcr_dups_insert
