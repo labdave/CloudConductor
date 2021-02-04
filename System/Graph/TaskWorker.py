@@ -152,7 +152,6 @@ class TaskWorker(Thread):
                 self.script_task.input_files = [x.path for x in input_files]
                 self.script_task.module_name = self.task.get_module_name()
                 self.script_task.submodule_name = self.task.get_submodule_name()
-                self.script_task.input_values = {x: self.module.get_argument(x) for x in self.module.get_arguments()}
                 self.script_task.post_processing_required = self.module.does_process_output
             if self.task.get_docker_image_id() is not None:
                 docker_image    = self.datastore.get_docker_image(docker_id=self.task.get_docker_image_id())
@@ -283,6 +282,9 @@ class TaskWorker(Thread):
 
                 # Set the status to finalized
                 self.set_status(self.FINALIZING)
+            
+            if self.script_task:
+                self.script_task.input_values = {x: self.module.get_argument(x) for x in self.module.get_arguments()}
 
             if len(output_files) > 0:
                 if not self.script_task:

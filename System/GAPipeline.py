@@ -157,7 +157,17 @@ class GAPipeline(object):
                 with open(report_path, "w") as out:
                     report = OrderedDict()
                     report["git_commit"] = git_version
-                    report["tasks"] = self.script_tasks
+                    report["run_name"] = self.pipeline_id
+                    for k, task in self.script_tasks.items():
+                        # convert commands into list rather than dictionary
+                        cmd_list = []
+                        index = 0
+                        for cmd in task.commands.values():
+                            cmd["index"] = index
+                            cmd_list.append(cmd)
+                            index += 1
+                        task.commands = cmd_list
+                    report["tasks"] = list(self.script_tasks.values())
                     out.write(json.dumps(report, default=lambda o: o.__dict__, indent=4))
 
             # Publish report on the platform

@@ -557,7 +557,7 @@ class KubernetesJob(Instance):
             )
 
             if self.script_task and container_name not in self.script_task.commands:
-                self.script_task.commands[container_name] = ({"name": formatted_container_name, "docker_image": container_image, "command": entrypoint, "args": [args]})
+                self.script_task.commands[container_name] = ({"name": formatted_container_name, "docker_image": container_image, "entrypoint": entrypoint, "args": [args]})
 
         job_spec = dict(
             backoff_limit=self.default_num_cmd_retries

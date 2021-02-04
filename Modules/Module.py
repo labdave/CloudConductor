@@ -104,7 +104,7 @@ class Module(object, metaclass=abc.ABCMeta):
                     err = True
                 else:
                     script_task.update_input_required = True
-                    arg.set("")
+                    arg.set("MISSING!")
         if err:
             # Raise error if any required arguments have not been set
             raise RuntimeError("Module could not generate command! Required inputs missing at runtime!")
