@@ -3,65 +3,47 @@ from Modules import Merger
 class AggregateCNVSegments(Merger):
     def __init__(self, module_id, is_docker = False):
         super(AggregateCNVSegments, self).__init__(module_id, is_docker)
-        self.output_keys    = ["gene_seg", "cyto_seg"]
+        self.output_keys    = ["merged_gene_seg", "merged_cyto_seg", "merged_arm_seg"]
 
     def define_input(self):
-        self.add_argument("seg_call",       is_required=True)
-        self.add_argument("sample_id",      is_required=True)
-        self.add_argument("gene_bed",       is_resource=True)
-        self.add_argument("cyto_bed",       is_resource=True)
+        self.add_argument("arm_seg",        is_required=True)
+        self.add_argument("cyto_seg",       is_required=True)
+        self.add_argument("gene_seg",       is_required=True)
         self.add_argument("mem",            default_value=10)
         self.add_argument("nr_cpus",        default_value=2)
 
     def define_output(self):
-        gene_seg_file       = self.generate_unique_file_name(extension=".gene.csv")
-        self.add_output("gene_seg", gene_seg_file)
-        cyto_seg_file       = self.generate_unique_file_name(extension=".cyto.csv")
-        self.add_output("cyto_seg", cyto_seg_file)
+        merged_gene_seg     = self.generate_unique_file_name(extension=".merged.gene.tsv")
+        self.add_output("merged_gene_seg",  merged_gene_seg)
+        merged_cyto_seg     = self.generate_unique_file_name(extension=".merged.cyto.tsv")
+        self.add_output("merged_cyto_seg",  merged_cyto_seg)
+        merged_arm_seg      = self.generate_unique_file_name(extension=".merged.arm.tsv")
+        self.add_output("merged_arm_seg",   merged_arm_seg)
 
     def define_command(self):
-        segs                = self.get_argument("seg_call")
-        samples             = self.get_argument("sample_id")
-        gene_bed            = self.get_argument("gene_bed")
-        cyto_bed            = self.get_argument("cyto_bed")
+        arm_seg             = self.get_argument("arm_seg")
+        cyto_seg            = self.get_argument("cyto_seg")
+        gene_seg            = self.get_argument("gene_seg")
 
-        gene_seg            = self.get_output("gene_seg")
-        cyto_seg            = self.get_output("cyto_seg")
+        long_arm_seg, long_cyto_seg, long_gene_seg = "", "", ""
+        for item in arm_seg:
+            long_arm_seg += "{}-".format(item)
+        for item in cyto_seg:
+            long_cyto_seg += "{}-".format(item)
+        for item in gene_seg:
+            long_gene_seg += "{}-".format(item)
 
-        join_gene_seg       = self.generate_unique_file_name(".join_gene_seg")
-        join_cyto_seg       = self.generate_unique_file_name(".join_cyto_seg")
-        join_sample         = self.generate_unique_file_name(".join_sample")
+        merged_arm_seg      = self.get_output("merged_arm_seg")
+        merged_cyto_seg     = self.get_output("merged_cyto_seg")
+        merged_gene_seg     = self.get_output("merged_gene_seg")
 
-        cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7 = "", "", "", "", "", "", ""
+        cmd = ""
+        cmd += "python merge_tables.py {0} {1} !LOG3!; ".format(long_arm_seg.strip("-"), merged_arm_seg)
+        cmd += "python merge_tables.py {0} {1} !LOG3!; ".format(long_cyto_seg.strip("-"), merged_cyto_seg)
+        cmd += "python merge_tables.py {0} {1} !LOG3!; ".format(long_gene_seg.strip("-"), merged_gene_seg)
 
-        # if there's only one sample, make it a list
-        if not isinstance(segs, list):
-            seg = [segs]
-            samples = [samples]
 
-        # need to parse and intersect the seg files
-        for seg in segs:
-            filtered_seg = seg.replace("called.seg", "filtered.seg")
-            gene_intersect_seg = seg.replace("called.seg", "gene_intersect.seg")
-            cyto_intersect_seg = seg.replace("called.seg", "cyto_intersect.seg")
-            cmd1 += "grep -v '@' {0} | grep -v 'CONTIG' > {1}; ".format(seg, filtered_seg)
-            cmd2 += "bedtools intersect -loj -a {0} -b {1} > {2}; ".format(gene_bed, filtered_seg, gene_intersect_seg)
-            cmd3 += "bedtools intersect -loj -a {0} -b {1} > {2}; ".format(cyto_bed, filtered_seg, cyto_intersect_seg)
-
-        # command becomes too long, need to store data in a file
-        for seg in segs:
-            gene_intersect_seg = seg.replace("called.seg", "gene_intersect.seg")
-            cyto_intersect_seg = seg.replace("called.seg", "cyto_intersect.seg")
-            cmd3 += "echo {0} >> {1}; ".format(gene_intersect_seg, join_gene_seg)
-            cmd4 += "echo {0} >> {1}; ".format(cyto_intersect_seg, join_cyto_seg)
-
-        for sample in samples:
-            cmd5 += "echo {0} >> {1}; ".format(sample, join_sample)
-
-        cmd6 += "python get_gene_cn.py {0} {1} {2} {3} !LOG3!; ".format(gene_bed, join_gene_seg, join_sample, gene_seg)
-        cmd7 += "python get_cyto_cn.py {0} {1} {2} {3} !LOG3!; ".format(cyto_bed, join_cyto_seg, join_sample, cyto_seg)
-
-        return [cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7]
+        return cmd
 
 
 class MakeCNVPoN(Merger):
