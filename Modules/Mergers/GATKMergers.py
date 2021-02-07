@@ -492,3 +492,72 @@ class CreateReadCountPanelOfNormals(_GATKBase):
                    eigensamples, output_file_flag, pon)
 
         return "{0} !LOG3!".format(cmd)
+
+class DiagnoseTargets(_GATKBase):
+
+    def __init__(self, module_id, is_docker=False):
+        super(DiagnoseTargets, self).__init__(module_id, is_docker)
+        self.output_keys = ["vcf", "vcf_idx"]
+
+    def define_input(self):
+        self.define_base_args()
+        self.add_argument("bam",          is_required=True)
+        self.add_argument("bam_idx",      is_required=True)
+        self.add_argument("bed",          is_required=True)
+        self.add_argument("min_coverage", is_required=True, default_value=10)
+        self.add_argument("max_coverage", is_required=True, default_value=200)
+        self.add_argument("nr_cpus",      is_required=True, default_value=1)
+        self.add_argument("mem",          is_required=True, default_value=6)
+
+    def define_output(self):
+        # Declare output filenames
+        vcf = self.generate_unique_file_name(extension=".vcf")
+        vcf_idx = vcf + ".idx"
+        missing_intervals = self.generate_unique_file_name(extension=".missing.out")
+        
+        self.add_output("vcf", vcf)
+        self.add_output("vcf_idx", vcf_idx)
+        self.add_output("missing_intervals", missing_intervals)
+
+    def define_command(self):
+        # Get input arguments
+        bam = self.get_argument("bam")
+        bed = self.get_argument("bed") # The target capture panel BED file
+        ref = self.get_argument("ref")
+        min_coverage = self.get_argument("min_coverage")
+        max_coverage = self.get_argument("max_coverage")
+        
+        # Get output arguments
+        vcf = self.get_output("vcf")
+        missing_intervals = self.get_output("missing_intervals")
+
+        # Get the output file flag depending on GATK version
+        output_file_flag = self.get_output_file_flag()
+
+        # Get GATK base command
+        gatk_cmd = self.get_gatk_command()
+
+        # Generate the command line for DiagnoseTargets
+        cmd = f"{gatk_cmd} DiagnoseTargets"
+
+        # Add reference (.dict and .fa.fai are implied to be present)
+        cmd = f"{cmd} -R {ref}"
+
+        # Add capture panel
+        cmd = f"{cmd} -L {bed}"
+
+        # Add parameters: minimum threshold and excessive coverage threshold
+        cmd = f"{cmd} -min {min_coverage} -max {max_coverage}"
+
+        # Add outputs
+        cmd = f"{cmd} {self.get_output_file_flag()} {vcf} --missing_intervals {missing_intervals}"
+
+        # If you get a list of input BAMs, create a list of input files
+        if isinstance(bam, list):
+            cmd = f"{cmd} -I {' -I '.join(bam)}"
+        else:
+            cmd = f"{cmd} -I {bam}"
+
+
+        return f"{cmd} !LOG3!"
+
