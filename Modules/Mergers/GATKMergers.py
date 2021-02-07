@@ -497,7 +497,7 @@ class DiagnoseTargets(_GATKBase):
 
     def __init__(self, module_id, is_docker=False):
         super(DiagnoseTargets, self).__init__(module_id, is_docker)
-        self.output_keys = ["vcf", "vcf_idx"]
+        self.output_keys = ["vcf", "vcf_idx", "missing_intervals"]
 
     def define_input(self):
         self.define_base_args()
