@@ -156,6 +156,7 @@ class GAPipeline(object):
                 # Publish report locally
                 with open(report_path, "w") as out:
                     report = OrderedDict()
+                    report["final_output"] = self.__final_output_dir
                     for k, task in self.script_tasks.items():
                         # convert commands into list rather than dictionary
                         cmd_list = []
