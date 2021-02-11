@@ -594,8 +594,10 @@ class KubernetesJob(Instance):
 
         if self.script_task:
             self.script_task.num_retries = self.default_num_cmd_retries
-            self.script_task.labels = job_labels
-            self.script_task.annotations = annotations
+            for k, v in job_labels.items():
+                self.script_task.labels.append({"key": k, "value": v})
+            for k, v in annotations.items():
+                self.script_task.annotations.append({"key": k, "value": v})
 
         return job_def
 

@@ -160,6 +160,7 @@ class GAPipeline(object):
                         # convert commands into list rather than dictionary
                         cmd_list = []
                         index = 0
+                        task.labels.append({"key": "analysis", "value": self.pipeline_id})
                         for cmd in task.commands.values():
                             cmd["index"] = index
                             cmd_list.append(cmd)
