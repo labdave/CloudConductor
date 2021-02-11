@@ -436,6 +436,7 @@ class KubernetesJob(Instance):
             self.script_task.memory_max = mem_request_max
             self.script_task.instance_name = self.inst_name
             self.script_task.force_standard = not self.preemptible
+            self.script_task.pool_name = str(self.node_label)
 
         # place the job in the appropriate node pool
         node_label_dict = {'poolName': str(self.node_label)}
