@@ -40,6 +40,7 @@ class KubernetesCluster(Platform):
         self.cpu_reserve = self.config.get("cpu_reserve", 0.1)
         self.mem_reserve = self.config.get("mem_reserve", 1)
         self.pools = self.config.get("pools", [])
+        self.namespace = self.config.get("namespace", "cloud-conductor")
         self.persistent_volumes = self.config.get("persistent_volumes", [])
         self.storage_price = self.config.get("storage_price", 0)
 
@@ -78,6 +79,7 @@ class KubernetesCluster(Platform):
             "region": self.region,
             "zone": self.zone,
             "pools": self.pools,
+            "namespace": self.namespace,
             "persistent_volumes": self.persistent_volumes,
             "cpu_reserve": self.cpu_reserve,
             "mem_reserve": self.mem_reserve,
@@ -114,7 +116,7 @@ class KubernetesCluster(Platform):
         self.batch_api = client.BatchV1Api(client.ApiClient(self.configuration))
         self.core_api = client.CoreV1Api(client.ApiClient(self.configuration))
 
-        self.status_manager = KubernetesStatusManager(self.batch_api, self.core_api)
+        self.status_manager = KubernetesStatusManager(self.batch_api, self.core_api, self.namespace)
         self.status_manager.start_job_monitoring()
 
     def init_platform(self):
@@ -128,7 +130,7 @@ class KubernetesCluster(Platform):
     def validate(self):
         if not self.generate_script:
             try:
-                namespace_list = api_request(self.batch_api.list_namespaced_job, namespace='cloud-conductor')
+                namespace_list = api_request(self.batch_api.list_namespaced_job, namespace=self.namespace)
                 if not namespace_list or not namespace_list.items:
                     logging.error("Failed to validate Kubernetes platform.")
                     raise RuntimeError("Failed to validate Kubernetes platform.")

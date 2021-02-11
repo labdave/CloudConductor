@@ -30,7 +30,7 @@ class KubernetesJob(Instance):
 
         self.task_prefix_filter = ['mkdir_wrk_dir', 'docker_pull']
 
-        self.namespace = 'cloud-conductor'
+        self.namespace = kwargs.pop("namespace", "cloud-conductor")
         self.nodepool_info = None
         self.volume_name = None
 

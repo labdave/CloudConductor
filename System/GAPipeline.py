@@ -156,8 +156,6 @@ class GAPipeline(object):
                 # Publish report locally
                 with open(report_path, "w") as out:
                     report = OrderedDict()
-                    report["git_commit"] = git_version
-                    report["run_name"] = self.pipeline_id
                     for k, task in self.script_tasks.items():
                         # convert commands into list rather than dictionary
                         cmd_list = []
@@ -167,13 +165,15 @@ class GAPipeline(object):
                             cmd_list.append(cmd)
                             index += 1
                         task.commands = cmd_list
+                        task.git_commit = git_version
                     report["tasks"] = list(self.script_tasks.values())
                     out.write(json.dumps(report, default=lambda o: o.__dict__, indent=4))
 
             # Publish report on the platform
             if self.platform is not None:
                 self.platform.publish_report(report_path)
-                self.platform.push_log(f"{CC_MAIN_DIR}/cc_log.txt")
+                if not self.__generate_script:
+                    self.platform.push_log(f"{CC_MAIN_DIR}/cc_log.txt")
 
         except BaseException as e:
             logging.error("Unable to publish report!")
