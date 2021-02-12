@@ -29,8 +29,7 @@ class ScriptTask(object):
         self.post_processing_required   = False
         self.update_input_required      = False
         self.force_standard             = False
-        self.successful                 = False
-        self.failed                     = False
+        self.status                     = "IDLE"
         self.start_time                 = None
         self.end_time                   = None
         self.run_time                   = 0
@@ -59,8 +58,7 @@ class ScriptTask(object):
         task["post_processing_required"]    = self.post_processing_required
         task["update_input_required"]       = self.update_input_required
         task["force_standard"]              = self.force_standard
-        task["successful"]                      = self.successful
-        task["failed"]                      = self.failed
+        task["status"]                      = self.status
         task["run_time"]                    = self.run_time
         task["start_time"]                  = self.start_time
         task["end_time"]                    = self.end_time
