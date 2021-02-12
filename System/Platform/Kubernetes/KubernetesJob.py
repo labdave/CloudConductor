@@ -437,6 +437,7 @@ class KubernetesJob(Instance):
             self.script_task.instance_name = self.inst_name
             self.script_task.force_standard = not self.preemptible
             self.script_task.pool_name = str(self.node_label)
+            self.script_task.instance_type = str(self.nodepool_info["inst_type"])
 
         # place the job in the appropriate node pool
         node_label_dict = {'poolName': str(self.node_label)}

@@ -17,6 +17,7 @@ class ScriptTask(object):
         self.memory_max                 = None
         self.storage_request            = None
         self.pool_name                  = ""
+        self.instance_type              = ""
         self.calculate_storage          = False
         self.commands                   = OrderedDict()
         self.input_files                = []
@@ -46,6 +47,7 @@ class ScriptTask(object):
         task["memory_max"]                  = self.memory_max
         task["storage_request"]             = self.storage_request
         task["pool_name"]                   = self.pool_name
+        task["instance_type"]               = self.instance_type
         task["calculate_storage"]           = self.calculate_storage
         task["commands"]                    = self.commands
         task["input_files"]                 = self.input_files
