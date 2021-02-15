@@ -74,7 +74,6 @@ class ModuleExecutor(object):
                 else:
                     dest_filename = None
                     dest_path = dest_dir
-                    dest_path = os.path.join(dest_dir, dest_filename)
 
                 # Show the final log file
                 logging.debug("Destination: {0}".format(dest_path))
