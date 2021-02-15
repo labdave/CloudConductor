@@ -10,6 +10,7 @@ import importlib
 import subprocess as sp
 
 from System import GAPipeline
+from System.Datastore import GAPFile
 from Config import CustomFormatter
 from Aries.outputs import PackageLogFilter
 from Modules import Module, Splitter, Merger, PseudoMerger
@@ -246,6 +247,9 @@ def main():
         # if flag for saving the output definitions is set, save the output keys to the specified file
         if args.output_file:
             output_dict = module.get_output()
+            for k, v in output_dict.items():
+                if isinstance(v, GAPFile):
+                    output_dict[k] = v.path
             with open(args.output_file, 'w') as output_file:
                 output_file.write(json.dumps(output_dict))
 
