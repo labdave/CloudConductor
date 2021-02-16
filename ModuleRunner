@@ -206,6 +206,8 @@ def update_log_command(command, module):
     command = command.replace("!LOG2!", log_cmd_stderr)
     command = command.replace("!LOG3!", log_cmd_all)
 
+    return command
+
 
 def main():
 
@@ -238,7 +240,7 @@ def main():
 
         module_command = module.get_command()
 
-        update_log_command(module_command, args.module)
+        module_command = update_log_command(module_command, args.module.lower())
 
         # if flag set to save command, get command and save it to the specified file
         if args.command_file:
