@@ -151,6 +151,15 @@ class GAPipeline(object):
                 with open(report_path, "w") as out:
                     out.write(str(report))
             else:
+                report = self.__make_pipeline_report(err, err_msg, git_version)
+                report_path = f"{CC_MAIN_DIR}/{self.pipeline_id}_script_report.json"
+
+                # Publish report locally
+                with open(report_path, "w") as out:
+                    out.write(str(report))
+                
+                self.platform.publish_report(report_path)
+
                 report_path = f"{CC_MAIN_DIR}/{self.pipeline_id}_cc_script.json"
 
                 # Publish report locally
@@ -272,7 +281,7 @@ class GAPReport(object):
     @property
     def total_runtime(self):
         start_time = time.time()
-        end_time = time.time()
+        end_time = start_time
         for task in self.tasks:
             if task["start_time"] and task["start_time"] < start_time:
                 start_time = task["start_time"]
@@ -284,7 +293,8 @@ class GAPReport(object):
     def total_output_size(self):
         size = 0
         for output_file in self.output_files:
-            size += float(output_file["size"])
+            if output_file["size"]:
+                size += float(output_file["size"])
         return size
 
     def set_fail(self, err_msg=None):
