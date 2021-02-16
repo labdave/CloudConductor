@@ -193,6 +193,20 @@ def configure_import_paths():
     sys.path.insert(1, os.path.join(exec_dir, "Modules/Mergers/"))
 
 
+def update_log_command(command, module):
+    # Generating all the logging pipes
+    log_cmd_null    = f" |& tee -a /dev/null"
+    log_cmd_stdout  = f" | tee -a /data/log/{module}.log"
+    log_cmd_stderr  = f" > >(tee -a /dev/null) 2> >(tee -a /data/log/{module}.log >&2)"
+    log_cmd_all     = f" |& tee -a /data/log/{module}.log"
+
+    # Replacing the placeholders with the logging pipes
+    command = command.replace("!LOG0!", log_cmd_null)
+    command = command.replace("!LOG1!", log_cmd_stdout)
+    command = command.replace("!LOG2!", log_cmd_stderr)
+    command = command.replace("!LOG3!", log_cmd_all)
+
+
 def main():
 
     # Configure argparser
@@ -223,6 +237,8 @@ def main():
             __load_input_args(module, inputs)
 
         module_command = module.get_command()
+
+        update_log_command(module_command, args.module)
 
         # if flag set to save command, get command and save it to the specified file
         if args.command_file:
