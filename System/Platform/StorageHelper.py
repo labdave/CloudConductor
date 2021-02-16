@@ -253,7 +253,7 @@ class GoogleStorageCmdGenerator(StorageCmdGenerator):
         elif src_path.startswith("gs:"):
             if is_directory:
                 newdir = src_path.rstrip("/").rsplit("/", 1)[-1]
-                return f"{cmd} {src_path} {dest_dir}/{newdir} --progress"
+                return f"{cmd} {src_path} {dest_dir}{newdir} --progress"
             else:
                 return f"{cmd} {src_path} {dest_dir}"
         else:
