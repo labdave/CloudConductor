@@ -16,7 +16,7 @@ from Aries.outputs import PackageLogFilter
 from Modules import Module, Splitter, Merger, PseudoMerger
 from inspect import signature
 
-def __load_module(module_name, submodule=None, module_args=None):
+def __load_module(module_name, submodule=None, module_args=None, task_id=None):
 
         # Try importing the module
         try:
@@ -59,7 +59,7 @@ def __load_module(module_name, submodule=None, module_args=None):
         _class = _module.__dict__[submodule]
 
         # Generate the module ID
-        module_id = "%s" % (module_name)
+        module_id = "%s_%s" % (task_id, module_name)
         if submodule != module_name:
             module_id = "%s_%s" % (module_id, submodule)
 
@@ -126,6 +126,15 @@ def configure_argparser(argparser_obj):
                                dest='read_error',
                                required=False,
                                help="Argument used to flag the loading of a file for the error argument to a modules process_cmd_output function.")
+
+    # Output directory
+    argparser_obj.add_argument("-task", "--task_id",
+                               action="store",
+                               type=str,
+                               dest='task_id',
+                               required=False,
+                               help="Argument used to specify the task ID.")
+                           
 
     # Output dictionary file
     argparser_obj.add_argument("-o", "--output_file",
@@ -232,7 +241,10 @@ def main():
         if args.submodule == "None":
             args.submodule = None
 
-        module = __load_module(args.module, args.submodule, args.module_args)
+        if args.task_id == "None":
+            args.task_id = None
+
+        module = __load_module(args.module, args.submodule, args.module_args, args.task_id)
 
         if args.module_inputs:
             inputs = json.loads(args.module_inputs)

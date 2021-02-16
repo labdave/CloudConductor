@@ -151,7 +151,7 @@ class KubernetesJob(Instance):
         if self.script_task and self.script_task.update_input_required and job_name == self.script_task.task_id:
             # if the input for the given task needs to be updated because a parent's output will update
             update_command_task = {
-                "original_cmd": 'cd /CloudConductor && git pull && git checkout "${GIT_COMMIT}" && python3 ModuleRunner -m '+self.script_task.module_name+submodule_arg+' -inputs "${MODULE_INPUTS}" -c '+self.wrk_out_dir+'/command.txt -o '+self.wrk_out_dir+'/output_values.json',
+                "original_cmd": 'cd /CloudConductor && git pull && git checkout "${GIT_COMMIT}" && python3 ModuleRunner -m '+self.script_task.module_name+submodule_arg+' -task '+ self.script_task.task_id +' -inputs "${MODULE_INPUTS}" -c '+self.wrk_out_dir+'/command.txt -o '+self.wrk_out_dir+'/output_values.json',
                 "num_retries": self.default_num_cmd_retries,
                 "docker_image": "davelabhub/cloudconductor",
                 "docker_entrypoint": None,
@@ -176,7 +176,7 @@ class KubernetesJob(Instance):
         if self.script_task and self.script_task.post_processing_required and job_name == self.script_task.task_id:
             self.processes[job_name] = task
             process_output_task = {
-                "original_cmd": 'cd /CloudConductor && git pull && git checkout "${GIT_COMMIT}" && python3 ModuleRunner -m '+self.script_task.module_name+submodule_arg+' -inputs "${MODULE_INPUTS}" -ro '+log_file+' -o '+self.wrk_out_dir+'/output_values.json',
+                "original_cmd": 'cd /CloudConductor && git pull && git checkout "${GIT_COMMIT}" && python3 ModuleRunner -m '+self.script_task.module_name+submodule_arg+' -task '+ self.script_task.task_id +' -inputs "${MODULE_INPUTS}" -ro '+log_file+' -o '+self.wrk_out_dir+'/output_values.json',
                 "num_retries": self.default_num_cmd_retries,
                 "docker_image": "davelabhub/cloudconductor",
                 "docker_entrypoint": None,
