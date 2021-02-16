@@ -157,6 +157,20 @@ class KubernetesJob(Instance):
                 "docker_entrypoint": None,
             }
             self.processes["update_command_task"] = update_command_task
+            save_command = {
+                "original_cmd": f"rclone copyto {self.wrk_out_dir}/command.txt {final_output}/command.txt",
+                "num_retries": self.default_num_cmd_retries,
+                "docker_image": "rclone/rclone:1.52",
+                "docker_entrypoint": None,
+            }
+            self.processes["save_command"] = save_command
+            save_output_values = {
+                "original_cmd": f"rclone copyto {self.wrk_out_dir}/output_values.json {final_output}/output_values.json",
+                "num_retries": self.default_num_cmd_retries,
+                "docker_image": "rclone/rclone:1.52",
+                "docker_entrypoint": None,
+            }
+            self.processes["save_output_json"] = save_output_values
             task["original_cmd"] = f"cat {self.wrk_out_dir}/command.txt | bash"
             self.processes[job_name] = task
         if self.script_task and self.script_task.post_processing_required and job_name == self.script_task.task_id:
