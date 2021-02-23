@@ -18,8 +18,8 @@ from kubernetes import config, client
 class KubernetesCluster(Platform):
     CONFIG_SPEC = f"{CC_MAIN_DIR}/System/Platform/Kubernetes/Platform.validate"
 
-    def __init__(self, name, platform_config_file, final_output_dir):
-        super(KubernetesCluster, self).__init__(name, platform_config_file, final_output_dir, config_spec=self.CONFIG_SPEC)
+    def __init__(self, name, platform_config_file, final_output_dir, generate_script=False):
+        super(KubernetesCluster, self).__init__(name, platform_config_file, final_output_dir, config_spec=self.CONFIG_SPEC, generate_script=generate_script)
 
         self.jobs = {}
 
@@ -28,6 +28,7 @@ class KubernetesCluster(Platform):
         self.configuration = None
         self.batch_api = None
         self.core_api = None
+        self.status_manager = None
 
         self.service_provider = self.config.get("provider", 'GKE')
         self.gcp_secret_configured = "gcp_secret_configured" in self.config and self.config["gcp_secret_configured"]
@@ -39,6 +40,7 @@ class KubernetesCluster(Platform):
         self.cpu_reserve = self.config.get("cpu_reserve", 0.1)
         self.mem_reserve = self.config.get("mem_reserve", 1)
         self.pools = self.config.get("pools", [])
+        self.namespace = self.config.get("namespace", "cloud-conductor")
         self.persistent_volumes = self.config.get("persistent_volumes", [])
         self.storage_price = self.config.get("storage_price", 0)
 
@@ -50,6 +52,9 @@ class KubernetesCluster(Platform):
 
         # Obtain force_standard to see if we're forcing standard instances for this proc
         force_standard = kwargs.pop("force_standard", 'false')
+
+        # Obtain the script task if we are only generating a script for the CC run
+        script_task = kwargs.pop("script_task", None)
 
         job_name = f'{self.name[:20]}-{task_id[:25]}-{self.generate_unique_id()}'
 
@@ -74,6 +79,7 @@ class KubernetesCluster(Platform):
             "region": self.region,
             "zone": self.zone,
             "pools": self.pools,
+            "namespace": self.namespace,
             "persistent_volumes": self.persistent_volumes,
             "cpu_reserve": self.cpu_reserve,
             "mem_reserve": self.mem_reserve,
@@ -82,7 +88,8 @@ class KubernetesCluster(Platform):
             "aws_secret_configured": self.aws_secret_configured,
             "batch_api": self.batch_api,
             "core_api": self.core_api,
-            "status_manager": self.status_manager
+            "status_manager": self.status_manager,
+            "script_task": script_task
         })
 
         # Initialize new instance
@@ -109,25 +116,27 @@ class KubernetesCluster(Platform):
         self.batch_api = client.BatchV1Api(client.ApiClient(self.configuration))
         self.core_api = client.CoreV1Api(client.ApiClient(self.configuration))
 
-        self.status_manager = KubernetesStatusManager(self.batch_api, self.core_api)
+        self.status_manager = KubernetesStatusManager(self.batch_api, self.core_api, self.namespace)
         self.status_manager.start_job_monitoring()
 
     def init_platform(self):
-        # Authenticate the current platform
-        self.authenticate_platform()
+        if not self.generate_script:
+            # Authenticate the current platform
+            self.authenticate_platform()
 
-        # Validate the current platform
-        self.validate()
+            # Validate the current platform
+            self.validate()
 
     def validate(self):
-        try:
-            namespace_list = api_request(self.batch_api.list_namespaced_job, namespace='cloud-conductor')
-            if not namespace_list or not namespace_list.items:
-                logging.error("Failed to validate Kubernetes platform.")
-                raise RuntimeError("Failed to validate Kubernetes platform.")
-        except BaseException as e:
-            logging.error(f"Failed to validate Kubernetes platform.")
-            raise
+        if not self.generate_script:
+            try:
+                namespace_list = api_request(self.batch_api.list_namespaced_job, namespace=self.namespace)
+                if not namespace_list or not namespace_list.items:
+                    logging.error("Failed to validate Kubernetes platform.")
+                    raise RuntimeError("Failed to validate Kubernetes platform.")
+            except BaseException as e:
+                logging.error(f"Failed to validate Kubernetes platform.")
+                raise
 
     @staticmethod
     def standardize_instance(job_name, nr_cpus, mem, disk_space):
@@ -179,8 +188,8 @@ class KubernetesCluster(Platform):
     def clean_up(self):
         # Initialize the list of threads
         # destroy_threads = []
-
-        self.status_manager.stop_job_monitoring()
+        if not self.generate_script:
+            self.status_manager.stop_job_monitoring()
 
         # Launch the destroy process for each instance
         # for name, job_obj in self.jobs.items():

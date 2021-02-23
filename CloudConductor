@@ -18,6 +18,16 @@ available_plat_modules = {
     "Kubernetes": "KubernetesCluster"
 }
 
+def str2bool(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 
 def configure_argparser(argparser_obj):
 
@@ -112,6 +122,12 @@ def configure_argparser(argparser_obj):
                                     "   1 = Errors + Warnings\n"
                                     "   2 = Errors + Warnings + Info\n"
                                     "   3 = Errors + Warnings + Info + Debug")
+
+    # Generate task script
+    argparser_obj.add_argument("-gs", "--generate_script",
+                               action='store_true',
+                               dest='generate_script',
+                               help="Generate a task script that would be performed by the CC run without actually running the commands.")
 
     # Final output dir
     argparser_obj.add_argument("-o", "--output_dir",
@@ -213,6 +229,9 @@ def main():
     # Configure system resource limits
     configure_res_limit()
 
+    if args.generate_script:
+        args.platform_module = "KubernetesCluster"
+
     # Create pipeline object
     pipeline = GAPipeline(pipeline_id=args.pipeline_name,
                           graph_config=args.graph_config,
@@ -220,7 +239,8 @@ def main():
                           sample_data_config=args.sample_set_config,
                           platform_config=args.platform_config,
                           platform_module=args.platform_module,
-                          final_output_dir=args.final_output_dir)
+                          final_output_dir=args.final_output_dir,
+                          generate_script=args.generate_script)
 
     # Initialize variables
     err     = True

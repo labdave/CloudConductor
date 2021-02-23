@@ -87,7 +87,7 @@ class Module(object, metaclass=abc.ABCMeta):
 
         self.output[key] = value
 
-    def get_command(self):
+    def get_command(self, script_task=None):
 
         # Check that all required inputs are set
         err = False
@@ -99,8 +99,12 @@ class Module(object, metaclass=abc.ABCMeta):
 
             # Throw error if mandatory argument hasn't been set at runtime
             if not arg.is_set() and arg.is_mandatory():
-                logging.error("Module of type %s with id %s missing required input type: %s" % (self.__class__.__name__, self.module_id, arg_type))
-                err = True
+                if not script_task:
+                    logging.error("Module of type %s with id %s missing required input type: %s" % (self.__class__.__name__, self.module_id, arg_type))
+                    err = True
+                else:
+                    script_task.update_input_required = True
+                    arg.set("MISSING!")
         if err:
             # Raise error if any required arguments have not been set
             raise RuntimeError("Module could not generate command! Required inputs missing at runtime!")

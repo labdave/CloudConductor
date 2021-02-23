@@ -30,7 +30,7 @@ class KubernetesJob(Instance):
 
         self.task_prefix_filter = ['mkdir_wrk_dir', 'docker_pull']
 
-        self.namespace = 'cloud-conductor'
+        self.namespace = kwargs.pop("namespace", "cloud-conductor")
         self.nodepool_info = None
         self.volume_name = None
 
@@ -47,6 +47,9 @@ class KubernetesJob(Instance):
         # define how long the job lasts after completion
         self.termination_seconds = 600
 
+        # Get script task
+        self.script_task = kwargs.pop("script_task", None)
+
         # Obtain location specific information
         self.region = kwargs.pop("region")
         self.zone = kwargs.pop("zone")
@@ -61,6 +64,7 @@ class KubernetesJob(Instance):
         self.k8s_provider = kwargs.pop("provider")
 
         self.preemptible = kwargs.pop("preemptible", False)
+        self.final_output_dir = kwargs.pop("final_output_dir", "")
 
         all_pools = kwargs.pop("pools", [])
         self.extra_persistent_volumes = kwargs.pop("persistent_volumes", [])
@@ -76,7 +80,8 @@ class KubernetesJob(Instance):
 
         self.node_label, self.nodepool_info = self.get_nodepool_info()
 
-        self.status_manager.check_monitoring_status()
+        if not self.script_task:
+            self.status_manager.check_monitoring_status()
 
         self.run('mkdir_tmp_dir', 'sudo mkdir -p /data/tmp')
 
@@ -105,7 +110,7 @@ class KubernetesJob(Instance):
         # cmd = re.sub(r"{ (.*[\s\S]+);}", r"\1", cmd)
 
         # Checking if logging is required
-        if "!LOG" in cmd:
+        if "!LOG" in cmd or (self.script_task and self.script_task.post_processing_required and job_name == self.script_task.task_id):
 
             # Generate name of log file
             log_file = f"{job_name}.log"
@@ -119,10 +124,16 @@ class KubernetesJob(Instance):
             log_cmd_all     = f" |& tee -a {log_file}"
 
             # Replacing the placeholders with the logging pipes
-            cmd = cmd.replace("!LOG0!", log_cmd_null)
-            cmd = cmd.replace("!LOG1!", log_cmd_stdout)
-            cmd = cmd.replace("!LOG2!", log_cmd_stderr)
-            cmd = cmd.replace("!LOG3!", log_cmd_all)
+            if self.script_task and self.script_task.post_processing_required and job_name == self.script_task.task_id:
+                if "!LOG" in cmd:
+                    cmd = re.sub("!LOG[0-9]!", log_cmd_stdout, cmd)
+                else:
+                    cmd += f" {log_cmd_stdout}"
+            else:
+                cmd = cmd.replace("!LOG0!", log_cmd_null)
+                cmd = cmd.replace("!LOG1!", log_cmd_stdout)
+                cmd = cmd.replace("!LOG2!", log_cmd_stderr)
+                cmd = cmd.replace("!LOG3!", log_cmd_all)
 
         # Save original command
         original_cmd = cmd
@@ -135,17 +146,63 @@ class KubernetesJob(Instance):
             "docker_image": docker_image,
             "docker_entrypoint": docker_entrypoint
         }
-        self.processes[job_name] = task
+        final_output = self.final_output_dir.replace("//", "") + self.script_task.task_id.replace("-", "_")
+        submodule_arg = "" if not self.script_task.submodule_name else ' -sm '+self.script_task.submodule_name
+        if self.script_task and self.script_task.update_input_required and job_name == self.script_task.task_id:
+            # if the input for the given task needs to be updated because a parent's output will update
+            update_command_task = {
+                "original_cmd": 'cd /CloudConductor && git pull && git checkout "${GIT_COMMIT}" && python3 ModuleRunner -m '+self.script_task.module_name+submodule_arg+' -task '+ self.script_task.task_id +' -inputs "${MODULE_INPUTS}" -c '+self.wrk_out_dir+'/command.txt -o '+self.wrk_out_dir+'/output_values.json',
+                "num_retries": self.default_num_cmd_retries,
+                "docker_image": "davelabhub/cloudconductor",
+                "docker_entrypoint": None,
+            }
+            self.processes["update_command_task"] = update_command_task
+            save_command = {
+                "original_cmd": f"rclone copyto {self.wrk_out_dir}/command.txt {final_output}/command.txt",
+                "num_retries": self.default_num_cmd_retries,
+                "docker_image": "rclone/rclone:1.52",
+                "docker_entrypoint": None,
+            }
+            self.processes["save_command"] = save_command
+            save_output_values = {
+                "original_cmd": f"rclone copyto {self.wrk_out_dir}/output_values.json {final_output}/output_values.json",
+                "num_retries": self.default_num_cmd_retries,
+                "docker_image": "rclone/rclone:1.52",
+                "docker_entrypoint": None,
+            }
+            self.processes["save_output_json"] = save_output_values
+            task["original_cmd"] = f"cat {self.wrk_out_dir}/command.txt | bash"
+            self.processes[job_name] = task
+        if self.script_task and self.script_task.post_processing_required and job_name == self.script_task.task_id:
+            self.processes[job_name] = task
+            process_output_task = {
+                "original_cmd": 'cd /CloudConductor && git pull && git checkout "${GIT_COMMIT}" && python3 ModuleRunner -m '+self.script_task.module_name+submodule_arg+' -task '+ self.script_task.task_id +' -inputs "${MODULE_INPUTS}" -ro '+log_file+' -o '+self.wrk_out_dir+'/output_values.json',
+                "num_retries": self.default_num_cmd_retries,
+                "docker_image": "davelabhub/cloudconductor",
+                "docker_entrypoint": None,
+            }
+            self.processes["process_output"] = process_output_task
+            save_output_values = {
+                "original_cmd": f"rclone copyto {self.wrk_out_dir}/output_values.json {final_output}/output_values.json",
+                "num_retries": self.default_num_cmd_retries,
+                "docker_image": "rclone/rclone:1.52",
+                "docker_entrypoint": None,
+            }
+            self.processes["save_output_json"] = save_output_values
+        else:
+            self.processes[job_name] = task
 
     def destroy(self):
-        self.__cleanup_job()
+        if not self.script_task:
+            self.__cleanup_job()
 
         if self.start_time > 0 and self.stop_time == 0:
             self.stop_time = time.time()
         # stop monitoring the job
         self.monitoring = False
-
-        self.__cleanup_volume_claim()
+        
+        if not self.script_task:
+            self.__cleanup_volume_claim()
 
     def wait_process(self, proc_name):
         if proc_name == "return_logs" and self.failed_container:
@@ -165,41 +222,45 @@ class KubernetesJob(Instance):
             logging.debug(f"({self.name}) Starting creation of Kubernetes followup job.")
 
         # create the persistent volume claim for the job if one doesn't already exist
-        if not self.pvc_name:
+        if not self.pvc_name and not self.script_task:
             self.__create_volume_claim()
+        elif self.script_task:
+            self.script_task.storage_request = self.disk_space
 
         # create the job definition
-        self.job_def = self.__create_job_def()
+        self.job_def = self.__create_job_def(return_last_task_log)
 
-        self.__launch_job()
+        # launch and monitor the job if we're not just generating a script
+        if not self.script_task:
+            self.__launch_job()
 
-        # begin monitoring job for completion/failure
-        self.monitoring = True
-        while self.monitoring:
-            time.sleep(5)
-            job_status = self.get_status(log_status=True)
-            if job_status and (job_status.succeeded or (job_status.failed and job_status.failed >= self.default_num_cmd_retries and not job_status.active)):
-                self.monitoring = False
-                if job_status.succeeded:
-                    self.stop_time = job_status.completion_time.timestamp()
-                    logging.info(f"({self.name}) Process complete!")
-                    if return_last_task_log:
-                        logging.debug("Returning logs from last process.")
-                        logs = self.__get_container_log(self.job_containers[len(self.job_containers)-1].name)
-                        return logs, ''
-                elif job_status.failed and job_status.failed >= self.default_num_cmd_retries and not job_status.active:
-                    logging.warning(f"{self.name}) Job marked as failed. Status response:\n{str(job_status)}")
-                    # check for this last ( only when job is no longer active ) because our job is allowed to fail multiple times
-                    # job_status will hold the number of times it has failed
-                    if job_status and job_status.conditions:
-                        self.stop_time = job_status.conditions[0].last_transition_time.timestamp()
-                    else:
-                        self.stop_time = time.time()
-                    self.failed_container = self.__get_failed_container()
-                    if self.failed_container:
-                        logging.error(f"({self.name}) Instance failed during task: {self.failed_container['name']} with command {self.failed_container['args']}.")
-                        logging.error(f"({self.name}) Logs from failed task: \n {self.failed_container['log']}")
-                    raise RuntimeError(f"({self.name}) Instance failed!")
+            # begin monitoring job for completion/failure
+            self.monitoring = True
+            while self.monitoring:
+                time.sleep(5)
+                job_status = self.get_status(log_status=True)
+                if job_status and (job_status.succeeded or (job_status.failed and job_status.failed >= self.default_num_cmd_retries and not job_status.active)):
+                    self.monitoring = False
+                    if job_status.succeeded:
+                        self.stop_time = job_status.completion_time.timestamp()
+                        logging.info(f"({self.name}) Process complete!")
+                        if return_last_task_log:
+                            logging.debug("Returning logs from last process.")
+                            logs = self.__get_container_log(self.job_containers[len(self.job_containers)-1].name)
+                            return logs, ''
+                    elif job_status.failed and job_status.failed >= self.default_num_cmd_retries and not job_status.active:
+                        logging.warning(f"{self.name}) Job marked as failed. Status response:\n{str(job_status)}")
+                        # check for this last ( only when job is no longer active ) because our job is allowed to fail multiple times
+                        # job_status will hold the number of times it has failed
+                        if job_status and job_status.conditions:
+                            self.stop_time = job_status.conditions[0].last_transition_time.timestamp()
+                        else:
+                            self.stop_time = time.time()
+                        self.failed_container = self.__get_failed_container()
+                        if self.failed_container:
+                            logging.error(f"({self.name}) Instance failed during task: {self.failed_container['name']} with command {self.failed_container['args']}.")
+                            logging.error(f"({self.name}) Logs from failed task: \n {self.failed_container['log']}")
+                        raise RuntimeError(f"({self.name}) Instance failed!")
 
     def finalize(self):
         pass
@@ -342,14 +403,12 @@ class KubernetesJob(Instance):
                 else:
                     raise RuntimeError(f"({self.name}) Failure to create a Persistent Volume Claim on the cluster. Response: {str(pvc_response)}")
 
-    def __create_job_def(self, rerun=False):
+    def __create_job_def(self, post_processing_required=False):
         # initialize the job def body
         self.inst_name = self.name
         if self.job_count > 1:
             self.inst_name = self.inst_name + '-' + str(self.job_count)
-        if not rerun:
-            self.job_names[self.inst_name] = self.job_count
-            self.job_count += 1
+        self.job_count += 1
         job_def = client.V1Job(kind="Job")
         job_def.metadata = client.V1ObjectMeta(namespace=self.namespace, name=self.inst_name)
 
@@ -382,6 +441,17 @@ class KubernetesJob(Instance):
             limits={'cpu': cpu_request_max, 'memory': str(mem_request_max)+'G'},
             requests={'cpu': cpu_request_max*.8, 'memory': str(mem_request_max-1)+'G'}
         )
+
+        # update script task with job info
+        if self.script_task:
+            self.script_task.cpu_request = cpu_request_max*.8
+            self.script_task.cpu_max = cpu_request_max
+            self.script_task.memory_request = mem_request_max-1
+            self.script_task.memory_max = mem_request_max
+            self.script_task.instance_name = self.inst_name
+            self.script_task.force_standard = not self.preemptible
+            self.script_task.pool_name = str(self.node_label)
+            self.script_task.instance_type = str(self.nodepool_info["inst_type"])
 
         # place the job in the appropriate node pool
         node_label_dict = {'poolName': str(self.node_label)}
@@ -416,6 +486,10 @@ class KubernetesJob(Instance):
                             )
                         )
                     )
+
+                    # specify volumes for script task
+                    if self.script_task:
+                        self.script_task.extra_volumes.append({"path": pv["path"], "name": pv["volume_name"], "read_only": pv["read_only"], "claim_name": pv["pvc_name"]})
 
         # incorporate configured secrets
         if self.gcp_secret_configured:
@@ -498,6 +572,9 @@ class KubernetesJob(Instance):
                 )
             )
 
+            if self.script_task and container_name not in self.script_task.commands:
+                self.script_task.commands[container_name] = ({"name": formatted_container_name, "docker_image": container_image, "entrypoint": entrypoint, "args": [args]})
+
         job_spec = dict(
             backoff_limit=self.default_num_cmd_retries
         )
@@ -530,6 +607,13 @@ class KubernetesJob(Instance):
         )
 
         job_def.spec = client.V1JobSpec(template=job_template, **job_spec)
+
+        if self.script_task:
+            self.script_task.num_retries = self.default_num_cmd_retries
+            for k, v in job_labels.items():
+                self.script_task.labels.append({"key": k, "value": v})
+            for k, v in annotations.items():
+                self.script_task.annotations.append({"key": k, "value": v})
 
         return job_def
 

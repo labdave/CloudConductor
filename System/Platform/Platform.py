@@ -19,10 +19,13 @@ from System.Platform import Process
 class Platform(object, metaclass=abc.ABCMeta):
     API_SLEEP_CAP = 200
 
-    def __init__(self, name, platform_config_file, final_output_dir, config_spec=f"{CC_MAIN_DIR}/System/Platform/Platform.validate"):
+    def __init__(self, name, platform_config_file, final_output_dir, config_spec=f"{CC_MAIN_DIR}/System/Platform/Platform.validate", generate_script=False):
 
         # Platform name
         self.name = name
+
+        # Only generating script
+        self.generate_script = generate_script
 
         # Initialize platform config
         config_parser       = ConfigParser(platform_config_file, config_spec)
@@ -124,8 +127,8 @@ class Platform(object, metaclass=abc.ABCMeta):
 
 class CloudPlatform(Platform, metaclass=abc.ABCMeta):
 
-    def __init__(self, name, platform_config_file, final_output_dir):
-        super(CloudPlatform, self).__init__(name, platform_config_file, final_output_dir)
+    def __init__(self, name, platform_config_file, final_output_dir, generate_script=False):
+        super(CloudPlatform, self).__init__(name, platform_config_file, final_output_dir, generate_script=generate_script)
 
         # Obtain processing locations
         self.region = self.config["region"]
@@ -198,6 +201,9 @@ class CloudPlatform(Platform, metaclass=abc.ABCMeta):
 
         # Obtain force_standard to see if we're forcing standard instances for this proc
         force_standard = kwargs.pop("force_standard", 'false')
+
+        # Obtain the script task if we are only generating a script for the CC run
+        script_task = kwargs.pop("script_task", None)
 
         # Generate a unique instance name and associate it to the current request
         while True:
@@ -272,7 +278,8 @@ class CloudPlatform(Platform, metaclass=abc.ABCMeta):
 
             "platform": self, 
 
-            "force_standard": force_standard
+            "force_standard": force_standard,
+            "script_task": script_task 
         })
 
         # Also add the extra information

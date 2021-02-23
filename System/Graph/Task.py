@@ -92,6 +92,12 @@ class Task(object):
     def get_ID(self):
         return self.__task_id
 
+    def get_module_name(self):
+        return self.__module_name
+
+    def get_submodule_name(self):
+        return self.__submodule_name
+
     def get_module(self):
         return self.module
 

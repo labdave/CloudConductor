@@ -3,6 +3,7 @@ import time
 import os
 import math
 import logging
+import json
 
 from System.Workers import Thread
 from System.Graph import ModuleExecutor
@@ -20,7 +21,7 @@ class TaskWorker(Thread):
 
     STATUSES        = ["IDLE", "LOADING", "RUNNING", "FINALIZING", "COMPLETE", "CANCELLING", "FINALIZED"]
 
-    def __init__(self, task, datastore, platform):
+    def __init__(self, task, datastore, platform, script_task=None):
         # Class for executing task
 
         # Initialize new thread
@@ -29,6 +30,7 @@ class TaskWorker(Thread):
 
         # Task to be executed
         self.task = task
+        self.script_task = script_task
         self.module = self.task.get_module()
 
         # Datastore for getting/setting task output
@@ -145,6 +147,12 @@ class TaskWorker(Thread):
             # Compute disk space requirements
             docker_image    = None
             input_files     = self.datastore.get_task_input_files(self.task.get_ID())
+            if self.script_task:
+                # if generating a task script save the input files
+                self.script_task.input_files = [x.path for x in input_files]
+                self.script_task.module_name = self.task.get_module_name()
+                self.script_task.submodule_name = self.task.get_submodule_name()
+                self.script_task.post_processing_required = self.module.does_process_output
             if self.task.get_docker_image_id() is not None:
                 docker_image    = self.datastore.get_docker_image(docker_id=self.task.get_docker_image_id())
             disk_space      = self.__compute_disk_requirements(input_files, docker_image)
@@ -157,16 +165,16 @@ class TaskWorker(Thread):
             self.set_status(self.LOADING)
 
             # Check if there is any command that needs to be run
-            has_command = self.module.get_command() is not None
+            has_command = self.module.get_command(self.script_task) is not None
 
             # Create the specific processor for the task
             if has_command:
                 # Get processor capable of running job
-                self.proc = self.platform.get_instance(cpus, mem, disk_space, task_id=self.task.get_ID(), force_standard=force_standard)
+                self.proc = self.platform.get_instance(cpus, mem, disk_space, task_id=self.task.get_ID(), force_standard=force_standard, script_task=self.script_task)
                 logging.debug("(%s) Successfully acquired processor!" % self.task.get_ID())
             else:
                 # Get small processor
-                self.proc = self.platform.get_instance(1, 1, disk_space, task_id=self.task.get_ID(), force_standard=force_standard)
+                self.proc = self.platform.get_instance(1, 1, disk_space, task_id=self.task.get_ID(), force_standard=force_standard, script_task=self.script_task)
                 logging.debug("(%s) Successfully acquired processor!" % self.task.get_ID())
 
             # Check to see if pipeline has been cancelled
@@ -226,10 +234,11 @@ class TaskWorker(Thread):
                     # Post-process only last command output if necessary
                     if self.module.does_process_output:
                         # wait for all processes if processor runs them in a batch
-                        if self.proc.batch_processing:
-                            # wait for all processes
-                            out, err = self.proc.wait(return_last_task_log=True)
-                        self.module.process_cmd_output(out, err)
+                        if not self.script_task:
+                            if self.proc.batch_processing:
+                                # wait for all processes
+                                out, err = self.proc.wait(return_last_task_log=True)
+                            self.module.process_cmd_output(out, err)
 
                     if not self.module.is_resumable:
                         self.proc.add_checkpoint(False)  # mark a checkpoint after the command(s) have been run
@@ -245,10 +254,11 @@ class TaskWorker(Thread):
                     # Post-process command output if necessary
                     if self.module.does_process_output:
                         # wait for all processes if processor runs them in a batch
-                        if self.proc.batch_processing:
-                            # wait for all processes
-                            out, err = self.proc.wait(return_last_task_log=True)
-                        self.module.process_cmd_output(out, err)
+                        if not self.script_task:
+                            if self.proc.batch_processing:
+                                # wait for all processes
+                                out, err = self.proc.wait(return_last_task_log=True)
+                            self.module.process_cmd_output(out, err)
 
                     if not self.module.is_resumable:
                         self.proc.add_checkpoint(False)  # mark a checkpoint after the command has been run
@@ -272,9 +282,15 @@ class TaskWorker(Thread):
 
                 # Set the status to finalized
                 self.set_status(self.FINALIZING)
+            
+            if self.script_task:
+                self.script_task.input_values = {x: self.module.get_argument(x) for x in self.module.get_arguments()}
 
             if len(output_files) > 0:
-                self.module_executor.update_file_sizes(output_files)
+                if not self.script_task:
+                    self.module_executor.update_file_sizes(output_files)
+                else:
+                    self.script_task.output_files = [x.path for x in output_files]
 
             # Indicate that task finished without any errors
             if not self.__cancelled:
@@ -362,6 +378,9 @@ class TaskWorker(Thread):
 
         # Add sizes of each input file
         for input_file in input_files:
+            if not input_file.get_size() and self.script_task:
+                self.script_task.calculate_storage = True
+                continue
             # Overestimate for gzipped files
             if input_file.get_path().endswith(".gz"):
                 input_size += input_file.get_size()*5

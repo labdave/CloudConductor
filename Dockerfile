@@ -44,5 +44,6 @@ RUN /bin/bash -c "gcloud components install beta --quiet"
 RUN python3 -m pip install awscli --upgrade
 
 ENV PATH /CloudConductor:$PATH
+ENV PATH /ModuleRunner:$PATH
 
 CMD ["CloudConductor"]

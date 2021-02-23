@@ -19,11 +19,12 @@ from kubernetes import client, config, watch
 
 class KubernetesStatusManager(object):
 
-    def __init__(self, batch_api, core_api):
+    def __init__(self, batch_api, core_api, namespace):
 
         self.batch_api = batch_api
         self.core_api = core_api
         self.is_monitoring = False
+        self.namespace = namespace
 
         self.job_list = None
         self.job_watch = None
@@ -57,7 +58,7 @@ class KubernetesStatusManager(object):
         while self.pod_watch_reset < 5 and self.is_monitoring:
             try:
                 self.pod_watch = watch.Watch()
-                for event in self.pod_watch.stream(self.core_api.list_namespaced_pod, namespace='cloud-conductor'):
+                for event in self.pod_watch.stream(self.core_api.list_namespaced_pod, namespace=self.namespace):
                     pod = event['object']
                     if pod.kind == 'Pod':
                         pod_job = None
@@ -113,7 +114,7 @@ class KubernetesStatusManager(object):
             try:
                 self.job_watch = watch.Watch()
                 self.job_list = {}
-                for event in self.job_watch.stream(self.batch_api.list_namespaced_job, namespace='cloud-conductor'):
+                for event in self.job_watch.stream(self.batch_api.list_namespaced_job, namespace=self.namespace):
                     job_name = event['object'].metadata.name
                     if job_name:
                         self.job_watch_reset = 0
@@ -144,7 +145,7 @@ class KubernetesStatusManager(object):
 
     def update_statuses(self):
         try:
-            response = api_request(self.batch_api.list_namespaced_job, namespace='cloud-conductor')
+            response = api_request(self.batch_api.list_namespaced_job, namespace=self.namespace)
             if response and response.get("items"):
                 self.job_list = {job.get("metadata", {}).get("name"): job for job in response.get("items")}
         except Exception:

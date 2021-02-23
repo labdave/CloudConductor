@@ -1062,7 +1062,6 @@ class MoveUMIToBAMTag(Module):
     def __init__(self, module_id, is_docker = False):
         super(MoveUMIToBAMTag, self).__init__(module_id, is_docker)
         self.output_keys = ["bam"]
-        self.does_process_output = True
 
     def define_input(self):
         self.add_argument("bam",            is_required=True)
