@@ -20,7 +20,7 @@ class Arriba(Module):
         # Declare unique file name for bcf file
         sample_id       = self.get_argument("sample_id")
         fusions         = self.generate_unique_file_name(f"{sample_id}.fusions.tsv")
-        self.add_output("fusions",        fusions)
+        self.add_output("fusions",          fusions)
 
 
     def define_command(self):
