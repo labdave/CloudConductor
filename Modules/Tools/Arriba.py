@@ -42,6 +42,6 @@ class Arriba(Module):
         cmd += "/data/fusion_ref_arriba/blacklist_hg38_GRCh38_v2.0.0.tsv.gz "
         cmd += "/data/fusion_ref_arriba/known_fusions_hg38_GRCh38_v2.0.0.tsv.gz "
         cmd += "/data/fusion_ref_arriba/protein_domains_hg38_GRCh38_v2.0.0.gff3.gz "
-        cmd += f"{nr_cpus} {R1} {R2} !LOG3!"
+        cmd += f"{nr_cpus} {R1} {R2} !LOG3!; mv fusions.tsv {fusions}"
 
         return cmd
