@@ -40,4 +40,5 @@ class Arriba(Module):
         cmd += f" -v \"${PWD}/../data/{R1}:/read1.fastq.gz:ro\" -v \"${PWD}/../data/{R1}:/read2.fastq.gz:ro\""
         cmd += f" uhrigs/arriba:2.0.0 /bin/bash -c \"sed -i 's/$THREADS/{nr_cpus}/g' arriba*/run_arriba.sh; arriba.sh\""
         cmd += f" !LOG3!"
+        
         return cmd
