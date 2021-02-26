@@ -11,8 +11,8 @@ class Arriba(Module):
         self.add_argument("R2",             is_required=True)
         self.add_argument("sample_id",      is_required=True)
         self.add_argument("fusion_ref",     is_resource=True)
-        self.add_argument("nr_cpus",        default_value=2)
-        self.add_argument("mem",            default_value=13)
+        self.add_argument("nr_cpus",        default_value=16)
+        self.add_argument("mem",            default_value=60)
 
 
     def define_output(self):
@@ -40,5 +40,5 @@ class Arriba(Module):
         cmd += f" -v \"${PWD}/../data/{R1}:/read1.fastq.gz:ro\" -v \"${PWD}/../data/{R1}:/read2.fastq.gz:ro\""
         cmd += f" uhrigs/arriba:2.0.0 /bin/bash -c \"sed -i 's/$THREADS/{nr_cpus}/g' arriba*/run_arriba.sh; arriba.sh\""
         cmd += f" !LOG3!"
-        
+
         return cmd
