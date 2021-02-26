@@ -35,10 +35,13 @@ class Arriba(Module):
         fusions         = self.get_output("fusions")
 
         # Generate command
-        cmd = ""
-        cmd += f"docker run --rm --user root -v \"${{PWD}}/output:/output\" -v \"{fusion_ref}:/references:ro\""
-        cmd += f" -v \"{R1}:/read1.fastq.gz:ro\" -v \"{R2}:/read2.fastq.gz:ro\""
-        cmd += f" uhrigs/arriba:2.0.0 /bin/bash -c \"sed -i 's/$THREADS/{nr_cpus}/g' arriba*/run_arriba.sh; arriba.sh\""
-        cmd += f" !LOG3!"
+        cmd = "arriba_v2.1.0/run_arriba.sh "
+        cmd += "/data/fusion_ref_arriba/STAR_index_GRCh38_GENCODE28/ "
+        cmd += "/data/fusion_ref_arriba/GENCODE28.gtf "
+        cmd += "/data/fusion_ref_arriba/GRCh38.fa "
+        cmd += "/data/fusion_ref_arriba/blacklist_hg38_GRCh38_v2.0.0.tsv.gz "
+        cmd += "/data/fusion_ref_arriba/known_fusions_hg38_GRCh38_v2.0.0.tsv.gz "
+        cmd += "/data/fusion_ref_arriba/protein_domains_hg38_GRCh38_v2.0.0.gff3.gz "
+        cmd += f"{nr_cpus} {R1} {R2} !LOG3!"
 
         return cmd
