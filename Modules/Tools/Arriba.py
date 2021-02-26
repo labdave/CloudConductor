@@ -36,8 +36,8 @@ class Arriba(Module):
 
         # Generate command
         cmd = ""
-        cmd += f"docker run --rm --user root -v \"${PWD}/output:/output\" -v \"${PWD}/../data/{fusion_ref}:/references:ro\""
-        cmd += f" -v \"${PWD}/../data/{R1}:/read1.fastq.gz:ro\" -v \"${PWD}/../data/{R1}:/read2.fastq.gz:ro\""
+        cmd += f"docker run --rm --user root -v \"$\{PWD\}/output:/output\" -v \"$\{PWD\}/../data/{fusion_ref}:/references:ro\""
+        cmd += f" -v \"$\{PWD\}/../data/{R1}:/read1.fastq.gz:ro\" -v \"$\{PWD\}/../data/{R1}:/read2.fastq.gz:ro\""
         cmd += f" uhrigs/arriba:2.0.0 /bin/bash -c \"sed -i 's/$THREADS/{nr_cpus}/g' arriba*/run_arriba.sh; arriba.sh\""
         cmd += f" !LOG3!"
 
