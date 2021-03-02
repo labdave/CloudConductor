@@ -19,6 +19,7 @@ class Star(Module):
         self.add_argument("twopass_mode",               default_value="None")
         self.add_argument("read_group",                 is_required=True)
         self.add_argument("out_sam_mapq_unique",        is_required=False, default_value=60)
+        self.add_argument("quantTranscriptomeBan",      is_required=False, default_value="Singleend")
         self.add_argument("nr_cpus",                    is_required=True, default_value=12)
         self.add_argument("mem",                        is_required=True, default_value=75)
 
@@ -45,6 +46,7 @@ class Star(Module):
         twopass_mode                = self.get_argument("twopass_mode")
         read_group                  = self.get_argument("read_group")
         out_sam_mapq_unique         = self.get_argument("out_sam_mapq_unique")
+        quant_transcriptome_ban     = self.get_argument("quantTranscriptomeBan")
         nr_cpus                     = self.get_argument("nr_cpus")
         bam                         = self.get_output("bam").get_path()
 
@@ -66,15 +68,22 @@ class Star(Module):
         if self.get_argument("R2") is not None:
             cmd = "{0} --runThreadN {1} --genomeDir {2} --readFilesIn {3} {4} --outFileNamePrefix {5} --readFilesCommand {6} " \
                   "--quantMode {7} --outSAMunmapped {8} --outSAMtype {9} --twopassMode {10} --outSAMattrRGline {11} " \
-                  "--outSAMmapqUnique {12} !LOG3!".format(star, nr_cpus, ref, R1, R2, output_file_name_prefix,
-                                                     read_file_command, quant_mod, out_unmapped_within_sam,
-                                                     output_file_type, twopass_mode, read_group, out_sam_mapq_unique)
+                  "--outSAMmapqUnique {12} --quantTranscriptomeBan {13} !LOG3!".format(star, nr_cpus, ref, R1, R2,
+                                                                                       output_file_name_prefix,
+                                                                                       read_file_command, quant_mod,
+                                                                                       out_unmapped_within_sam,
+                                                                                       output_file_type, twopass_mode,
+                                                                                       read_group, out_sam_mapq_unique,
+                                                                                       quant_transcriptome_ban)
         else:
             cmd = "{0} --runThreadN {1} --genomeDir {2} --readFilesIn {3} --outFileNamePrefix {4} --readFilesCommand {5} " \
                   "--quantMode {6} --outSAMunmapped {7} --outSAMtype {8} --twopassMode {9} --outSAMattrRGline {10} " \
-                  "--outSAMmapqUnique {11} !LOG3!".format(star, nr_cpus, ref, R1, output_file_name_prefix,
-                                                          read_file_command, quant_mod, out_unmapped_within_sam,
-                                                          output_file_type, twopass_mode, read_group,
-                                                          out_sam_mapq_unique)
+                  "--outSAMmapqUnique {11} --quantTranscriptomeBan {12} !LOG3!".format(star,nr_cpus, ref, R1,
+                                                                                       output_file_name_prefix,
+                                                                                       read_file_command, quant_mod,
+                                                                                       out_unmapped_within_sam,
+                                                                                       output_file_type, twopass_mode,
+                                                                                       read_group, out_sam_mapq_unique,
+                                                                                       quant_transcriptome_ban)
 
         return cmd
