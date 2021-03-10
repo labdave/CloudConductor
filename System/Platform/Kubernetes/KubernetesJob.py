@@ -312,6 +312,8 @@ class KubernetesJob(Instance):
         return total_compute_cost + total_storage_cost
 
     def get_compute_price(self):
+        # initialize product_info to None in case API call fails
+        product_info = None
         if self.k8s_provider == 'EKS':
             pricing_url = f"https://banzaicloud.com/cloudinfo/api/v1/providers/amazon/services/eks/regions/{self.region}/products"
         else:
