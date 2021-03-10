@@ -1108,7 +1108,7 @@ class ModelSegments(_GATKBase):
     def __init__(self, module_id, is_docker=False):
         super(ModelSegments, self).__init__(module_id, is_docker)
         self.output_keys = ["model_begin_seg", "model_final_seg", "cr_seg", "model_begin_af_param",
-                            "model_begin_cr_param", "model_final_af_param", "model_final_cr_param"]
+                            "model_begin_cr_param", "model_final_af_param", "model_final_cr_param", "cr_igv_seg"]
 
     def define_input(self):
         self.define_base_args()
@@ -1131,6 +1131,7 @@ class ModelSegments(_GATKBase):
         # Generate rest of the output file names
         model_final_seg         = "{0}.modelFinal.seg".format(prefix)
         cr_seg                  = "{0}.cr.seg".format(prefix)
+        cr_igv_seg              = "{0}.cr.igv.seg".format(prefix)
         model_begin_af_param    = "{0}.modelBegin.af.param".format(prefix)
         model_begin_cr_param    = "{0}.modelBegin.cr.param".format(prefix)
         model_final_af_param    = "{0}.modelFinal.af.param".format(prefix)
@@ -1140,6 +1141,7 @@ class ModelSegments(_GATKBase):
         self.add_output("model_begin_seg",      model_begin_seg)
         self.add_output("model_final_seg",      model_final_seg)
         self.add_output("cr_seg",               cr_seg)
+        self.add_output("cr_igv_seg",           cr_igv_seg)
         self.add_output("model_begin_af_param", model_begin_af_param)
         self.add_output("model_begin_cr_param", model_begin_cr_param)
         self.add_output("model_final_af_param", model_final_af_param)

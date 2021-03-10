@@ -14,7 +14,7 @@ class CNV_Postprocess(Module):
         self.add_argument("nr_cpus",    default_value=1)
         self.add_argument("mem",        default_value=4)
         self.add_argument("sample_id",  is_required=True)
-        self.add_argument("seg_call",   is_required=True)
+        self.add_argument("cr_igv_seg", is_required=True)
 
 
     def define_output(self):
@@ -26,7 +26,7 @@ class CNV_Postprocess(Module):
 
     def define_command(self):
         # Module creator needs to use renamed arguments as required by CC
-        seg                     = self.get_argument("seg_call")
+        seg                     = self.get_argument("cr_igv_seg")
 
         # get output
         norm_seg                = self.get_output("norm_seg")
