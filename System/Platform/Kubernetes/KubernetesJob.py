@@ -312,6 +312,10 @@ class KubernetesJob(Instance):
         return total_compute_cost + total_storage_cost
 
     def get_compute_price(self):
+        # initialize product_info to None in case API call fails
+        product_info = None
+        # skip price calculations
+        """
         if self.k8s_provider == 'EKS':
             pricing_url = f"https://banzaicloud.com/cloudinfo/api/v1/providers/amazon/services/eks/regions/{self.region}/products"
         else:
@@ -330,7 +334,7 @@ class KubernetesJob(Instance):
                     raise RuntimeError(f"({self.name}) Failure to get pricing info. Reason: {str(e)}")
                 logging.warning(f"({self.name}) Exception when retrieving pricing info. We will retry the request ({request_count}/5).\nReason: {str(e)}")
                 time.sleep(30)
-
+        """
         if product_info:
             return product_info['onDemandPrice'] if not self.preemptible else product_info['spotPrice'][0]['price']
         else:
