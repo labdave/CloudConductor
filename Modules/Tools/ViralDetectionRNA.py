@@ -52,7 +52,7 @@ class ViralDetectionRNA(Module):
         cmd = "bash /usr/local/bin/viral_detection_rna.sh"
 
         # add arguments
-        cmd += " {0} {1} {2} {3} {4} {5} {6} {7} {8} {9}".format(
+        cmd += " {0} {1} {2} {3} {4} {5} {6} {7} {8}".format(
             bam, ref_masked_viral, nr_cpus,
             f, F, paired_prefix, outFilterMismatchNmax, outFilterMultimapNmax, limitOutSAMoneReadBytes)
 
