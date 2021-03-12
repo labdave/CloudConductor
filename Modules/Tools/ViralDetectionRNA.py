@@ -28,7 +28,8 @@ class ViralDetectionRNA(Module):
         sample_id       = self.get_argument("sample_id")
         paired_viral_sam  = self.generate_unique_file_name(sample_id+"_viral_rna_paired_Aligned.out.sam")
         paired_viral_logf = self.generate_unique_file_name(sample_id+"_viral_rna_paired_Log.final.out")
-        idxstats = self.generate_unique_file_name(sample_id+"_viral_rna_idxstats")
+        idxstats = self.generate_unique_file_name(sample_id+"_viral_rna_paired_idxstats.txt")
+
         #log_file        
         self.add_output("paired_viral_sam",       paired_viral_sam)
         self.add_output("paired_viral_logf",      paired_viral_logf)
