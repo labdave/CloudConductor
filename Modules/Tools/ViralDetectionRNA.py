@@ -5,7 +5,7 @@ class ViralDetectionRNA(Module):
     def __init__(self, module_id, is_docker=False):
         super(ViralDetectionRNA, self).__init__(module_id, is_docker)
         # Add output keys here if needed
-        self.output_keys = ["paired_viral_sam", "paired_viral_logf"]
+        self.output_keys = ["paired_viral_sam", "paired_viral_logf", "idxstats"]
 
 
     def define_input(self):
@@ -26,11 +26,13 @@ class ViralDetectionRNA(Module):
         # Module creator needs to define what the outputs are
         # based on the output keys provided during module creation
         sample_id       = self.get_argument("sample_id")
-        paired_viral_sam  = self.generate_unique_file_name(sample_id+"_viral_paired_Aligned.out.sam")
-        paired_viral_logf = self.generate_unique_file_name(sample_id+"_viral_paired_Log.final.out")
+        paired_viral_sam  = self.generate_unique_file_name(sample_id+"_viral_rna_paired_Aligned.out.sam")
+        paired_viral_logf = self.generate_unique_file_name(sample_id+"_viral_rna_paired_Log.final.out")
+        idxstats = self.generate_unique_file_name(sample_id+"_viral_rna_idxstats")
         #log_file        
         self.add_output("paired_viral_sam",       paired_viral_sam)
         self.add_output("paired_viral_logf",      paired_viral_logf)
+        self.add_output("idxstats",               idxstats)
 
 
     def define_command(self):
@@ -52,7 +54,7 @@ class ViralDetectionRNA(Module):
         cmd = "bash /usr/local/bin/viral_detection_rna.sh"
 
         # add arguments
-        cmd += " {0} {1} {2} {3} {4} {5} {6} {7} {8}".format(
+        cmd += " {0} {1} {2} {3} {4} {5} {6} {7} {8} {9}".format(
             bam, ref_masked_viral, nr_cpus,
             f, F, paired_prefix, outFilterMismatchNmax, outFilterMultimapNmax, limitOutSAMoneReadBytes)
 
