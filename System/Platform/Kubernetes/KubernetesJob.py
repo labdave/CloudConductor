@@ -123,6 +123,9 @@ class KubernetesJob(Instance):
             log_cmd_stderr  = f" > >(tee -a /dev/null) 2> >(tee -a {log_file} >&2)"
             log_cmd_all     = f" |& tee -a {log_file}"
 
+            if "!LOG2!" in cmd and ("> /" in cmd or ">/" in cmd):
+                log_cmd_stderr = f" 2> >(tee -a {log_file} >&2)"
+
             # Replacing the placeholders with the logging pipes
             if self.script_task and self.script_task.post_processing_required and job_name == self.script_task.task_id:
                 if "!LOG" in cmd:
