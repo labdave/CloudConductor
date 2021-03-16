@@ -20,6 +20,7 @@ class Strelka2(Module):
 
         self.add_argument("nr_cpus",        is_required=True, default_value=32)
         self.add_argument("mem",            is_required=True, default_value="nr_cpus*2")
+        self.add_argument("exome_flag",     is_required=True, default_value=True)
 
     def define_output(self):
 
@@ -41,6 +42,7 @@ class Strelka2(Module):
         regionfile          = self.get_argument("bed_gz")
         strelka2            = self.get_argument("strelka2")
         nr_cpus             = self.get_argument("nr_cpus")
+        exome_flag          = self.get_argument("exome_flag")
 
         # Convert bam list into string
         if isinstance(bamlist, list):
@@ -48,8 +50,16 @@ class Strelka2(Module):
         else:
             bam_string = "--bam {0}".format(bamlist)
 
-        cmd1 = "{0} {1} --referenceFasta {2} --callRegions={3} --runDir {4}".format(
-               strelka2, bam_string, refgenome, regionfile, self.run_directory)
+
+        # add exome flag to configuration if data is from any capture panel
+        if exome_flag:
+            cmd1 = "{0} {1} --referenceFasta {2} --exome --callRegions={3} --runDir {4}".format(
+                strelka2, bam_string, refgenome, regionfile, self.run_directory)
+        else:
+            cmd1 = "{0} {1} --referenceFasta {2} --callRegions={3} --runDir {4}".format(
+                strelka2, bam_string, refgenome, regionfile, self.run_directory)
+
+
         cmd2 = "{0}/runWorkflow.py -m local -j {1}".format(self.run_directory, nr_cpus)
 
         return [cmd1, cmd2]
