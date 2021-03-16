@@ -4,7 +4,7 @@ import logging
 class ClipBam(Module):
     def __init__(self, module_id, is_docker = True):
         super(ClipBam, self).__init__(module_id, is_docker)
-        self.output_keys = ["bam", "bam_idx"]
+        self.output_keys = ["bam"]
 
     def define_input(self):
         self.add_argument("bam",        is_required=True)
@@ -17,10 +17,8 @@ class ClipBam(Module):
 
         #generate unique file names
         bam = self.generate_unique_file_name(".hardclipped.bam")
-        bam_idx = self.generate_unique_file_name(".hardclipped.bam.idx")
 
         self.add_output("bam", bam)
-        self.add_output("bam_idx", bam_idx)
 
     def define_command(self):
 
