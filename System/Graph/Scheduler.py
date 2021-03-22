@@ -1,7 +1,7 @@
 import logging
 import time
 
-from System.Graph import TaskWorker
+from System.Graph import TaskWorker, ScriptTask
 
 
 class Scheduler(object):
@@ -50,6 +50,9 @@ class Scheduler(object):
                 # Start running tasks that are ready to run but aren't currently
                 if task_worker is None and self.task_graph.parents_complete(task_id) and not task.is_deprecated():
                     logging.info("Launching task: '%s'" % task_id)
+                    if task_id not in self.script_tasks:
+                        self.script_tasks[task_id] = ScriptTask(task_id)
+                        self.script_tasks[task_id].parents = self.task_graph.get_parents(task_id)
                     self.task_workers[task_id] = TaskWorker(task, self.datastore, self.platform, self.script_tasks[task_id])
                     self.task_workers[task_id].start()
 

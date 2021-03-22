@@ -70,10 +70,6 @@ class GAPipeline(object):
         # Load the graph
         self.graph = Graph(self.__graph_config)
 
-        for k, v in self.graph.adj_list.items():
-            self.script_tasks[k] = ScriptTask(k)
-            self.script_tasks[k].parents = v
-
         # Load platform
         plat_module     = importlib.import_module(self.__plat_module)
         plat_class      = plat_module.__dict__[self.__plat_module]
