@@ -16,6 +16,7 @@ class ScriptTask(object):
         self.memory_request             = None
         self.memory_max                 = None
         self.storage_request            = None
+        self.storage_multiplier         = 1
         self.pool_name                  = ""
         self.instance_type              = ""
         self.calculate_storage          = False
@@ -46,6 +47,7 @@ class ScriptTask(object):
         task["memory_request"]              = self.memory_request
         task["memory_max"]                  = self.memory_max
         task["storage_request"]             = self.storage_request
+        task["storage_multiplier"]          = self.storage_multiplier
         task["pool_name"]                   = self.pool_name
         task["instance_type"]               = self.instance_type
         task["calculate_storage"]           = self.calculate_storage
