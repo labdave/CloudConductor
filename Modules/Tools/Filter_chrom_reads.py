@@ -16,6 +16,7 @@ class Filter_chrom_reads(Module):
 		self.add_argument("mem",			default_value=200)
 		self.add_argument("F",				default_value=1294)
 		self.add_argument("bed",			is_resource=True)
+		self.add_argument("storage_multiplier", default_value=2)
 
 
 	def define_output(self):

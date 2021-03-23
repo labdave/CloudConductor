@@ -133,8 +133,9 @@ class TaskWorker(Thread):
             self.datastore.set_task_input_args(self.task.get_ID())
 
             # Compute task resource requirements
-            cpus            = self.module.get_argument("nr_cpus")
-            mem             = self.module.get_argument("mem")
+            cpus                = self.module.get_argument("nr_cpus")
+            mem                 = self.module.get_argument("mem")
+            storage_multiplier  = int(self.module.get_argument("storage_multiplier"))
 
             # see if we're forcing standard instances
             try:
@@ -153,9 +154,10 @@ class TaskWorker(Thread):
                 self.script_task.module_name = self.task.get_module_name()
                 self.script_task.submodule_name = self.task.get_submodule_name()
                 self.script_task.post_processing_required = self.module.does_process_output
+                self.script_task.storage_multiplier = storage_multiplier
             if self.task.get_docker_image_id() is not None:
                 docker_image    = self.datastore.get_docker_image(docker_id=self.task.get_docker_image_id())
-            disk_space      = self.__compute_disk_requirements(input_files, docker_image)
+            disk_space      = self.__compute_disk_requirements(input_files, docker_image) * storage_multiplier
             logging.debug("(%s) CPU: %s, Mem: %s, Disk space: %s" % (self.task.get_ID(), cpus, mem, disk_space))
 
             # Quit if pipeline is cancelled

@@ -38,6 +38,11 @@ class Module(object, metaclass=abc.ABCMeta):
         # Module output file directory
         self.output_dir = "/data/output/"
 
+        # create a default argument(s) for all modules here
+
+        # argument for multiplying the calculated storage for an individual module
+        self.add_argument("storage_multiplier", False, False, 1)
+
     @abc.abstractmethod
     def define_input(self):
         pass
