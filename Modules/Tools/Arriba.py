@@ -72,7 +72,6 @@ class Fusion_aggregator(Module):
 
         # Get arguments to run Arriba cleaner
         fusions             = self.get_argument("fusions")
-        nr_cpus             = self.get_argument("nr_cpus")
         merge_thresh        = self.get_argument("merge_thresh")
 
         # Get output paths
@@ -80,5 +79,43 @@ class Fusion_aggregator(Module):
 
         # Generate command
         cmd = f"python3 Merge_fusions.py {fusions} {cleaned_fusions} {merge_thresh} !LOG3!"
+
+        return cmd
+
+class Fusion_whitelist(Module):
+    def __init__(self, module_id, is_docker = False):
+        super(Fusion_whitelist, self).__init__(module_id, is_docker)
+        self.output_keys    = ["wl_fusions"]
+
+
+    def define_input(self):
+        self.add_argument("sample_id",          is_required=True)
+        self.add_argument("cleaned_fusions",    is_required=True)
+        self.add_argument("whitelist",          is_resource=True, is_required=True)
+        self.add_argument("nr_cpus",            default_value=2)
+        self.add_argument("mem",                default_value=8)
+
+
+    def define_output(self):
+
+        # Declare unique file name for bcf file
+        sample_id           = self.get_argument("sample_id")
+        wl_fusions          = self.generate_unique_file_name(f"{sample_id}.fusions.wl.tsv")
+        wl_fusions_details  = self.generate_unique_file_name(f"{sample_id}.fusions.wl.detailed.tsv")
+        self.add_output("wl_fusions",           wl_fusions)
+
+
+    def define_command(self):
+
+        # Get arguments to run Arriba whitelist
+        cleaned_fusions     = self.get_argument("cleaned_fusions")
+        whitelist           = self.get_argument("whitelist")
+
+        # Get output paths
+        wl_fusions          = self.get_output("wl_fusions")
+        
+
+        # Generate command
+        cmd = f"python3 Whitelist_fusions.py {cleaned_fusions} {whitelist} {wl_fusions} !LOG3!"
 
         return cmd
