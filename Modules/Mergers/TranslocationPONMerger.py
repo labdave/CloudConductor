@@ -9,7 +9,7 @@ class CreateTranslocationPanelOfNormals(Merger):
 
 
     def define_input(self):
-        self.add_argument("anno_vcf",               is_required=True)
+        self.add_argument("all_translocations",     is_required=True)
         self.add_argument("merge_distance",         default_value=10)
         self.add_argument("min_reads",              default_value=10)
         self.add_argument("min_samples",            default_value=5)
@@ -26,7 +26,7 @@ class CreateTranslocationPanelOfNormals(Merger):
 
     def define_command(self):
         # Get input
-        vcf_list                = self.get_argument("anno_vcf")
+        vcf_list                = self.get_argument("all_translocations")
         merge_distance          = self.get_argument("merge_distance")
         min_reads               = self.get_argument("min_reads")
         min_samples             = self.get_argument("min_samples")
