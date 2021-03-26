@@ -205,6 +205,9 @@ class Stats(Module):
 
         stats                       = self.get_output("stats")
 
+        if not bam and not transcriptome_mapped_bam:
+            raise Exception("Neither BAM nor Transcriptome BAM given.")
+
         if bam and transcriptome_mapped_bam:
             raise Exception("Both BAM and Transcriptome BAM given.")
 
