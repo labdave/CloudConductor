@@ -209,7 +209,7 @@ class Stats(Module):
             raise Exception("Neither BAM nor Transcriptome BAM given.")
 
         if bam and transcriptome_mapped_bam:
-            raise Exception("Both BAM and Transcriptome BAM given.")
+            bam = None
 
         # Generating Stats command
         samtools_stats_cmd = f'{samtools} stats -@ {nr_cpus}'
