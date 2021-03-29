@@ -181,7 +181,7 @@ class Stats(Module):
     def define_input(self):
         self.add_argument("bam")
         self.add_argument("bam_idx")
-        self.add_argument("transcriptome_mapped_bam")
+        self.add_argument("sorted_transcriptome_bam")
         self.add_argument("transcriptome_bam_idx")
         self.add_argument("samtools",                   is_required=True, is_resource=True)
         self.add_argument("remove_dups",                default_value=True)
@@ -197,7 +197,7 @@ class Stats(Module):
     def define_command(self):
         # Define command for running samtools stats from a platform
         bam                         = self.get_argument("bam")
-        transcriptome_mapped_bam    = self.get_argument("transcriptome_mapped_bam")
+        transcriptome_mapped_bam    = self.get_argument("sorted_transcriptome_bam")
         samtools                    = self.get_argument("samtools")
         remove_dups                 = self.get_argument("remove_dups")
         remove_overlaps             = self.get_argument("remove_overlaps")
