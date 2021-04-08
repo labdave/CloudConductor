@@ -532,6 +532,7 @@ class KubernetesJob(Instance):
 
         storage_image = 'gcr.io/cloud-builders/gsutil'
         storage_tasks = ['mkdir_', 'grant_']
+        container_name_list = []
 
         for k, v in self.processes.items():
             # if the process is for storage (i.e. mkdir, etc.)
@@ -563,6 +564,10 @@ class KubernetesJob(Instance):
             # format the container name and roll call to logging
             container_name = k.replace("_", "-").replace(".", "-").lower()
             formatted_container_name = container_name[:57] + '-' + Platform.generate_unique_id(id_len=5)
+            while formatted_container_name in container_name_list:
+                # make sure all container names are unique
+                formatted_container_name = container_name[:57] + '-' + Platform.generate_unique_id(id_len=5)
+            container_name_list.append(formatted_container_name)
 
             # args = f">&2 echo STARTING TASK {container_name} && " + args
 
