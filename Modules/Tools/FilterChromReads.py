@@ -80,7 +80,7 @@ class FilterLongInsertExonicReads(Module):
 	def define_command(self):
 		# Module creator needs to use renamed arguments as required by CC
 		sample_name				= self.get_argument("sample_name")
-		bam						= self.get_argument("bam")
+		input_bam				= self.get_argument("bam")
 		threads					= self.get_argument("nr_cpus")
 		thresh					= self.get_argument("thresh")
 		pad10_exon_bed			= self.get_argument("pad10_exon_bed")
@@ -94,7 +94,7 @@ class FilterLongInsertExonicReads(Module):
 
 		# add arguments
 		cmd += " {0} {1} {2} {3} {4}".format(
-			sample_name, bam, threads, thresh, pad10_exon_bed, bam, long_insert_bam)
+			sample_name, input_bam, threads, thresh, pad10_exon_bed, bam, long_insert_bam)
 
 		# add logging
 		cmd += " !LOG3!"
