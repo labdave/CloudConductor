@@ -39,8 +39,7 @@ class FilterChromReads(Module):
 		cmd = "bash /usr/local/bin/filter_chrom_reads.sh"
 
 		# add arguments
-		cmd += " {0} {1} {2} {3} {4}".format(
-			bam, threads, F, bam_out, bed)
+		cmd += f" {bam} {threads} {F} {bam_out} {bed}"
 
 		# add logging
 		cmd += " !LOG3!"
@@ -93,8 +92,7 @@ class FilterLongInsertExonicReads(Module):
 		cmd = "bash filter_long_insert_exonic_reads.sh"
 
 		# add arguments
-		cmd += " {0} {1} {2} {3} {4} {5} {6}".format(
-			sample_name, input_bam, threads, thresh, pad10_exon_bed, bam, long_insert_bam)
+		cmd += f" {sample_name} {input_bam} {threads} {thresh} {pad10_exon_bed} {bam} {long_insert_bam}"
 
 		# add logging
 		cmd += " !LOG3!"
