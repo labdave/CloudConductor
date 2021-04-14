@@ -38,9 +38,9 @@ class AggregateTranslocations(Merger):
         merged_fish_trls = self.get_output("merged_fish_trls")
 
         cmd = ""
-        cmd += f"python merge_translocations.py {merged_all_trls} {" ".join(all_translocations)} !LOG3!; "
-        cmd += f"python merge_translocations.py {merged_filt_trls} {" ".join(filt_translocations)} !LOG3!; "
-        cmd += f"python merge_translocations.py {merged_fish_trls} {" ".join(fish_translocations)} !LOG3!; "
+        cmd += f"python merge_translocations.py {merged_all_trls} {' '.join(all_translocations)} !LOG3!; "
+        cmd += f"python merge_translocations.py {merged_filt_trls} {' '.join(filt_translocations)} !LOG3!; "
+        cmd += f"python merge_translocations.py {merged_fish_trls} {' '.join(fish_translocations)} !LOG3!; "
 
         return cmd
 
