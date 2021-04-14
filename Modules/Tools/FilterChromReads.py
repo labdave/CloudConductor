@@ -3,7 +3,7 @@ from Modules import Module
 # Module created using CC_module_helper.py
 class FilterChromReads(Module):
 	def __init__(self, module_id, is_docker=False):
-		super(Filter_chrom_reads, self).__init__(module_id, is_docker)
+		super(FilterChromReads, self).__init__(module_id, is_docker)
 		# Add output keys here if needed
 		self.output_keys = ["bam", "bam_idx"]
 
