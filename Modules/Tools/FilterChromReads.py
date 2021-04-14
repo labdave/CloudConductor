@@ -93,7 +93,7 @@ class FilterLongInsertExonicReads(Module):
 		cmd = "bash filter_long_insert_exonic_reads.sh"
 
 		# add arguments
-		cmd += " {0} {1} {2} {3} {4}".format(
+		cmd += " {0} {1} {2} {3} {4} {5} {6}".format(
 			sample_name, input_bam, threads, thresh, pad10_exon_bed, bam, long_insert_bam)
 
 		# add logging
