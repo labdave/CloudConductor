@@ -46,9 +46,9 @@ class Arriba(Module):
 
         return cmd
 
-class Fusion_aggregator(Module):
+class FusionAggregator(Module):
     def __init__(self, module_id, is_docker = False):
-        super(Fusion_aggregator, self).__init__(module_id, is_docker)
+        super(FusionAggregator, self).__init__(module_id, is_docker)
         self.output_keys    = ["cleaned_fusions"]
 
 
@@ -82,9 +82,9 @@ class Fusion_aggregator(Module):
 
         return cmd
 
-class Fusion_whitelist(Module):
+class FusionWhitelist(Module):
     def __init__(self, module_id, is_docker = False):
-        super(Fusion_whitelist, self).__init__(module_id, is_docker)
+        super(FusionWhitelist, self).__init__(module_id, is_docker)
         self.output_keys    = ["wl_fusions"]
 
 
