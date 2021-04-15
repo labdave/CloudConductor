@@ -70,7 +70,7 @@ class FilterLongInsertExonicReads(Module):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
 		sample_name				= self.get_argument("sample_name")
-		bam						= self.generate_unique_file_name(f".{sample_name}.small_insert.bam")
+		bam						= self.generate_unique_file_name(f".{sample_name}.short_insert.bam")
 		self.add_output("bam",				bam)
 		long_insert_bam			= self.generate_unique_file_name(f".{sample_name}.long_insert.bam")
 		self.add_output("long_insert_bam",	long_insert_bam)
