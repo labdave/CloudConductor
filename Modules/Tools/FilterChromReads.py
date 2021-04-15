@@ -82,7 +82,7 @@ class FilterLongInsertExonicReads(Module):
 		input_bam				= self.get_argument("bam")
 		threads					= self.get_argument("nr_cpus")
 		thresh					= self.get_argument("thresh")
-		pad10_exon_bed			= self.get_argument("pad10_exon_bed")
+		padded_exon_bed			= self.get_argument("padded_exon_bed")
 
 		# get output
 		bam						= self.get_output("bam")
@@ -92,7 +92,7 @@ class FilterLongInsertExonicReads(Module):
 		cmd = "bash filter_long_insert_exonic_reads.sh"
 
 		# add arguments
-		cmd += f" {sample_name} {input_bam} {threads} {thresh} {pad10_exon_bed} {bam} {long_insert_bam}"
+		cmd += f" {sample_name} {input_bam} {threads} {thresh} {padded_exon_bed} {bam} {long_insert_bam}"
 
 		# add logging
 		cmd += " !LOG3!"
