@@ -49,9 +49,9 @@ class AggregateTranslocations(Merger):
         collapsed_fish_trls = self.get_output("collapsed_fish_trls")
 
         cmd = ""
-        cmd += f"python concatenate_translocations.py {concatenated_all_trls} {' '.join(all_translocations)} !LOG3!; "
-        cmd += f"python concatenate_translocations.py {concatenated_filt_trls} {' '.join(filt_translocations)} !LOG3!; "
-        cmd += f"python concatenate_translocations.py {concatenated_fish_trls} {' '.join(fish_translocations)} !LOG3!; "
+        cmd += f"python3 concatenate_translocations.py {concatenated_all_trls} {' '.join(all_translocations)} !LOG3!; "
+        cmd += f"python3 concatenate_translocations.py {concatenated_filt_trls} {' '.join(filt_translocations)} !LOG3!; "
+        cmd += f"python3 concatenate_translocations.py {concatenated_fish_trls} {' '.join(fish_translocations)} !LOG3!; "
         cmd += f"Rscript collapse_translocations.R -o {collapsed_filt_trls} -i {','.join(filt_translocations)} -d {merge_distance} !LOG3!; "
         cmd += f"Rscript collapse_translocations.R -o {collapsed_fish_trls} -i {','.join(fish_translocations)} -d {merge_distance} !LOG3!; "
 
