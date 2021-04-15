@@ -62,7 +62,7 @@ class FilterLongInsertExonicReads(Module):
 		self.add_argument("nr_cpus",		default_value=16)
 		self.add_argument("mem",			default_value=200)
 		self.add_argument("sample_name",	is_required=True)
-		self.add_argument("pad10_exon_bed",	is_resource=True)
+		self.add_argument("padded_exon_bed",is_resource=True)
 		self.add_argument("thresh",			default_value=500)
 
 
@@ -70,7 +70,7 @@ class FilterLongInsertExonicReads(Module):
 		# Module creator needs to define what the outputs are
 		# based on the output keys provided during module creation
 		sample_name				= self.get_argument("sample_name")
-		bam						= self.generate_unique_file_name(f".{sample_name}.small_insert.bam")
+		bam						= self.generate_unique_file_name(f".{sample_name}.short_insert.bam")
 		self.add_output("bam",				bam)
 		long_insert_bam			= self.generate_unique_file_name(f".{sample_name}.long_insert.bam")
 		self.add_output("long_insert_bam",	long_insert_bam)
@@ -82,7 +82,7 @@ class FilterLongInsertExonicReads(Module):
 		input_bam				= self.get_argument("bam")
 		threads					= self.get_argument("nr_cpus")
 		thresh					= self.get_argument("thresh")
-		pad10_exon_bed			= self.get_argument("pad10_exon_bed")
+		padded_exon_bed			= self.get_argument("padded_exon_bed")
 
 		# get output
 		bam						= self.get_output("bam")
@@ -92,7 +92,7 @@ class FilterLongInsertExonicReads(Module):
 		cmd = "bash filter_long_insert_exonic_reads.sh"
 
 		# add arguments
-		cmd += f" {sample_name} {input_bam} {threads} {thresh} {pad10_exon_bed} {bam} {long_insert_bam}"
+		cmd += f" {sample_name} {input_bam} {threads} {thresh} {padded_exon_bed} {bam} {long_insert_bam}"
 
 		# add logging
 		cmd += " !LOG3!"
