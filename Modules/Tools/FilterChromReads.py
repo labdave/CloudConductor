@@ -62,7 +62,7 @@ class FilterLongInsertExonicReads(Module):
 		self.add_argument("nr_cpus",		default_value=16)
 		self.add_argument("mem",			default_value=200)
 		self.add_argument("sample_name",	is_required=True)
-		self.add_argument("pad10_exon_bed",	is_resource=True)
+		self.add_argument("padded_exon_bed",is_resource=True)
 		self.add_argument("thresh",			default_value=500)
 
 
