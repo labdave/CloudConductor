@@ -882,6 +882,7 @@ class GetReadNames(Module):
         self.add_argument("bedtools",           is_required=True, is_resource=True)
         self.add_argument("samtools",           is_required=True, is_resource=True)
         self.add_argument("spliced_reads",      is_required=False)
+        self.add_argument("remove_dups",        is_required=False)
         self.add_argument("nr_cpus",            is_required=True, default_value=2)
         self.add_argument("mem",                is_required=True, default_value=4)
 
@@ -896,6 +897,8 @@ class GetReadNames(Module):
         bedtools        = self.get_argument("bedtools")
         samtools        = self.get_argument("samtools")
         spliced_reads   = self.get_argument("spliced_reads")
+        remove_dups     = self.get_argument("remove_dups")
+
 
         # get the file name to store the read names
         read_names = self.get_output("read_names")
@@ -906,7 +909,10 @@ class GetReadNames(Module):
             cmds = list()
 
             # Convert BAM to SAM
-            cmds.append("{0} view {1}".format(samtools, bam))
+            if remove_dups:
+                cmds.append("{0} view -F 1024 {1}".format(samtools, bam))
+            else:
+                cmds.append("{0} view {1}".format(samtools, bam))
 
             # Search for the "N" character in CIGAR string
             cmds.append('awk \'\"\'\"\'($6 ~ /N/)\'\"\'\"\'')
@@ -919,24 +925,40 @@ class GetReadNames(Module):
 
             return cmd
 
-        # Generating the commands that will be piped together
-        cmds = list()
 
-        # Intersect BAM with a given BED
-        if bed is not None:
-            cmds.append("{0} intersect -a {1} -b {2} -split".format(bedtools, bam, bed))
+        elif remove_dups:
+            # Generating the commands that will be piped together
+            cmds = list()
 
-        # Convert BAM to SAM
-        cmds.append("{0} view {1}".format(samtools, bam))
+            # Convert BAM to SAM
+            cmds.append("{0} view -F 1024 {1}".format(samtools, bam))
 
-        # get the read names
-        cmds.append("cut -f 1 > {0} !LOG2!".format(read_names))
+            # get the read names
+            cmds.append("cut -f 1 > {0} !LOG2!".format(read_names))
 
-        # Pipe everything together
-        cmd = " | ".join(cmds)
+            # Pipe everything together
+            cmd = " | ".join(cmds)
 
-        return cmd
+            return cmd
+        else:
 
+            # Generating the commands that will be piped together
+            cmds = list()
+
+            # Intersect BAM with a given BED
+            if bed is not None:
+                cmds.append("{0} intersect -a {1} -b {2} -split".format(bedtools, bam, bed))
+
+            # Convert BAM to SAM
+            cmds.append("{0} view {1}".format(samtools, bam))
+
+            # get the read names
+            cmds.append("cut -f 1 > {0} !LOG2!".format(read_names))
+
+            # Pipe everything together
+            cmd = " | ".join(cmds)
+
+            return cmd
 
 class CovertToSAM(Module):
     def __init__(self, module_id, is_docker=False):
