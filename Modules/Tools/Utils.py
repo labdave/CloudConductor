@@ -882,7 +882,7 @@ class GetReadNames(Module):
         self.add_argument("bedtools",           is_required=True, is_resource=True)
         self.add_argument("samtools",           is_required=True, is_resource=True)
         self.add_argument("spliced_reads",      is_required=False)
-        self.add_argument("remove_dups",        is_required=False) ###### NEW
+        self.add_argument("remove_dups",        is_required=False)
         self.add_argument("nr_cpus",            is_required=True, default_value=2)
         self.add_argument("mem",                is_required=True, default_value=4)
 
@@ -897,7 +897,7 @@ class GetReadNames(Module):
         bedtools        = self.get_argument("bedtools")
         samtools        = self.get_argument("samtools")
         spliced_reads   = self.get_argument("spliced_reads")
-        remove_dups     = self.get_argument("remove_dups") ###### NEW
+        remove_dups     = self.get_argument("remove_dups")
 
 
         # get the file name to store the read names
@@ -909,10 +909,10 @@ class GetReadNames(Module):
             cmds = list()
 
             # Convert BAM to SAM
-            if remove_dups:                                                 ###### NEW
-                cmds.append("{0} view -F 1024 {1}".format(samtools, bam))   ###### NEW
+            if remove_dups:
+                cmds.append("{0} view -F 1024 {1}".format(samtools, bam))
             else:
-                cmds.append("{0} view {1}".format(samtools, bam))           ###### NEW
+                cmds.append("{0} view {1}".format(samtools, bam))
 
             # Search for the "N" character in CIGAR string
             cmds.append('awk \'\"\'\"\'($6 ~ /N/)\'\"\'\"\'')
@@ -925,7 +925,7 @@ class GetReadNames(Module):
 
             return cmd
 
-        ############# NEW
+
         elif remove_dups:
             # Generating the commands that will be piped together
             cmds = list()
@@ -941,7 +941,7 @@ class GetReadNames(Module):
 
             return cmd
         else:
-        ############# END NEW
+
             # Generating the commands that will be piped together
             cmds = list()
 
