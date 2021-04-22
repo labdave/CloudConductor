@@ -8,7 +8,7 @@ class Index(Module):
 
     def define_input(self):
         self.add_argument("bam",        is_required=True)
-        self.add_argument("sorted_transcriptome_bam")
+        self.add_argument("transcriptome_mapped_bam")
         self.add_argument("samtools",   is_required=True, is_resource=True)
         self.add_argument("nr_cpus",    is_required=True, default_value=3)
         self.add_argument("mem",        is_required=True, default_value=10)
@@ -28,7 +28,7 @@ class Index(Module):
         self.add_output("bam_idx", bams_idx, is_path=True)
 
         # logic for the STAR generated Transcriptome BAM
-        sorted_transcriptome_bams = self.get_argument("sorted_transcriptome_bam")
+        sorted_transcriptome_bams = self.get_argument("transcriptome_mapped_bam")
 
         if sorted_transcriptome_bams:
             # Check if the input is a list
@@ -45,7 +45,7 @@ class Index(Module):
     def define_command(self):
         # Define command for running samtools index from a platform
         bam                         = self.get_argument("bam")
-        sorted_transcriptome_bam    = self.get_argument("sorted_transcriptome_bam")
+        sorted_transcriptome_bam    = self.get_argument("transcriptome_mapped_bam")
         samtools                    = self.get_argument("samtools")
 
         bam_idx                     = self.get_output("bam_idx")
@@ -86,7 +86,7 @@ class Index(Module):
 class Sort(Module):
     def __init__(self, module_id, is_docker = False):
         super(Sort, self).__init__(module_id, is_docker)
-        self.output_keys = ["sorted_bam","sorted_transcriptome_bam"]
+        self.output_keys = ["bam", "transcriptome_mapped_bam"]
 
     def define_input(self):
         self.add_argument("bam")
@@ -114,7 +114,7 @@ class Sort(Module):
                 sorted_bams = bams + ".sorted.bam"
 
             # Add new bams as output
-            self.add_output("sorted_bam", sorted_bams, is_path=True)
+            self.add_output("bam", sorted_bams, is_path=True)
 
         if transcriptome_bams:
             # Check if the input is a list
@@ -125,7 +125,7 @@ class Sort(Module):
                 sorted_transcriptome_bams = transcriptome_bams + ".sorted.bam"
 
             # Add new bams as output
-            self.add_output("sorted_transcriptome_bam", sorted_transcriptome_bams, is_path=True)
+            self.add_output("transcriptome_mapped_bam", sorted_transcriptome_bams, is_path=True)
 
 
     def define_command(self):
@@ -141,7 +141,7 @@ class Sort(Module):
 
         if bam:
 
-            sorted_bam = self.get_output("sorted_bam")
+            sorted_bam = self.get_output("bam")
 
             if isinstance(bam, list):
                 for b_in, b_out in zip(bam, sorted_bam):
@@ -152,7 +152,7 @@ class Sort(Module):
 
         if transcriptome_mapped_bam:
 
-            sorted_transcriptome_bam        = self.get_output("sorted_transcriptome_bam")
+            sorted_transcriptome_bam        = self.get_output("transcriptome_mapped_bam")
 
             if transcriptome_mapped_bam:
                 if isinstance(transcriptome_mapped_bam, list):
@@ -181,7 +181,7 @@ class Stats(Module):
     def define_input(self):
         self.add_argument("bam")
         self.add_argument("bam_idx")
-        self.add_argument("sorted_transcriptome_bam")
+        self.add_argument("transcriptome_mapped_bam")
         self.add_argument("transcriptome_bam_idx")
         self.add_argument("samtools",                   is_required=True, is_resource=True)
         self.add_argument("remove_dups",                default_value=True)
@@ -197,7 +197,7 @@ class Stats(Module):
     def define_command(self):
         # Define command for running samtools stats from a platform
         bam                         = self.get_argument("bam")
-        transcriptome_mapped_bam    = self.get_argument("sorted_transcriptome_bam")
+        transcriptome_mapped_bam    = self.get_argument("transcriptome_mapped_bam")
         samtools                    = self.get_argument("samtools")
         remove_dups                 = self.get_argument("remove_dups")
         remove_overlaps             = self.get_argument("remove_overlaps")
