@@ -11,7 +11,7 @@ class ViralDetectionDNA(Module):
     def define_input(self):
         # Module creator needs to define which arguments have is_resource=True
         # Module creator needs to rename arguments as required by CC
-        self.add_argument("dna_bam",                     is_required=True)
+        self.add_argument("bam",                     is_required=True)
         self.add_argument("sample_id",                  is_required=True)
         self.add_argument("nr_cpus",                    default_value=8)
         self.add_argument("mem",                        default_value=20.0)
@@ -33,7 +33,7 @@ class ViralDetectionDNA(Module):
 
     def define_command(self):
         # Module creator needs to use renamed arguments as required by CC
-        bam                     = self.get_argument("dna_bam")
+        bam                     = self.get_argument("bam")
         ref_masked_viral          = "/usr/local/bin/masked_viral_genomes_idx_BWA"
         nr_cpus                 = self.get_argument("nr_cpus")
         f                       = self.get_argument("f")
