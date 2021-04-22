@@ -44,15 +44,14 @@ class ViralDetectionDNA(Module):
 
         # get output
         paired_prefix                  = str(self.get_output("paired_viral_dna_sam")).replace("_aligned.sam", "")
-        log                            = str(self.get_output("paired_viral_dna_log"))
 
         # add module
         cmd = "bash /usr/local/bin/viral_detection_dna.sh"
 
         # add arguments
-        cmd += " {0} {1} {2} {3} {4} {5} 2>&1 | tee -a {6}".format(
+        cmd += " {0} {1} {2} {3} {4} {5}".format(
             bam, ref_masked_viral, nr_cpus,
-            f, F, paired_prefix, log)
+            f, F, paired_prefix)
 
         # add logging verbosity
         cmd += " !LOG3!"
