@@ -23,7 +23,7 @@ class ViralDetectionDNA(Module):
         # Module creator needs to define what the outputs are
         # based on the output keys provided during module creation
         sample_id       = self.get_argument("sample_id")
-        paired_viral_dna_sam  = self.generate_unique_file_name(sample_id+"_viral_dna_paired_Aligned.out.sam")
+        paired_viral_dna_sam  = self.generate_unique_file_name(sample_id+"_viral_dna_paired_aligned.sam")
         idxstats = self.generate_unique_file_name(sample_id+"_viral_dna_paired_idxstats.txt")
 
         #log_file        
@@ -34,7 +34,7 @@ class ViralDetectionDNA(Module):
     def define_command(self):
         # Module creator needs to use renamed arguments as required by CC
         bam                     = self.get_argument("bam")
-        ref_masked_viral          = "/usr/local/bin/masked_viral_genomes_idx_BWA"
+        ref_masked_viral          = "/usr/local/bin/masked_viral_genomes_idx_BWA/all_viral_masked.fa"
         nr_cpus                 = self.get_argument("nr_cpus")
         f                       = self.get_argument("f")
         F                       = self.get_argument("F")
