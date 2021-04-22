@@ -31,7 +31,7 @@ class ViralDetectionDNA(Module):
         #log_file        
         self.add_output("paired_viral_dna_sam",       paired_viral_dna_sam)
         self.add_output("idxstats",                   idxstats)
-        self.add_output("paired_viral_dna_log"        paired_viral_dna_log)
+        self.add_output("paired_viral_dna_log",        paired_viral_dna_log)
 
 
     def define_command(self):
