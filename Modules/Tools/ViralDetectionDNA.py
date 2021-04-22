@@ -5,7 +5,7 @@ class ViralDetectionDNA(Module):
     def __init__(self, module_id, is_docker=False):
         super(ViralDetectionDNA, self).__init__(module_id, is_docker)
         # Add output keys here if needed
-        self.output_keys = ["paired_viral_dna_sam","paired_viral_dna_log" "idxstats"]
+        self.output_keys = ["paired_viral_dna_sam","paired_viral_dna_log","idxstats"]
 
 
     def define_input(self):
