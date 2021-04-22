@@ -5,7 +5,7 @@ class ViralDetectionDNA(Module):
     def __init__(self, module_id, is_docker=False):
         super(ViralDetectionDNA, self).__init__(module_id, is_docker)
         # Add output keys here if needed
-        self.output_keys = ["paired_viral_dna_sam", "idxstats"]
+        self.output_keys = ["paired_viral_dna_sam","paired_viral_dna_log" "idxstats"]
 
 
     def define_input(self):
@@ -24,11 +24,14 @@ class ViralDetectionDNA(Module):
         # based on the output keys provided during module creation
         sample_id       = self.get_argument("sample_id")
         paired_viral_dna_sam  = self.generate_unique_file_name(sample_id+"_viral_dna_paired_aligned.sam")
+        paired_viral_dna_log = self.generate_unique_file_name(sample_id+"_viral_dna_paired_log.txt")
         idxstats = self.generate_unique_file_name(sample_id+"_viral_dna_paired_idxstats.txt")
+
 
         #log_file        
         self.add_output("paired_viral_dna_sam",       paired_viral_dna_sam)
-        self.add_output("idxstats",               idxstats)
+        self.add_output("idxstats",                   idxstats)
+        self.add_output("paired_viral_dna_log"        paired_viral_dna_log)
 
 
     def define_command(self):
@@ -41,14 +44,15 @@ class ViralDetectionDNA(Module):
 
         # get output
         paired_prefix                  = str(self.get_output("paired_viral_dna_sam")).replace("_aligned.sam", "")
+        log                            = str(self.get_output("paired_viral_dna_log"))
 
         # add module
         cmd = "bash /usr/local/bin/viral_detection_dna.sh"
 
         # add arguments
-        cmd += " {0} {1} {2} {3} {4} {5}".format(
+        cmd += " {0} {1} {2} {3} {4} {5} 2>&1 | tee -a {6}".format(
             bam, ref_masked_viral, nr_cpus,
-            f, F, paired_prefix)
+            f, F, paired_prefix, log)
 
         # add logging verbosity
         cmd += " !LOG3!"
