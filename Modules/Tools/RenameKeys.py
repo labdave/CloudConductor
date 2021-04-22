@@ -177,7 +177,7 @@ class RenameLongInsertBamToBam(Module):
 
     def define_output(self):
         # get bam file names from the sample sheet
-        bam = self.get_argument("long_insert_bam")
+        long_insert_bam = self.get_argument("long_insert_bam")
         self.add_output("bam", long_insert_bam)
 
     def define_command(self):
