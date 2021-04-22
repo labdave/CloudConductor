@@ -25,7 +25,6 @@ class BamToFastq(Module):
         r1 					= self.get_output("R1")
         r2 					= self.get_output("R2")
 
-#Veronica's change
         cmd = "samtools index {0} !LOG3!;".format(bam)
         cmd += "samtools sort -n {0} -o {1} !LOG3!;".format(bam, sorted_bam)
         cmd += "bedtools bamtofastq -i {0} -fq {1} -fq2 {2} !LOG3!".format(sorted_bam, r1, r2)
