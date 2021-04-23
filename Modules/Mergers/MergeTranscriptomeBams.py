@@ -6,7 +6,7 @@ class MergeTranscriptomeBams(Merger):
 
     def __init__(self, module_id, is_docker=False):
         super(MergeTranscriptomeBams, self).__init__(module_id, is_docker)
-        self.output_keys  = ["transcriptome_mapped_bam", "transcriptome_bam_idx"]
+        self.output_keys  = ["transcriptome_mapped_bam"]
 
     def define_input(self):
         self.add_argument("spliced_rna_transcriptome_bam")
@@ -22,10 +22,10 @@ class MergeTranscriptomeBams(Merger):
         # Declare merged bam output
 
         bam_out = self.generate_unique_file_name(extension=".bam")
-        bam_idx = "%s.bai" % bam_out
+        # bam_idx = "%s.bai" % bam_out
 
         self.add_output("transcriptome_mapped_bam", bam_out)
-        self.add_output("transcriptome_bam_idx",    bam_idx)
+        # self.add_output("transcriptome_bam_idx",    bam_idx)
 
     def define_command(self):
         # Obtaining the arguments
@@ -48,14 +48,14 @@ class MergeTranscriptomeBams(Merger):
 
         # remove all the missing bams
         bams = [bam for bam in bams if bam]
-        
+
         # generating the merging command
         merge_cmd = f'{samtools} merge -@ {nr_cpus} -o {transcriptome_mapped_bam} {" ".join(bams)}'
 
         # generating the index command
-        sort_merge_cmd = f'{samtools} index -@ {nr_cpus} {transcriptome_mapped_bam}'
+        # sort_merge_cmd = f'{samtools} index -@ {nr_cpus} {transcriptome_mapped_bam}'
 
         # final cmd to return
-        cmd = f'{";".join([merge_cmd, sort_merge_cmd])} !LOG2!'
+        # cmd = f'{";".join([merge_cmd, sort_merge_cmd])} !LOG2!'
 
-        return cmd
+        return merge_cmd
