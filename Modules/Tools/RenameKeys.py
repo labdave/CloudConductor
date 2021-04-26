@@ -1,6 +1,67 @@
 import os
 from Modules import Module
 
+
+class RenameUMI(Module):
+    def __init__(self, module_id, is_docker=False):
+        super(RenameUMI, self).__init__(module_id, is_docker)
+        self.output_keys = ["umi_bam"]
+
+    def define_input(self):
+        self.add_argument("bam", is_required=True)
+        self.add_argument("nr_cpus", default_value=1)
+        self.add_argument("mem", default_value=5)
+
+    def define_output(self):
+        # get bam file names from the sample sheet
+        bam = self.get_argument("bam")
+        self.add_output("umi_bam", bam)
+
+    def define_command(self):
+        cmd = "echo 'Wrapping input bam as umi_bam key...' !LOG3!"
+        return cmd
+
+
+class RenameTranscriptomeBamToBam(Module):
+    def __init__(self, module_id, is_docker=False):
+        super(RenameTranscriptomeBamToBam, self).__init__(module_id, is_docker)
+        self.output_keys = ["bam"]
+
+    def define_input(self):
+        self.add_argument("transcriptome_mapped_bam", is_required=True)
+        self.add_argument("nr_cpus", default_value=1)
+        self.add_argument("mem", default_value=5)
+
+    def define_output(self):
+        # get bam file names from the sample sheet
+        bam = self.get_argument("transcriptome_mapped_bam")
+        self.add_output("bam", bam)
+
+    def define_command(self):
+        cmd = "echo 'Wrapping input transcriptome_mapped_bam as bam key...' !LOG3!"
+        return cmd
+
+
+class RenameBamToTranscriptomeBam(Module):
+    def __init__(self, module_id, is_docker=False):
+        super(RenameBamToTranscriptomeBam, self).__init__(module_id, is_docker)
+        self.output_keys = ["transcriptome_mapped_bam"]
+
+    def define_input(self):
+        self.add_argument("bam", is_required=True)
+        self.add_argument("nr_cpus", default_value=1)
+        self.add_argument("mem", default_value=5)
+
+    def define_output(self):
+        # get bam file names from the sample sheet
+        bam = self.get_argument("bam")
+        self.add_output("transcriptome_mapped_bam", bam)
+
+    def define_command(self):
+        cmd = "echo 'Wrapping input bam as transcriptome_mapped_bam key...' !LOG3!"
+        return cmd
+
+
 class RenameRNA(Module):
     def __init__(self, module_id, is_docker=False):
         super(RenameRNA, self).__init__(module_id, is_docker)
@@ -26,24 +87,25 @@ class RenameRNA(Module):
         return cmd
 
 
-class RenameUMI(Module):
+class RenameRnaBamToBam(Module):
     def __init__(self, module_id, is_docker=False):
-        super(RenameUMI, self).__init__(module_id, is_docker)
-        self.output_keys = ["umi_bam"]
+        super(RenameRnaBamToBam, self).__init__(module_id, is_docker)
+        self.output_keys = ["bam"]
 
     def define_input(self):
-        self.add_argument("bam", is_required=True)
+        self.add_argument("rna_bam", is_required=True)
         self.add_argument("nr_cpus", default_value=1)
         self.add_argument("mem", default_value=5)
 
     def define_output(self):
         # get bam file names from the sample sheet
-        bam = self.get_argument("bam")
-        self.add_output("umi_bam", bam)
+        bam = self.get_argument("rna_bam")
+        self.add_output("bam", bam)
 
     def define_command(self):
-        cmd = "echo 'Wrapping input bam as umi_bam key...' !LOG3!"
+        cmd = "echo 'Wrapping input rna_bam as bam key...' !LOG3!"
         return cmd
+
 
 class RenameTranscriptomeBamToBam(Module):
     def __init__(self, module_id, is_docker=False):
@@ -64,10 +126,11 @@ class RenameTranscriptomeBamToBam(Module):
         cmd = "echo 'Wrapping input transcriptome_mapped_bam as bam key...' !LOG3!"
         return cmd
 
-class RenameBamToTranscriptomeBam(Module):
+
+class RenameBamToSplicedTxRNABam(Module):
     def __init__(self, module_id, is_docker=False):
-        super(RenameBamToTranscriptomeBam, self).__init__(module_id, is_docker)
-        self.output_keys = ["transcriptome_mapped_bam"]
+        super(RenameBamToSplicedTxRNABam, self).__init__(module_id, is_docker)
+        self.output_keys = ["spliced_rna_transcriptome_bam"]
 
     def define_input(self):
         self.add_argument("bam", is_required=True)
@@ -77,46 +140,109 @@ class RenameBamToTranscriptomeBam(Module):
     def define_output(self):
         # get bam file names from the sample sheet
         bam = self.get_argument("bam")
-        self.add_output("transcriptome_mapped_bam", bam)
+        self.add_output("spliced_rna_transcriptome_bam", bam)
 
     def define_command(self):
-        cmd = "echo 'Wrapping input bam as transcriptome_mapped_bam key...' !LOG3!"
+        cmd = "echo 'Wrapping input bam as spliced_rna_transcriptome_bam key...' !LOG3!"
         return cmd
 
-class RenameRnaBamToBam(Module):
+class RenameBamToSplicedTxDNABam(Module):
     def __init__(self, module_id, is_docker=False):
-        super(RenameRnaBamToBam, self).__init__(module_id, is_docker)
-        self.output_keys = ["bam"]
+        super(RenameBamToSplicedTxDNABam, self).__init__(module_id, is_docker)
+        self.output_keys = ["spliced_dna_transcriptome_bam"]
 
     def define_input(self):
-        self.add_argument("rna_bam", is_required=True)
+        self.add_argument("bam", is_required=True)
         self.add_argument("nr_cpus", default_value=1)
         self.add_argument("mem", default_value=5)
 
     def define_output(self):
         # get bam file names from the sample sheet
-        bam = self.get_argument("rna_bam")
-        self.add_output("bam", bam)
+        bam = self.get_argument("bam")
+        self.add_output("spliced_dna_transcriptome_bam", bam)
 
     def define_command(self):
-        cmd = "echo 'Wrapping input rna_bam as bam key...' !LOG3!"
+        cmd = "echo 'Wrapping input bam as spliced_dna_transcriptome_bam key...' !LOG3!"
         return cmd
 
-class RenameSortedBamToBam(Module):
+
+class RenameBamToShortInsertTxBam(Module):
     def __init__(self, module_id, is_docker=False):
-        super(RenameSortedBamToBam, self).__init__(module_id, is_docker)
-        self.output_keys = ["bam"]
+        super(RenameBamToShortInsertTxBam, self).__init__(module_id, is_docker)
+        self.output_keys = ["short_insert_rna_transcriptome_bam"]
 
     def define_input(self):
-        self.add_argument("sorted_bam", is_required=True)
+        self.add_argument("bam", is_required=True)
         self.add_argument("nr_cpus", default_value=1)
         self.add_argument("mem", default_value=5)
 
     def define_output(self):
         # get bam file names from the sample sheet
-        bam = self.get_argument("sorted_bam")
-        self.add_output("bam", bam)
+        bam = self.get_argument("bam")
+        self.add_output("short_insert_rna_transcriptome_bam", bam)
 
     def define_command(self):
-        cmd = "echo 'Wrapping input sorted_bam as bam key...' !LOG3!"
+        cmd = "echo 'Wrapping input bam as short_insert_rna_transcriptome_bam key...' !LOG3!"
         return cmd
+
+
+class RenameLongInsertBamToBam(Module):
+    def __init__(self, module_id, is_docker=False):
+        super(RenameLongInsertBamToBam, self).__init__(module_id, is_docker)
+        self.output_keys = ["bam"]
+
+    def define_input(self):
+        self.add_argument("long_insert_bam", is_required=True)
+        self.add_argument("nr_cpus", default_value=1)
+        self.add_argument("mem", default_value=5)
+
+    def define_output(self):
+        # get bam file names from the sample sheet
+        long_insert_bam = self.get_argument("long_insert_bam")
+        self.add_output("bam", long_insert_bam)
+
+    def define_command(self):
+        cmd = "echo 'Wrapping input long_insert_bam as bam key...' !LOG3!"
+        return cmd
+
+
+class RenameBamToLongInsertTxRNABam(Module):
+    def __init__(self, module_id, is_docker=False):
+        super(RenameBamToLongInsertTxRNABam, self).__init__(module_id, is_docker)
+        self.output_keys = ["long_insert_rna_transcriptome_bam"]
+
+    def define_input(self):
+        self.add_argument("bam", is_required=True)
+        self.add_argument("nr_cpus", default_value=1)
+        self.add_argument("mem", default_value=5)
+
+    def define_output(self):
+        # get bam file names from the sample sheet
+        bam = self.get_argument("bam")
+        self.add_output("long_insert_rna_transcriptome_bam", bam)
+
+    def define_command(self):
+        cmd = "echo 'Wrapping input bam as long_insert_rna_transcriptome_bam key...' !LOG3!"
+        return cmd
+
+
+class RenameBamToLongInsertTxDNABam(Module):
+    def __init__(self, module_id, is_docker=False):
+        super(RenameBamToLongInsertTxDNABam, self).__init__(module_id, is_docker)
+        self.output_keys = ["long_insert_dna_transcriptome_bam"]
+
+    def define_input(self):
+        self.add_argument("bam", is_required=True)
+        self.add_argument("nr_cpus", default_value=1)
+        self.add_argument("mem", default_value=5)
+
+    def define_output(self):
+        # get bam file names from the sample sheet
+        bam = self.get_argument("bam")
+        self.add_output("long_insert_dna_transcriptome_bam", bam)
+
+    def define_command(self):
+        cmd = "echo 'Wrapping input bam as long_insert_dna_transcriptome_bam key...' !LOG3!"
+        return cmd
+
+
