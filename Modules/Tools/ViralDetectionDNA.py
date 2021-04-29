@@ -24,7 +24,7 @@ class ViralDetectionDNA(Module):
         # based on the output keys provided during module creation
         sample_id       = self.get_argument("sample_id")
         paired_viral_dna_sam  = self.generate_unique_file_name(sample_id+"_viral_dna_paired_aligned.sam")
-        paired_viral_dna_all_log = self.generate_unique_file_name(sample_id+"_paired_viral_dna_all_log.txt")
+        paired_viral_dna_all_log = self.generate_unique_file_name(sample_id+"_viral_dna_paired_all_log.txt")
         idxstats = self.generate_unique_file_name(sample_id+"_viral_dna_paired_idxstats.txt")
 
 
