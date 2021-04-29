@@ -26,9 +26,9 @@ class ViralDetectionRNA(Module):
         # Module creator needs to define what the outputs are
         # based on the output keys provided during module creation
         sample_id       = self.get_argument("sample_id")
-        paired_viral_sam  = self.generate_unique_file_name(sample_id+"_viral_rna_paired_Aligned.out.sam")
+        paired_viral_sam  = self.generate_unique_file_name(sample_id+"_viral_rna_paired_STAR_Aligned.out.sam")
         paired_viral_logf = self.generate_unique_file_name(sample_id+"_viral_rna_paired_STAR_Log.final.out")
-        paired_viral_rna_all_log = self.generate_unique_file_name(sample_id+"_paired_viral_rna_all_log.txt")
+        paired_viral_rna_all_log = self.generate_unique_file_name(sample_id+"_viral_rna_paired_all_log.txt")
         idxstats = self.generate_unique_file_name(sample_id+"_viral_rna_paired_idxstats.txt")
 
         #log_file        
@@ -51,7 +51,7 @@ class ViralDetectionRNA(Module):
         
 
         # get output
-        paired_prefix                  = str(self.get_output("paired_viral_sam")).replace("Aligned.out.sam", "")
+        paired_prefix                  = str(self.get_output("paired_viral_sam")).replace("STAR_Aligned.out.sam", "")
 
         # add module
         cmd = "bash /usr/local/bin/viral_detection_rna.sh"
