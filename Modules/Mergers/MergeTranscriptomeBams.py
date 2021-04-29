@@ -50,7 +50,7 @@ class MergeTranscriptomeBams(Merger):
         bams = [bam for bam in bams if bam]
 
         # generating the merging command
-        merge_cmd = f'{samtools} merge -@ {nr_cpus} -o {transcriptome_mapped_bam} {" ".join(bams)}'
+        merge_cmd = f'{samtools} merge -@ {nr_cpus} {transcriptome_mapped_bam} {" ".join(bams)} !LOG3!'
 
         # generating the index command
         # sort_merge_cmd = f'{samtools} index -@ {nr_cpus} {transcriptome_mapped_bam}'
