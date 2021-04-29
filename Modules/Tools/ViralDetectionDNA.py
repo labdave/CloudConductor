@@ -5,7 +5,7 @@ class ViralDetectionDNA(Module):
     def __init__(self, module_id, is_docker=False):
         super(ViralDetectionDNA, self).__init__(module_id, is_docker)
         # Add output keys here if needed
-        self.output_keys = ["paired_viral_dna_sam","paired_viral_dna_log","idxstats"]
+        self.output_keys = ["paired_viral_dna_sam","paired_viral_dna_all_log","idxstats"]
 
 
     def define_input(self):
@@ -24,14 +24,15 @@ class ViralDetectionDNA(Module):
         # based on the output keys provided during module creation
         sample_id       = self.get_argument("sample_id")
         paired_viral_dna_sam  = self.generate_unique_file_name(sample_id+"_viral_dna_paired_aligned.sam")
-        paired_viral_dna_log = self.generate_unique_file_name(sample_id+"_viral_dna_paired_log.txt")
+        paired_viral_dna_all_log = self.generate_unique_file_name(sample_id+"_paired_viral_dna_all_log.txt")
         idxstats = self.generate_unique_file_name(sample_id+"_viral_dna_paired_idxstats.txt")
 
 
         #log_file        
         self.add_output("paired_viral_dna_sam",       paired_viral_dna_sam)
+        self.add_output("paired_viral_dna_all_log",        paired_viral_dna_all_log)
         self.add_output("idxstats",                   idxstats)
-        self.add_output("paired_viral_dna_log",        paired_viral_dna_log)
+
 
 
     def define_command(self):
