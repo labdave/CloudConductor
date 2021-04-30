@@ -5,7 +5,7 @@ class ViralDetectionDNA(Module):
     def __init__(self, module_id, is_docker=False):
         super(ViralDetectionDNA, self).__init__(module_id, is_docker)
         # Add output keys here if needed
-        self.output_keys = ["paired_viral_dna_sam","paired_viral_dna_all_log","idxstats"]
+        self.output_keys = ["paired_viral_dna_sam","single_viral_dna_sam","viral_dna_all_log","idxstats"]
 
 
     def define_input(self):
@@ -24,13 +24,15 @@ class ViralDetectionDNA(Module):
         # based on the output keys provided during module creation
         sample_id       = self.get_argument("sample_id")
         paired_viral_dna_sam  = self.generate_unique_file_name(sample_id+"_viral_dna_paired_aligned.sam")
-        paired_viral_dna_all_log = self.generate_unique_file_name(sample_id+"_viral_dna_paired_all_log.txt")
-        idxstats = self.generate_unique_file_name(sample_id+"_viral_dna_paired_idxstats.txt")
+        single_viral_dna_sam  = self.generate_unique_file_name(sample_id+"_viral_dna_single_aligned.sam")
+        viral_dna_all_log = self.generate_unique_file_name(sample_id+"_viral_dna_all_log.txt")
+        idxstats = self.generate_unique_file_name(sample_id+"_viral_dna_idxstats.txt")
 
 
         #log_file        
         self.add_output("paired_viral_dna_sam",       paired_viral_dna_sam)
-        self.add_output("paired_viral_dna_all_log",        paired_viral_dna_all_log)
+        self.add_output("single_viral_dna_sam",       single_viral_dna_sam)
+        self.add_output("viral_dna_all_log",        viral_dna_all_log)
         self.add_output("idxstats",                   idxstats)
 
 
@@ -44,7 +46,7 @@ class ViralDetectionDNA(Module):
         F                       = self.get_argument("F")
 
         # get output
-        paired_prefix                  = str(self.get_output("paired_viral_dna_sam")).replace("_aligned.sam", "")
+        prefix                  = str(self.get_output("paired_viral_dna_sam")).replace("_paired_aligned.sam", "")
 
         # add module
         cmd = "bash /usr/local/bin/viral_detection_dna.sh"
@@ -52,7 +54,7 @@ class ViralDetectionDNA(Module):
         # add arguments
         cmd += " {0} {1} {2} {3} {4} {5}".format(
             bam, ref_masked_viral, nr_cpus,
-            f, F, paired_prefix)
+            f, F, prefix)
 
         # add logging verbosity
         cmd += " !LOG3!"
