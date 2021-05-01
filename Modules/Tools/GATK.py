@@ -1113,7 +1113,7 @@ class ModelSegments(_GATKBase):
     def define_input(self):
         self.define_base_args()
         self.add_argument("sample_name",        is_required=True)
-        self.add_argument("denoise_copy_ratio", is_required=True)
+        self.add_argument("std_copy_ratio",     is_required=True)
         self.add_argument("nr_cpus",            default_value=4)
         self.add_argument("mem",                default_value=8)
         self.add_argument("mode",               is_required=True)
@@ -1149,7 +1149,7 @@ class ModelSegments(_GATKBase):
 
     def define_command(self):
         # Get input arguments
-        denoise_copy_ratio      = self.get_argument("denoise_copy_ratio")
+        std_copy_ratio          = self.get_argument("std_copy_ratio")
 
         # get the prefix for output file names
         prefix                  = self.get_output("model_begin_seg").get_filename().split(".modelBegin.seg")[0]
@@ -1170,7 +1170,7 @@ class ModelSegments(_GATKBase):
         cmd = "{0} ModelSegments".format(gatk_cmd)
 
         # add the rest of the arguments to command
-        cmd = "{0} --denoised-copy-ratios {1} --output-prefix {2} {3} {4}".format(cmd, denoise_copy_ratio, prefix,
+        cmd = "{0} --denoised-copy-ratios {1} --output-prefix {2} {3} {4}".format(cmd, std_copy_ratio, prefix,
                                                                                   output_file_flag, out_dir)
         # add arguments for global
         if mode == "global":
@@ -1234,7 +1234,7 @@ class PlotModeledSegments(_GATKBase):
     def define_input(self):
         self.define_base_args()
         self.add_argument("sample_name", is_required=True)
-        self.add_argument("denoise_copy_ratio", is_required=True)
+        self.add_argument("std_copy_ratio", is_required=True)
         self.add_argument("model_final_seg", is_required=True)
         self.add_argument("ref_dict", is_required=True)
         self.add_argument("nr_cpus", is_required=True, default_value=4)
@@ -1252,7 +1252,7 @@ class PlotModeledSegments(_GATKBase):
 
     def define_command(self):
         # Get input arguments
-        denoise_copy_ratio = self.get_argument("denoise_copy_ratio")
+        std_copy_ratio = self.get_argument("std_copy_ratio")
         model_final_seg = self.get_argument("model_final_seg")
         ref_dict = self.get_argument("ref_dict")
 
@@ -1273,7 +1273,7 @@ class PlotModeledSegments(_GATKBase):
 
         # add the rest of the arguments to command
         cmd = "{0} --denoised-copy-ratios {1} --segments {2} --sequence-dictionary {3} --output-prefix {4} {5} {6}" \
-              "".format(cmd, denoise_copy_ratio, model_final_seg, ref_dict, prefix, output_file_flag, out_dir)
+              "".format(cmd, std_copy_ratio, model_final_seg, ref_dict, prefix, output_file_flag, out_dir)
 
         return "{0} !LOG3!".format(cmd)
 
