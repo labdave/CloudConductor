@@ -1149,7 +1149,7 @@ class ModelSegments(_GATKBase):
 
     def define_command(self):
         # Get input arguments
-        std_copy_ratio          = self.get_argument("std_copy_ratio")
+        std_copy_ratio          = self.get_argument("std_copy_ratio")  # debug
 
         # get the prefix for output file names
         prefix                  = self.get_output("model_begin_seg").get_filename().split(".modelBegin.seg")[0]
