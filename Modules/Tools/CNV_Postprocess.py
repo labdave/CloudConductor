@@ -15,6 +15,7 @@ class CNV_Postprocess(Module):
         self.add_argument("mem",        default_value=4)
         self.add_argument("sample_id",  is_required=True)
         self.add_argument("cr_igv_seg", is_required=True)
+        self.add_argument("blacklist",  is_resource=True)
 
 
     def define_output(self):
@@ -27,15 +28,14 @@ class CNV_Postprocess(Module):
     def define_command(self):
         # Module creator needs to use renamed arguments as required by CC
         seg                     = self.get_argument("cr_igv_seg")
+        blacklist               = self.get_argument("blacklist")
 
         # get output
         norm_seg                = self.get_output("norm_seg")
 
         # add command
-        cmd = "python3 normalize.py {0} {1}".format(seg, norm_seg)
-
-        # add logging
-        cmd += " !LOG3!"
+        cmd = "python3 blacklist.py {0} temp.seg {1} !LOG3!; ".format(seg, blacklist)
+        cmd += "python3 normalize.py temp.seg {0} !LOG3! ".format(norm_seg)
 
         return cmd
 
